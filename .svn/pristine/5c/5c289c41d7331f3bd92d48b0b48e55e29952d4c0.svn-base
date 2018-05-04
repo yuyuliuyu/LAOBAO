@@ -1,0 +1,8 @@
+package com.lingnet.qxgl.service;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.WorkFlowChild;
+
+public interface WorkFlowService extends BaseService<String, WorkFlowChild>{
+    public  WorkFlowChild findnextbyid(String id);
+}

@@ -1,0 +1,235 @@
+package com.lingnet.hcm.entity.salary;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 薪酬项目
+ * XcSalaryItems entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "XC_SALARY_ITEMS")
+public class SalaryItems extends BaseEntity implements java.io.Serializable {
+
+    private static final long serialVersionUID = 6039817528086312311L;
+    private String depId;// 部门ID
+    private String name;// 名称
+    private Integer jwRule;// 进位规则 1.四舍五入到精度 2.进位到精度 3.舍位到精度 4.见分进角再四舍五入到元 5.四舍五入到角再进位到元 （去掉）
+    private String numberAccuracy;// 小数位数
+    private Integer addOrLess;// 增减属性 1:加 2:减3:其他
+    private Integer fixed;// 固定薪资项目 0:否 1:是
+    private Integer yd;// 异动项目 0:否 1:是
+    private Integer bzl;// 标准类项目 0:否 1:是
+    private Integer njl;// 年金类项目 0:否 1:是
+    private Integer tcl;// 统筹类项目 0:否 1:是
+    private Integer valueType;// 取值方式 1：期初值 2：期末值 3：按工作日取值 4：按自然日取值 5：按周一到周五记日取值（去掉）
+    private Integer itemType;// 项目类型 1.普通薪资项目 2.应纳税所得额 3.应缴税金 4.实发工资 5.应发合计
+    private Integer type;// 状态 0：无效 1 有效
+    private Integer bj;// 状态 0：不可以 1 可以
+    private Integer itemPro;// 项目属性  1.考勤类2.工资类 3福利类 4.医保类
+    private Integer isDisplay;// 是否显示 0：不显示1 显示(标准类)
+    private Integer sx;// 顺序
+    private Integer isNumber;// 是数值
+    private Integer isDelete; // 0:未删除 1：删除
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public SalaryItems() {
+    }
+
+    @Column(name = "DEP_ID", length = 32)
+    public String getDepId() {
+        return this.depId;
+    }
+
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+
+    @Column(name = "NAME", length = 200)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Column(name = "JW_RULE", precision = 1, scale = 0)
+    public Integer getJwRule() {
+        return this.jwRule;
+    }
+
+    public void setJwRule(Integer jwRule) {
+        this.jwRule = jwRule;
+    }
+
+    @Column(name = "NUMBER_ACCURACY")
+    public String getNumberAccuracy() {
+        return this.numberAccuracy;
+    }
+
+    public void setNumberAccuracy(String numberAccuracy) {
+        this.numberAccuracy = numberAccuracy;
+    }
+
+    @Column(name = "ADD_OR_LESS", precision = 1, scale = 0)
+    public Integer getAddOrLess() {
+        return this.addOrLess;
+    }
+
+    public void setAddOrLess(Integer addOrLess) {
+        this.addOrLess = addOrLess;
+    }
+
+    @Column(name = "FIXED", precision = 1, scale = 0)
+    public Integer getFixed() {
+        return this.fixed;
+    }
+
+    public void setFixed(Integer fixed) {
+        this.fixed = fixed;
+    }
+
+    @Column(name = "VALUE_TYPE", precision = 1, scale = 0)
+    public Integer getValueType() {
+        return this.valueType;
+    }
+
+    public void setValueType(Integer valueType) {
+        this.valueType = valueType;
+    }
+
+    @Column(name = "ITEM_TYPE", precision = 2, scale = 0)
+    public Integer getItemType() {
+        return this.itemType;
+    }
+
+    public void setItemType(Integer itemType) {
+        this.itemType = itemType;
+    }
+
+    @Column(name = "TYPE", precision = 1, scale = 0)
+    public Integer getType() {
+        return this.type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+    @Column(name = "YD", precision = 1, scale = 0)
+    public Integer getYd() {
+        return yd;
+    }
+
+    public void setYd(Integer yd) {
+        this.yd = yd;
+    }
+
+    @Column(name = "BZL", precision = 1, scale = 0)
+    public Integer getBzl() {
+        return bzl;
+    }
+
+    public void setBzl(Integer bzl) {
+        this.bzl = bzl;
+    }
+
+    @Column(name = "NJL", precision = 1, scale = 0)
+    public Integer getNjl() {
+        return njl;
+    }
+
+    public void setNjl(Integer njl) {
+        this.njl = njl;
+    }
+
+    @Column(name = "TCL", precision = 1, scale = 0)
+    public Integer getTcl() {
+        return tcl;
+    }
+
+    public void setTcl(Integer tcl) {
+        this.tcl = tcl;
+    }
+
+    @Column(name = "SX")
+    public Integer getSx() {
+        return sx;
+    }
+
+    public void setSx(Integer sx) {
+        this.sx = sx;
+    }
+
+    @Column(name = "ITEM_PRO")
+    public Integer getItemPro() {
+        return itemPro;
+    }
+
+    public void setItemPro(Integer itemPro) {
+        this.itemPro = itemPro;
+    }
+
+    @Column(name = "IS_DISPLAY", precision = 1, scale = 0)
+    public Integer getIsDisplay() {
+        return isDisplay;
+    }
+
+    public void setIsDisplay(Integer isDisplay) {
+        this.isDisplay = isDisplay;
+    }
+
+    @Column(name = "BJ", precision = 1, scale = 0)
+    public Integer getBj() {
+        return bj;
+    }
+
+    public void setBj(Integer bj) {
+        this.bj = bj;
+    }
+
+    @Column(name = "IS_DELETE", precision = 1, scale = 0)
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
+    }
+
+    @Column(name = "IS_NUMBER", precision = 1, scale = 0)
+    public Integer getIsNumber() {
+        return isNumber;
+    }
+
+    public void setIsNumber(Integer isNumber) {
+        this.isNumber = isNumber;
+    }
+
+}

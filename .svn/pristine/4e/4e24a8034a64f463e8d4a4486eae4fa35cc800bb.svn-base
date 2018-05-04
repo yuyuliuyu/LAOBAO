@@ -1,0 +1,116 @@
+package com.lingnet.hcm.action.salary;
+
+import com.lingnet.common.action.BaseAction;
+
+/**
+ * 薪酬核算
+ * @ClassName: SalaryQuotaAction 
+ * @Description: 薪酬核算 
+ * @author zhanghj
+ * @date 2017年3月15日 上午9:39:21 
+ *
+ */
+public class SalaryQuotaAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 每月薪酬总额上报展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String allocation() {
+        return "allocation";
+    }
+
+    /**
+     * @Title: 工资分配过程
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String process() {
+        return "process";
+    }
+
+    /**
+     * @Title: 增加薪酬分配过程
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String processadd() {
+        return "processadd";
+    }
+
+    /**
+     * @Title: 工资分配过程
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String processData() {
+        return "processdata";
+    }
+
+    /**
+     * @Title: 工资审批发放
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String check() {
+        return "check";
+    }
+
+    /**
+     * @Title: 审核展示页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String checkData() {
+        return "checkdata";
+    }
+
+    /**
+     * @Title: 审核意见
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String audit() {
+        return "audit";
+    }
+
+}

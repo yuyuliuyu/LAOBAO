@@ -1,0 +1,335 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.salary.Formula;
+import com.lingnet.hcm.entity.salary.MonthSalary;
+import com.lingnet.hcm.entity.salary.SalaryBaseDictionary;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.entity.salary.SalaryRecord;
+import com.lingnet.hcm.service.salary.FormulaService;
+import com.lingnet.qxgl.entity.JcDictionary;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 公式表
+ * @ClassName: FormulaServiceImpl 
+ * @Description: 公式表
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+@Service("formulaService")
+public class FormulaServiceImpl extends BaseServiceImpl<Formula, String>
+              implements FormulaService {
+
+    @Override
+    public Date getCurDate() {
+        return new Date();
+    }
+
+    @Override
+    public int getYear(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        int year = cal.get(Calendar.YEAR);
+
+        return year;
+    }
+
+    @Override
+    public int getMonth(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        int month = cal.get(Calendar.MONTH);
+
+        return month;
+    }
+
+    @Override
+    public int getDay(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+
+        return day;
+    }
+
+    @Override
+    public int getMonthDays(int year, int month) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month, 1);
+        cal.add(Calendar.DATE, -1);
+        int days = cal.get(Calendar.DAY_OF_MONTH);
+
+        return days;
+    }
+
+    @Override
+    public String getGridRowStaffId(String staffId, Boolean noJoin) {
+        return staffId;
+    }
+
+    @Override
+    public String getBaseSalary(String staffId) {
+        SalaryRecord record = get(SalaryRecord.class, Restrictions.eq("staffId", staffId));
+        if (record != null) {
+            // 获取薪酬岗位
+            String salaryPost = record.getSalaryPost();
+            if (!StringUtils.isBlank(salaryPost)) {
+                StringBuilder sql = new StringBuilder();
+                sql.append("     SELECT SR.STAFF_ID, NVL(LLEVEL.XS, 0)+NVL(SBD.XS, 0) XS,  ");
+                sql.append("        NVL((TO_CHAR(SB.OUTSOL_DATE, 'yyyy')-TO_CHAR(SB.INSOL_DATE, 'yyyy') + 1), 0) SOLDIER_AGE,   ");
+                sql.append("        NVL(JBI.AGE, 0) AGE, NVL(JBI.SEX, -1) SEX,   ");
+                sql.append("        NVL(FLOOR(SYSDATE - TO_DATE(TO_CHAR(JBI.IN_PORT_TIME, 'yyyy-MM-dd'),'yyyy-MM-dd')), 0) joinG,   ");// 入港时间--》得到入港天数
+                sql.append("        NVL(TO_CHAR(SYSDATE, 'yyyy')-TO_CHAR(SR.GD_DATE, 'yyyy'), 0) GD_DATE    ");// 股东双方日期
+                sql.append("     FROM XC_SALARY_RECORD SR                                  ");
+                sql.append("     LEFT JOIN                                                 ");
+                sql.append("       (SELECT SBD.ZJLB_CODE, SDD.NAME,                        ");
+                sql.append("         SDD.ID, SBD.XS                                        ");
+                sql.append("       FROM XC_SALARY_BASE_DICTIONARY SBD                      ");
+                sql.append("       LEFT JOIN XC_SALARY_DEPT_DICTIONARY SDD                 ");
+                sql.append("       ON SBD.ZJLB_CODE  = SDD.ZJLB                            ");
+                sql.append("       AND SDD.IS_DELETE = 0                                   ");
+                sql.append("       WHERE SBD.TYPE    = 1                                   ");
+                sql.append("       AND SBD.IS_DELETE = 0                                   ");
+                sql.append("       ) LLEVEL                                                ");
+                sql.append("       ON SR.SALARY_POST = LLEVEL.ID                           ");
+                sql.append("     LEFT JOIN JC_BASIC_INFORMATION JBI                        ");
+                sql.append("       ON SR.STAFF_ID = JBI.ID                                 ");
+                sql.append("     LEFT JOIN XC_SALARY_BASE_DICTIONARY SBD                   ");
+                sql.append("       ON JBI.EMP_TYPE = SBD.ZJLB_CODE                         ");
+                sql.append("      AND SBD.TYPE = 2                                         ");
+                sql.append("      AND SBD.IS_DELETE = 0                                    ");
+                sql.append("     LEFT JOIN JC_SOLDIER_BACK SB                   ");
+                sql.append("       ON JBI.JOB_NUMBER = SB.JOB_NUMBER                         ");
+                sql.append("     WHERE SR.STAFF_ID = '"+staffId+"'                         ");
+                List<?> list = findBySql(sql.toString());
+                int totalXs = 0;
+                if (list.size() > 0) {
+                    Object[] obj = (Object[]) list.get(0);
+                    int xs = Integer.valueOf(obj[1].toString());
+                    int soldierAge = Integer.valueOf(obj[2].toString());// 在岗工龄= 军龄+进入股东双方日期
+                    int gdDate = Integer.valueOf(obj[6].toString());// 股东双方日期
+                    int age = Integer.valueOf(obj[3].toString());
+                    int sex = Integer.valueOf(obj[4].toString());
+                    int joinG = Integer.valueOf(obj[5].toString());
+
+                    // 查找在港工龄系数
+                    int zgglxs = 0;
+                    SalaryBaseDictionary dictionary = get(SalaryBaseDictionary.class,
+                            Restrictions.ge("zjlbCode", soldierAge + gdDate),
+                            Restrictions.lt("zjlbCode2", soldierAge + gdDate),
+                            Restrictions.eq("type", 3));
+                    if (dictionary != null) {
+                        zgglxs = dictionary.getXs();
+                    }
+
+                    // 年龄倾斜系数
+                    int nlqxxs = 0;
+                    if (sex != -1) {
+                        if (sex == 1) sex = 4;// 男
+                        else sex = 5;// 女
+                        SalaryBaseDictionary ageDictionary = get(SalaryBaseDictionary.class,
+                                Restrictions.ge("zjlbCode", age),
+                                Restrictions.lt("zjlbCode2", age),
+                                Restrictions.eq("type", sex));
+                        if (ageDictionary != null) {
+                            nlqxxs = dictionary.getXs();
+                        }
+                    }
+                    totalXs = xs + zgglxs + nlqxxs;
+
+                    // 3*单价*系数
+                    int year = joinG / 365;
+                    if (year > 0) {
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.setTime(new Date());
+                        int month = calendar.get(Calendar.MONTH) + 1;
+                        if (month == 1) {
+                            year += 1;// 一月份为初始月开始计算
+                        }
+                    }
+
+                    // 获取职级单价字典
+                    Double price = 0d;
+                    JcDictionary jcDictionary = get(JcDictionary.class, Restrictions.eq("pid", "402881945c75bcc7015c75c319d20007"),
+                            Restrictions.eq("dicname", (year==0?1: year)+""));
+                    if (jcDictionary != null) {
+                        price = Double.valueOf(jcDictionary.getDicvalue());
+                    } else {
+                        price = 1d;
+                    }
+
+                    return String.valueOf(3 * price * totalXs);
+                } else return "0";
+            } else {
+                return "0";
+            }
+        } else {
+            return "0";
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public String getStaffMonthAvgSalary(int offset, String staffId, Boolean noJoin) {
+        int year = new Date().getYear();
+        MonthSalary monthSalary = get(MonthSalary.class,
+                Restrictions.eq("staffId", staffId),
+                Restrictions.eq("effectiveYear", year - offset),
+                Restrictions.eq("isDelete", 0));
+        if (monthSalary == null) {
+            return "0";
+        } else return monthSalary.getAverageSalary();
+    }
+
+    @Override
+    public String getBaseCompanyToJf(String insuranceId) {
+        if (StringUtils.isBlank(insuranceId)) {
+            return "0";
+        }
+        SalaryInsurance insurance = get(SalaryInsurance.class,
+                Restrictions.eq("name", insuranceId),
+                Restrictions.eq("isDelete", 0));
+        if (insurance != null)
+            return insurance.getBaseCompanyMath();
+        else return "0";
+    }
+
+    @Override
+    public String getCompanyJfBl(String insuranceId) {
+        if (StringUtils.isBlank(insuranceId)) {
+            return "0";
+        }
+        SalaryInsurance insurance = get(SalaryInsurance.class,
+                Restrictions.eq("name", insuranceId),
+                Restrictions.eq("isDelete", 0));
+        if (insurance != null)
+            return insurance.getBiCompany();
+        else return "0";
+    }
+
+    @Override
+    public String getBasePersonalToJf(String insuranceId) {
+        if (StringUtils.isBlank(insuranceId)) {
+            return "0";
+        }
+        SalaryInsurance insurance = get(SalaryInsurance.class,
+                Restrictions.eq("name", insuranceId),
+                Restrictions.eq("isDelete", 0));
+        if (insurance != null)
+            return insurance.getBasePersonalMath();
+        else return "0";
+    }
+
+    @Override
+    public String getPersonalJfBl(String insuranceId) {
+        if (StringUtils.isBlank(insuranceId)) {
+            return "0";
+        }
+        SalaryInsurance insurance = get(SalaryInsurance.class,
+                Restrictions.eq("name", insuranceId),
+                Restrictions.eq("isDelete", 0));
+        if (insurance != null)
+            return insurance.getBiPersonal();
+        else return "0";
+    }
+
+    ////////////////////////////////  以下不属于对外开放的方法  ///////////////////////////////////////////
+    @Override
+    public String saveOrUpdate(String formdata) {
+        Formula formula = JsonUtil.toObject(formdata, Formula.class);
+        if (formula != null) {
+            if (StringUtils.isBlank(formula.getPid())) {
+                formula.setPid("-1");
+            }
+            if (StringUtils.isBlank(formula.getId())) {
+                Formula newFor = get(Formula.class, Restrictions.eq("methodEn", formula.getMethodEn()), Restrictions.eq("isDelete", 0));
+                if (newFor !=null) {
+                    return "该公式已经存在";
+                }
+                formula.setIsDelete(0);
+                String id = save(formula);
+                if (StringUtils.isBlank(id)) {
+                    return "保存失败";
+                }
+            } else {
+                Formula newFor = get(Formula.class, Restrictions.ne("id", formula.getId()),
+                        Restrictions.eq("methodEn", formula.getMethodEn()), Restrictions.eq("isDelete", 0));
+                if (newFor !=null) {
+                    return "该公式已经存在";
+                }
+                Formula newFormula = get(Formula.class, Restrictions.eq("id", formula.getId()),
+                        Restrictions.eq("isDelete", 0));
+                if (newFormula == null) {
+                    return "该公式不存在";
+                }
+                formula.setIsDelete(0);
+                newFormula.copyFrom(formula);
+                update(newFormula);
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            Formula formula = get(Formula.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (formula != null) {
+                formula.setIsDelete(1);
+                this.update(formula);
+            } else {
+                return "第"+(i+1)+"条记录不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getFullFormulaListData(String searchData) {
+        Conjunction and = Restrictions.conjunction();
+        Map<String, String> map = JsonUtil.parseProperties(searchData);
+        if (map != null) {
+            // 全局公式名称
+            if (!StringUtils.isBlank(map.get("method"))) {
+                and.add(Restrictions.like("method", map.get("method"), MatchMode.ANYWHERE));
+            }
+        }
+        List<Formula> list = getList(Formula.class, Restrictions.eq("isDelete", 0), and);
+        List<Map<String, Object>> newList = new ArrayList<Map<String,Object>>();
+        for (Formula formula : list) {
+            Map<String, Object> m = new HashMap<String, Object>();
+            m.put("id", formula.getId());
+            m.put("pid", formula.getPid());
+            m.put("method", formula.getMethod());
+            m.put("methodCn", formula.getMethodCn());
+            m.put("methodEn", formula.getMethodEn());
+            m.put("pubClass", formula.getPubClass());
+            m.put("description", formula.getDescription());
+            m.put("isDelete", formula.getIsDelete());
+//            m.put("service", "formulaService");
+            newList.add(m);
+        }
+
+        return newList;
+    }
+}

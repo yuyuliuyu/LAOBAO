@@ -1,0 +1,124 @@
+package com.lingnet.hcm.action.check;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkEvectionRecord;
+import com.lingnet.hcm.entity.check.CkOvertimeRecord;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+public class OvertimeRecordAction extends BaseAction{ 
+
+    private static final long serialVersionUID = 1L;
+    private String id;
+    private CkOvertimeRecord evection;
+    private String jsondate;
+    private String advid;
+    private String state;
+    private List<CkOvertimeRecord> evectionlist;
+    
+    public String list(){
+        return "list";
+    }
+    
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public String jsonlist(){
+        try {
+            if(state==null||"".equals(state.trim())){
+                pager=this.findPager(CkOvertimeRecord.class, pager, Restrictions.isNotNull("id"));
+            }else{
+                pager=this.findPager(CkOvertimeRecord.class, pager,Restrictions.isNotNull("id"),Restrictions.eq("field2",LingUtil.userinfo().getUsername()));
+            }
+        } catch (Exception e) { 
+            e.printStackTrace();
+        } 
+        Map result = new HashMap(); 
+        result.put("data", pager.getResult()); 
+        result.put("total", pager.getTotalCount()); 
+        String json=JsonUtil.Encode(result);
+        return ajax(Status.success,json);
+    }
+    
+    public String add(){
+        if(id==null||"".equals(id.trim())){
+            evection=new CkOvertimeRecord(); 
+            evection.setEmpId(LingUtil.userinfo().getUsername());
+            evection.setApplyName(LingUtil.userinfo().getName());
+        }else{
+            evection=this.getBeanById(CkOvertimeRecord.class, id);
+        }
+        return "add";
+    }
+    
+    public String saveOrUpdate(){
+        if(jsondate==null||"".equals(jsondate.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        evection=JsonUtil.toObject(jsondate, CkOvertimeRecord.class);
+        if(evection==null){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else if(evection.getId()==null||"".equals(evection.getId().trim())){
+            this.save(evection);
+        }else{
+            this.update(evection);
+        }
+        return ajax(Status.success,"保存成功");
+    }
+    
+    public String remove(){
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else{
+            try {
+                this.deleteByCriteria(CkOvertimeRecord.class, id);
+                return ajax(Status.success,"删除成功");
+            } catch (Exception e) {
+                return ajax(Status.success,"数据错误，请联系管理员");
+            }
+        }
+    }
+
+/*----------------------********************************************************************/
+    
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public CkOvertimeRecord getEvection() {
+        return evection;
+    }
+    public void setEvection(CkOvertimeRecord evection) {
+        this.evection = evection;
+    }
+    public String getJsondate() {
+        return jsondate;
+    }
+    public void setJsondate(String jsondate) {
+        this.jsondate = jsondate;
+    }
+    public String getAdvid() {
+        return advid;
+    }
+    public void setAdvid(String advid) {
+        this.advid = advid;
+    }
+    public List<CkOvertimeRecord> getEvectionlist() {
+        return evectionlist;
+    }
+    public void setEvectionlist(List<CkOvertimeRecord> evectionlist) {
+        this.evectionlist = evectionlist;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+}

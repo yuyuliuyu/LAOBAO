@@ -1,0 +1,130 @@
+package com.lingnet.hcm.entity.salary;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 薪酬分配过程
+ * XcSalaryAssignation entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "XC_SALARY_ASSIGNATION")
+public class SalaryAssignation extends BaseEntity implements java.io.Serializable {
+
+    private static final long serialVersionUID = 7729291607108233361L;
+    private String companyId;// 公司ID
+    private String name;// 分配过程名称
+    private String salaryGroupId;// 薪资组
+    private String salaryRate;// 发薪频率 1:周 2：双周 3：半月 4：月
+    private Date issueDate;// 实际发放日期
+    private String salaryPeriod;// 薪酬期间
+    private String salaryWageId;// 工资套
+    private Integer isDelete;// 删除标志 0:未删除 1：删除
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public SalaryAssignation() {
+    }
+
+    @Column(name = "COMPANY_ID", length = 32)
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    @Column(name = "NAME", length = 200)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Column(name = "SALARY_GROUP_ID", length = 32)
+    public String getSalaryGroupId() {
+        return this.salaryGroupId;
+    }
+
+    public void setSalaryGroupId(String salaryGroupId) {
+        this.salaryGroupId = salaryGroupId;
+    }
+
+    @Column(name = "SALARY_RATE", length = 32)
+    public String getSalaryRate() {
+        return this.salaryRate;
+    }
+
+    public void setSalaryRate(String salaryRate) {
+        this.salaryRate = salaryRate;
+    }
+
+    @Temporal(TemporalType.DATE)
+    @Column(name = "ISSUE_DATE", length = 7)
+    public Date getIssueDate() {
+        return this.issueDate;
+    }
+    
+    public void setIssueDate(Date issueDate) {
+        this.issueDate = issueDate;
+    }
+
+    @Column(name = "SALARY_PERIOD", length = 32)
+    public String getSalaryPeriod() {
+        return this.salaryPeriod;
+    }
+
+    public void setSalaryPeriod(String salaryPeriod) {
+        this.salaryPeriod = salaryPeriod;
+    }
+
+    @Column(name = "SALARY_WAGE_ID", length = 32)
+    public String getSalaryWageId() {
+        return this.salaryWageId;
+    }
+
+    public void setSalaryWageId(String salaryWageId) {
+        this.salaryWageId = salaryWageId;
+    }
+
+    @Column(name = "IS_DELETE", precision = 1, scale = 0)
+    public Integer getIsDelete() {
+        return this.isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+}

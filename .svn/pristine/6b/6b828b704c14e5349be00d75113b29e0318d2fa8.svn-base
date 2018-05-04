@@ -1,0 +1,3 @@
+file_path=http\://localhost\:8080/h
+real_path=D\:/hcm
+sync_path=http\://10.35.18.198\:8080/hcmcheck/system/sync_check\!syncCheckInfos.action

@@ -1,0 +1,125 @@
+package com.lingnet.hcm.action.personnel;
+
+import java.io.File;
+
+import javax.annotation.Resource;
+
+import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.personnel.PersonnelUploadService;
+
+/**
+ * 
+ * @ClassName: DepartureAction 
+ * @Description: 兼职人员管理Action 
+ * @author zhangruiling 
+ * @date 2017年3月10日 上午10:56:46 
+ *
+ */
+@Controller
+public class PersonnelUploadAction extends BaseAction{
+
+	private static final long serialVersionUID = -1612996567615205324L;
+	private String flag;//标志位
+    private String formdata;
+    private BasicInformation info;
+    private String jobNumber;
+    private String personId;
+    private File uploadFile;// 导入的文件
+    
+    @Resource(name="personnelUploadService")
+    private PersonnelUploadService personnelUploadService;
+    
+    /**
+     * 上传页面
+     */
+    public String importInfos(){
+        return "importInfos";
+    }
+    
+    /**
+     * 导入人员基本信息
+     * @Title: importSave 
+     * @return 
+     * @author zhangruiling 
+     * @since 2017年3月24日 V 1.0
+     */
+    public String importSave() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        // 获取上传文件的名字
+        String[] fileName = wrapper.getFileNames("uploadFile");
+        if (fileName.length == 0) {
+            return ajax(Status.success, "请选择上传文件！");
+        }
+        // 文件后缀
+        String endSuffix= fileName[0].substring(fileName[0].lastIndexOf("."), fileName[0].length());
+        if (!endSuffix.toLowerCase().endsWith("xls")
+                && !endSuffix.toLowerCase().endsWith("xlsx")) {
+                return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
+        }
+        try {
+            String message = personnelUploadService.saveImportInfos(endSuffix, uploadFile);
+            String msg = "";
+            if (message.indexOf("@") == 0) {
+                msg = message.substring(1, message.length());
+            }
+            ServletActionContext.getRequest().getSession().setAttribute("_repeatItem", msg);
+            return ajax(Status.success, message);
+        } catch (Exception e) {
+            String message = e.getMessage();
+            if (message.indexOf("@") == 0) {
+                message = message.substring(1, message.length());
+            }
+            ServletActionContext.getRequest().getSession().setAttribute("_repeatItem", message);
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+   //**********************set/get**********************//
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public String getFormdata() {
+		return formdata;
+	}
+	public void setFormdata(String formdata) {
+		this.formdata = formdata;
+	}
+	public BasicInformation getInfo() {
+		return info;
+	}
+	public void setInfo(BasicInformation info) {
+		this.info = info;
+	}
+
+	public String getJobNumber() {
+		return jobNumber;
+	}
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+	public String getPersonId() {
+		return personId;
+	}
+	public void setPersonId(String personId) {
+		this.personId = personId;
+	}
+
+	public File getUploadFile() {
+		return uploadFile;
+	}
+
+	public void setUploadFile(File uploadFile) {
+		this.uploadFile = uploadFile;
+	}
+    
+
+}

@@ -1,0 +1,88 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryGroup;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪资组
+ * @ClassName: SalaryGroupService 
+ * @Description: 薪资组
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+public interface SalaryGroupService extends BaseService<SalaryGroup, String> {
+
+    /**
+     * @Title: 增加或者更新薪资组 
+     * @param formdata
+     * @return
+     * @throws Exception 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String saveOrUpdate(String formdata) throws Exception;
+
+    /**
+     * @Title: 删除薪资组 
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年3月29日 V 1.0
+     */
+    public String remove(String id) throws Exception;
+
+    /**
+     * @Title: 获取薪资组 
+     * @param companyId
+     * @param searchData
+     * @return 
+     * List<SalaryGroup> 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public Map<String, Object> getSalaryGroupListData(String companyId, String searchData, Pager pager);
+
+    /**
+     * @Title: 薪资组检查是否更改
+     * @param salaryGroupId
+     * @param companyId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月12日 V 1.0
+     */
+    public String checkGroupStatus(String salaryGroupId, String companyId);
+
+    /**
+     * @Title: 获取生效日期并且有效的薪资组 
+     * @param companyId
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月13日 V 1.0
+     */
+    public List<SalaryGroup> getSalaryGroupEffectListData(String companyId, String searchData);
+
+    /**
+     * @Title: 获取全部薪资组
+     * @param companyId
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月22日 V 1.0
+     */
+    public Map<String, Object> getGroupAllListData(String companyId,
+            String searchData, Pager pager);
+
+}

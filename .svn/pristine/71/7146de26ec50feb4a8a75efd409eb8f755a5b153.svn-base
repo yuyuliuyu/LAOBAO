@@ -1,0 +1,264 @@
+/**
+ * @LingUtil.java
+ * @com.lingnet.util
+ * @Description：
+ * 
+ * @author 姜平豹 
+ * @copyright  2013
+ * @version V
+ * @since 2013-12-20
+ */
+package com.lingnet.util;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.qxgl.entity.QxUser;
+import com.opensymphony.xwork2.ActionContext;
+
+/**
+ * @ClassName: LingUtil
+ * @Description: TODO
+ * @author 姜平豹
+ * @date 2013-12-20 上午10:08:19
+ * 
+ */
+@Service("lingUtil")
+public class LingUtil extends BaseAction {
+
+	private static final long serialVersionUID = -4717704063944605523L;
+
+	/* 获取当前用户名 */
+	public static String userName() {
+		Object oPrincipal = SecurityContextHolder.getContext()
+				.getAuthentication().getPrincipal();
+		String userName = ((UserDetails) oPrincipal).getUsername();// 用户名
+		return userName;
+	}
+
+    /* 获取当前用户名 */
+    public static QxUser userinfo() { 
+        ActionContext actionContext = ActionContext.getContext();
+        Map<String, Object> session = actionContext.getSession(); 
+        SecurityContextImpl secritycontent = (SecurityContextImpl)session.get("SPRING_SECURITY_CONTEXT");
+        Authentication autn=secritycontent.getAuthentication();
+        return (QxUser)autn.getPrincipal();
+         
+    }
+	/*
+	 * Double db 数字
+	 * 
+	 * int digit 小数位数
+	 */
+	public Double formatDig(Double db, int digit) {
+
+		return new BigDecimal(db).setScale(digit, BigDecimal.ROUND_HALF_UP)
+				.doubleValue();
+	}
+
+	/*
+	 * Double db 数字
+	 * 
+	 * int digit 小数位数
+	 * 
+	 * 
+	 * 
+	 * 最后结果取到小数位后四舍五入
+	 * 
+	 * 返回-0.0为错误结果
+	 */
+	public Double formatDb(Double db, int digit) {
+
+		Math.floor(db);
+
+		Double q = MathUtil.sub(db, Math.floor(db));
+		int n = 0;
+		while (q > 0) {
+			q = MathUtil.sub(MathUtil.multiply(q, 10d),
+					Math.floor(MathUtil.multiply(q, 10d)));
+			n++;
+		}
+
+		if (n > digit) {
+			return -0.0;
+		} else {
+			return new BigDecimal(db).setScale(digit, BigDecimal.ROUND_HALF_UP)
+					.doubleValue();
+		}
+
+	}
+
+	/**
+	 * 计算地球上任意两点(经纬度)距离
+	 * 
+	 * @param long1
+	 *            第一点经度
+	 * @param lat1
+	 *            第一点纬度
+	 * @param long2
+	 *            第二点经度
+	 * @param lat2
+	 *            第二点纬度
+	 * @return 返回距离 单位：米
+	 */
+	public static String Distance(String jingdu, String weidu, String jingdu1,
+			String weidu1) {
+		if(jingdu==null||"".equals(jingdu)){
+			return "";
+		}
+		if(weidu==null||"".equals(weidu)){
+			return "";
+		}
+		if(jingdu1==null||"".equals(jingdu1)){
+			return "";
+		}
+		if(weidu1==null||"".equals(weidu1)){
+			return "";
+		}
+		double long1 = Double.parseDouble(jingdu);
+		double lat1 = Double.parseDouble(weidu);
+		double long2 = Double.parseDouble(jingdu1);
+		double lat2 = Double.parseDouble(weidu1);
+		double a, b, R;
+		R = 6378137; // 地球半径
+		lat1 = lat1 * Math.PI / 180.0;
+		lat2 = lat2 * Math.PI / 180.0;
+		a = lat1 - lat2;
+		b = (long1 - long2) * Math.PI / 180.0;
+		double d;
+		double sa2, sb2;
+		sa2 = Math.sin(a / 2.0);
+		sb2 = Math.sin(b / 2.0);
+		d = 2
+				* R
+				* Math.asin(Math.sqrt(sa2 * sa2 + Math.cos(lat1)
+						* Math.cos(lat2) * sb2 * sb2));
+		return String.valueOf(d);
+	}
+
+	/**
+	 * 返回结果公共方法
+	 * @param type
+	 * @param object
+	 * @param error
+	 * @return
+	 */
+	public static String returnMethods(Integer type,Object object,HashMap< String, Object> error){
+		HashMap< String, Object> map = new HashMap<String, Object>();
+		map.put("result", type);
+		map.put("data", JsonUtil.toJson(object));
+		map.put("error", JsonUtil.toJson(error));
+		return JsonUtil.toJson(map);
+	}
+	
+	public String valueof(Object o){
+		if(o==null){
+			return "";
+		}else{
+			return o.toString();
+		}
+	}
+	
+	/**
+	 * app接口返回统一方法
+	 * @param type
+	 * @param object
+	 * @param errorCode
+	 * @param errorInfo
+	 * @return
+	 */
+	public static String returnMethods(Integer type,Object object,String errorCode,String errorInfo){
+		HashMap< String, Object> map = new HashMap<String, Object>();
+		HashMap< String, Object> error = new HashMap<String, Object>();
+		map.put("result", type);
+		error.put("errorCode", errorCode);
+		error.put("errorInfo", errorInfo);
+		map.put("data", JsonUtil.toJson(object));
+		map.put("error", JsonUtil.toJson(error));
+		return JsonUtil.toJson(map);
+	}
+	
+	public static String[] objectToString(Object[] objs){
+		String[] strs=new String[objs.length];
+		for(int i=0;i<objs.length;i++){
+			  strs[i]=objs[i]==null?"":objs[i].toString();
+			}
+		return strs;
+	}
+
+	/**
+     * @Title: 将Clob类型的数据转为String类型  
+     * @param clob
+     * @return
+     * @throws SQLException
+     * @throws IOException 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public static String ClobToString(java.sql.Clob clob) {
+        String reString = "";
+        try {
+            java.io.Reader is = clob.getCharacterStream();// 得到流
+            BufferedReader br = new BufferedReader(is);
+            String s = br.readLine();
+            StringBuffer sb = new StringBuffer();
+            while (s != null) {// 执行循环将字符串全部取出付值给StringBuffer由StringBuffer转成STRING
+                sb.append(s);
+                s = br.readLine();
+            }
+            reString = sb.toString();
+        } catch (Exception e) {
+        }
+
+        return reString;
+    } 
+
+    /**
+     * @Title: 解决oracle in函数长度超过1000
+     * @param field
+     * @param count
+     * @param list
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年9月8日 V 1.0
+     */
+    public static String getOracleInMethodDeal(String field, int count, List<?> list) {
+        // 解决in的参数超过1000，分批：jbi.ID in('xxxx','xxx') OR jbi.ID in('xxxx','xxx')
+        int length = list.size();
+        count = Math.min(count, 1000);
+        int size = length % count;
+        if (size == 0) {
+            size = length / count;
+        } else {
+            size = (length / count) + 1;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            int fromIndex = i * count;
+            int toIndex = Math.min(fromIndex + count, length);
+            String productId = StringUtils.defaultIfEmpty(StringUtils.join(list.subList(fromIndex, toIndex), "','"), "");
+            if (i != 0) {
+                builder.append(" or ");
+            }
+            builder.append(field).append(" in ('").append(productId).append("')");
+        }
+
+        return StringUtils.defaultIfEmpty(builder.toString(), field + " in ('')");
+    }
+
+}

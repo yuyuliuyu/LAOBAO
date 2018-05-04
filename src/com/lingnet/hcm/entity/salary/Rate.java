@@ -1,0 +1,100 @@
+package com.lingnet.hcm.entity.salary;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 税率表
+ * XcRate entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "XC_RATE")
+public class Rate extends BaseEntity implements java.io.Serializable {
+
+    private static final long serialVersionUID = -5632644997916291420L;
+    private String name;// 名称
+    private Integer type;// 类型 1:工资、薪资税率表 2：劳务所得税
+    private Date beginDate;// 生效日期
+    private Double nativeMoney;// 本国起征点
+    private Double foreignMoney;// 外籍起征点
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public Rate() {
+    }
+
+    @Column(name = "NAME", length = 200)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Column(name = "TYPE", precision = 1, scale = 0)
+    public Integer getType() {
+        return this.type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    @Temporal(TemporalType.DATE)
+    @Column(name = "BEGIN_DATE", length = 7)
+    public Date getBeginDate() {
+        return this.beginDate;
+    }
+
+    public void setBeginDate(Date beginDate) {
+        this.beginDate = beginDate;
+    }
+
+    @Column(name = "NATIVE_MONEY", precision = 8)
+    public Double getNativeMoney() {
+        return this.nativeMoney;
+    }
+
+    public void setNativeMoney(Double nativeMoney) {
+        this.nativeMoney = nativeMoney;
+    }
+
+    @Column(name = "FOREIGN_MONEY", precision = 8)
+    public Double getForeignMoney() {
+        return this.foreignMoney;
+    }
+
+    public void setForeignMoney(Double foreignMoney) {
+        this.foreignMoney = foreignMoney;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+}

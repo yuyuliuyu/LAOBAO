@@ -1,0 +1,107 @@
+.zhifabg {
+	border-collapse:collapse;
+		border: 1px solid #727272;
+}
+
+.zhifabg tr td {
+	border: 1px solid #727272;
+	border-collapse: collapse;
+	padding: 5px 5px;
+
+}
+
+.tishi{
+		margin-left:5%;
+		font-weight:bold;
+ 	color: #ff0000;
+}
+.zhifabg tr td#biaotite {
+	background:#e8eff5
+
+}
+.mini-hidden {
+	display : none;
+}
+
+.dangshitop {
+	text-align: center;
+	line-height: 53px;
+	background: url(../images/title.jpg) repeat-x;;
+	font-size: 26px;
+	font-weight: bold;
+	font-family: ����;
+	color: #fff;
+	margin-bottom:10px;
+}
+
+.BigButton {
+	background: url(../images/button_back.gif) repeat-x;
+	border: 1px solid #727272;
+	height:25px;
+	padding-left:5px;
+	padding-right:5px;
+	line-height:25px;
+}
+
+.br {
+	border: #999999 1px solid;
+}
+
+.tr {
+	height: 30px;
+	line-height: 30px;
+}
+
+
+.biaogebtn1{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn1.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn2{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn2.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn3{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn3.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn4{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn4.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn5{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn5.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn6{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn6.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn7{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 133px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn7.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+
+
+.biaogebtn8{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 133px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn8.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn9{																																				
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/chaxun.jpg) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+
+.biaogebtn10{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/guihuan.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn11{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn11.jpg) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn12{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn12.jpg) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn13{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 96px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn13.jpg) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn14{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 133px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn14.jpg) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn15{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 155px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn15.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.biaogebtn16{
+BORDER-BOTTOM-STYLE: none; TEXT-ALIGN: center; LINE-HEIGHT: 37px; BORDER-RIGHT-STYLE: none; WIDTH: 155px; BORDER-TOP-STYLE: none; BACKGROUND: url(../images/biaogebtn16.png) no-repeat; HEIGHT: 37px; COLOR: #fff; FONT-SIZE: 12px; BORDER-LEFT-STYLE: none; CURSOR: pointer; FONT-WEIGHT: bold
+}
+.radionone .mini-radiobuttonlist table tr td{ border: none; height: 20px;}

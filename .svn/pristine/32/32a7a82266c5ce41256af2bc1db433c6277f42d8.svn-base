@@ -1,0 +1,123 @@
+package com.lingnet.hcm.entity.basic;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+@Entity
+@Table(name = "JC_PERFORMANCE_APPRAISAL")
+public class PerformanceAppraisal extends BaseEntity implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String deptid;
+    private String userid;
+    private String perdept;
+    private Integer scroe;
+    private Double money;
+    private String thing;
+    private String imgurl;
+    private Integer appr;
+    private Integer state;
+    private String style;
+    private Date perdate;
+    private String filed1;
+    private String filed2;
+    public PerformanceAppraisal() {
+        super(); 
+    }  
+    @Column(name = "DEPTID")
+    public String getDeptid() {
+        return deptid;
+    }
+    public void setDeptid(String deptid) {
+        this.deptid = deptid;
+    }
+    @Column(name = "USERID")
+    public String getUserid() {
+        return userid;
+    }
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+    @Column(name = "PERFOR_DEPT")
+    public String getPerdept() {
+        return perdept;
+    }
+    public void setPerdept(String perdept) {
+        this.perdept = perdept;
+    }  
+    @Column(name = "PERFOR_SCROE")
+    public Integer getScroe() {
+        return scroe;
+    }
+    public void setScroe(Integer scroe) {
+        this.scroe = scroe;
+    }
+    @Column(name = "PERFOR_MONEY")
+    public Double getMoney() {
+        return money;
+    }
+    public void setMoney(Double money) {
+        this.money = money;
+    }
+    @Column(name = "PERFOR_THING")
+    public String getThing() {
+        return thing;
+    }
+    public void setThing(String thing) {
+        this.thing = thing;
+    } 
+    @Column(name = "PERFOR_IMG")
+    public String getImgurl() {
+        return imgurl;
+    }
+    public void setImgurl(String imgurl) {
+        this.imgurl = imgurl;
+    }
+    @Column(name = "PERFOR_APPR")
+    public Integer getAppr() {
+        return appr;
+    }
+    public void setAppr(Integer appr) {
+        this.appr = appr;
+    }
+    @Column(name = "PERFOR_STATE")
+    public Integer getState() {
+        return state;
+    }
+    public void setState(Integer state) {
+        this.state = state;
+    } 
+    @Column(name = "PERFOR_STYLE")
+    public String getStyle() {
+        return style;
+    }
+    public void setStyle(String style) {
+        this.style = style;
+    }
+    @Column(name = "PERFOR_DATE")
+    public Date getPerdate() {
+        return perdate;
+    }
+    public void setPerdate(Date perdate) {
+        this.perdate = perdate;
+    }
+    @Column(name = "FILED1")
+    public String getFiled1() {
+        return filed1;
+    }
+    public void setFiled1(String filed1) {
+        this.filed1 = filed1;
+    }
+    @Column(name = "FILED2")
+    public String getFiled2() {
+        return filed2;
+    }
+    public void setFiled2(String filed2) {
+        this.filed2 = filed2;
+    } 
+}

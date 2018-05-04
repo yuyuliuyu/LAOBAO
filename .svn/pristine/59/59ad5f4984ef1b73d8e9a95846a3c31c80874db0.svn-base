@@ -1,0 +1,90 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryFormula;
+import com.lingnet.util.Pager;
+
+/**
+ * 工资套
+ * @ClassName: SalaryFormulaService 
+ * @Description: 工资套
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+public interface SalaryFormulaService extends BaseService<SalaryFormula, String> {
+
+    /**
+     * @Title: 保存公式 
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String saveOrUpdate(String formdata);
+
+    /**
+     * @Title: 获取工资套对应的公式 
+     * @param id
+     * @return 
+     * List<SalaryFormula> 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public Map<String, Object> getWageFormulaListData(String bindId, Pager pager);
+
+    /**
+     * @Title: 删除公式 
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String remove(String id);
+
+    /**
+     * @Title: 设置默认 
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String saveDefault(String id);
+
+    /**
+     * @Title: 获取所有公式 
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月1日 V 1.0
+     */
+    public List<Map<String, Object>> getFormulasList(String searchData);
+
+    /**
+     * 解析公式获取计算后的值 
+     * @param formula
+     * @return 
+     * Object 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public Object getFormulaResult(String formula);
+
+    /**
+     * @Title: 计算公式
+     * @param cntMath 公式
+     * @return 
+     * Object 
+     * @author zhanghj
+     * @since 2017年5月11日 V 1.0
+     */
+    public Object formula(String cntMath);
+
+}

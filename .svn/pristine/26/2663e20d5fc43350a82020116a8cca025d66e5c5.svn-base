@@ -1,0 +1,1233 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.SQLQuery;
+import org.hibernate.criterion.CriteriaSpecification;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryAssignationDao;
+import com.lingnet.hcm.entity.WorkFlowChild;
+import com.lingnet.hcm.entity.salary.Period;
+import com.lingnet.hcm.entity.salary.Perioddata;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.hcm.service.salary.SalaryAssignationService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationDaoImpl 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月10日 上午9:58:58 
+ *
+ */
+@Repository("salaryAssignationDao")
+public class SalaryAssignationDaoImpl extends BaseDaoImplInit<SalaryAssignation, String> implements SalaryAssignationDao {
+
+    @Resource(name="salaryAssignationService")
+    private SalaryAssignationService salaryAssignationService;
+
+    @Override
+    public Map<String, Object> getSalaryAssignationListData(String companyId, String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                        ");
+        sql.append("   SA.ID, SA.NAME,SG.NAME GROUPNAME,SGW.NAME WAGENAME,PERIODDATA.NAME PAYPERIOD,  ");
+        sql.append("   SA.IS_SP, SA.IS_FAFANG,B.FZX  ");
+        sql.append("   FROM XC_SALARY_ASSIGNATION SA                                                 ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP SG                                                  ");
+        sql.append("   ON SA.SALARY_GROUP_ID = SG.ID                                                 ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                                            ");
+        sql.append("   ON SA.SALARY_WAGE_ID = SGW.ID                                                 ");
+        sql.append("   AND SGW.IS_DELETE = 0                                                         ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PERIODDATA                                            ");
+        sql.append("   ON SA.SALARY_PERIOD = PERIODDATA.ID                                           ");
+        sql.append("   LEFT JOIN BRANCH B                                            ");
+        sql.append("   ON SA.COMPANY_ID = B.ID                                           ");
+        sql.append("   WHERE SA.IS_DELETE = 0                                           ");
+
+        // 公司ID
+        sql.append("   AND SA.COMPANY_ID IN ('"+StringUtils.join(getAuthCompany(), "','")+"') ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 薪酬期间
+            if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                sql.append("   AND PERIODDATA.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'  ");
+            }
+            // 已提交状态
+            if (!StringUtils.isBlank(mapData.get("isSp"))) {
+                sql.append("   AND SA.IS_SP = "+mapData.get("isSp").trim()+"                                        ");
+            }
+        }
+        sql.append("   ORDER BY SA.CREATEDATE DESC                                                   ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("groupName", obj[2]);
+            map.put("wageName", obj[3]);
+            map.put("payPeriod", obj[4]);
+            map.put("isSp", obj[5]);
+            map.put("isFafang", obj[6]);
+            map.put("companyName", obj[7]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryAssignationForAuthListData(String userName, String searchData, Pager pager) {
+        StringBuilder authSql = new StringBuilder();
+        authSql.append("    SELECT                             ");
+        authSql.append("      WFC.ID,WFC.APRO_ID,WFC.APRO_MAN  ");
+        authSql.append("    FROM JC_WORK_FLOW WF               ");
+        authSql.append("    LEFT JOIN JC_WORK_FLOWC WFC        ");
+        authSql.append("      ON WF.ID = WFC.PID               ");
+        authSql.append("    WHERE WF.WORK_FLOW_STATE = 1       ");
+        authSql.append("      AND WF.ID ='402881945bec28ab015bec383aee0011' ");
+        authSql.append("      AND WFC.APRO_ID = '"+userName+"'");
+
+        List<?> list = findBySql(authSql.toString());
+        HashMap<String, Object> map = new HashMap<String, Object>();
+        if (list.size() > 0) {
+            Object[] obj = (Object[]) list.get(0);
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+        }
+
+        List<HashMap<String, Object>> checkDataList = new ArrayList<HashMap<String, Object>>();
+        if (map.get("jobNumber") != null) {
+            StringBuilder checkSql = new StringBuilder();
+            checkSql.append("   SELECT SA.ID,                                                  ");
+            checkSql.append("     MIN(SA.NAME) name,                                           ");
+            checkSql.append("     MIN(SG.NAME) GROUPNAME,                                      ");
+            checkSql.append("     MIN(SGW.NAME) WAGENAME,                                      ");
+            checkSql.append("     MIN(PERIODDATA.NAME) PAYPERIOD,                              ");
+            checkSql.append("     LISTAGG(AR.APRO_MAN, '-->') WITHIN GROUP (ORDER BY AR.SORT ASC) APRO_MAN,                             ");
+            checkSql.append("     LISTAGG(AR.IS_SP, ',') WITHIN GROUP (ORDER BY AR.SORT ASC) IS_SP,                           ");
+            checkSql.append("     LISTAGG(AR.APRO_ID, ',') WITHIN GROUP (ORDER BY AR.SORT ASC) APRO_ID,                          ");
+            checkSql.append("     MIN(SA.IS_SP) CHECK_STATUS, MIN(B.FZX) COMPANYNAME,                                   ");
+            checkSql.append("     MIN(B.ID) CompanyId, MIN(SA.SALARY_GROUP_ID) SALARY_GROUP_ID,                         ");
+            checkSql.append("     MIN(SA.SALARY_RATE) SALARY_RATE, MIN(SA.SALARY_PERIOD) SALARY_PERIOD,                 ");
+            checkSql.append("     MIN(SA.SALARY_WAGE_ID) SALARY_WAGE_ID                                   ");
+            checkSql.append("   FROM XC_SALARY_ASSIGNATION SA                                  ");
+            checkSql.append("   LEFT JOIN XC_SALARY_GROUP SG                                   ");
+            checkSql.append("   ON SA.SALARY_GROUP_ID = SG.ID                                  ");
+            checkSql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                             ");
+            checkSql.append("   ON SA.SALARY_WAGE_ID = SGW.ID                                  ");
+            checkSql.append("   AND SGW.IS_DELETE    = 0                                       ");
+            checkSql.append("   LEFT JOIN XC_PERIODDATA PERIODDATA                             ");
+            checkSql.append("   ON SA.SALARY_PERIOD = PERIODDATA.ID                            ");
+            checkSql.append("   left join                                                      ");
+            checkSql.append("   (                                                              ");
+            checkSql.append("     SELECT                                                       ");
+            checkSql.append("       MIN(AR.SALARY_ASSIGNATION_ID) SALARY_ASSIGNATION_ID,       ");
+            checkSql.append("       MIN(WF.APRO_MAN) APRO_MAN,                                 ");
+            checkSql.append("       MAX(NVL(AR.IS_SP, -1)) IS_SP,                              ");
+            checkSql.append("       WF.APRO_ID, MIN(AR.NOTE) NOTE,MIN(WF.SORT) SORT            ");
+            checkSql.append("       FROM JC_WORK_FLOWC WF                                      ");
+            checkSql.append("       LEFT JOIN XC_ASSIGNATION_RECORD AR                         ");
+            checkSql.append("       ON WF.APRO_ID = ar.ASSIGNATION_ACCOUNT                     ");
+            checkSql.append("       AND AR.IS_GIVEUP = 0                                ");
+            checkSql.append("       AND AR.IS_DELETE = 0                                ");
+            checkSql.append("       WHERE WF.PID   = '402881945bec28ab015bec383aee0011'        ");
+            checkSql.append("       GROUP BY WF.APRO_ID                                        ");
+            checkSql.append("   ) AR                                                           ");
+            checkSql.append("   ON AR.SALARY_ASSIGNATION_ID = SA.ID                            ");
+            checkSql.append("   LEFT JOIN BRANCH B                                            ");
+            checkSql.append("   ON SA.COMPANY_ID = B.ID                                           ");
+            checkSql.append("   WHERE SA.IS_DELETE  = 0                                        ");
+            checkSql.append("     AND SA.IS_SP IN (1, 2, 3)                                    ");// 已提交、未通过、已通过
+
+            Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+            if (mapData != null) {
+                // 分配过程
+                if (!StringUtils.isBlank(mapData.get("name"))) {
+                    checkSql.append("   AND SA.NAME LIKE '%"+mapData.get("name").trim()+"%'  ");
+                }
+                // 薪酬期间
+                if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                    checkSql.append("   AND PERIODDATA.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'  ");
+                }
+                // 已提交状态
+                if (!StringUtils.isBlank(mapData.get("isSp"))) {
+                    checkSql.append("   AND SA.IS_SP = "+mapData.get("isSp").trim()+"                     ");
+                }
+            }
+            checkSql.append("   GROUP BY SA.ID                                                 ");
+            checkSql.append("   ORDER BY MIN(SA.CREATEDATE) DESC                               ");
+
+            // 查找第一个审核的人
+            List<WorkFlowChild> childs = salaryAssignationService.getOrderList(
+                    WorkFlowChild.class, Order.asc("sort"),
+                    Restrictions.eq("pid", "402881945bec28ab015bec383aee0011"));
+            pager  = findPagerBySql(pager, checkSql.toString());
+            List<?> checkList = pager.getResult();
+            for (int i=0, l = checkList.size(); i < l; i++) {
+                Object[] obj = (Object[]) checkList.get(i);
+                HashMap<String, Object> checkMap = new HashMap<String, Object>();
+                checkMap.put("id", obj[0]);
+                checkMap.put("name", obj[1]);
+                checkMap.put("groupName", obj[2]);
+                checkMap.put("wageName", obj[3]);
+                checkMap.put("payPeriod", obj[4]);
+                checkMap.put("companyName", obj[9]);
+                checkMap.put("companyId", obj[10]);// 公司ID
+                checkMap.put("groupId", obj[11]);// 薪资组ID
+                checkMap.put("salaryRate", obj[12]);// 发薪频率
+                checkMap.put("salaryPeriod", obj[13]);// 薪酬期间
+                checkMap.put("salaryWageId", obj[14]);// 工资套
+                Object aproMan = obj[5];
+                Object isSp = obj[6];
+                Object aproId = obj[7];
+                if (obj[5] == null) {
+                    if (childs.size() > 0) {
+                        aproId = childs.get(0).getAppid();
+                        aproMan = childs.get(0).getAppman();
+                    }
+                } else {
+                    // 查找最后一位审核状态
+                    String[] aproIdArray = aproId.toString().split(",");
+                    String[] isSpArray = isSp.toString().split(",");
+                    String lastStatus = isSpArray[isSpArray.length-1];
+                    if (lastStatus.equals("1")) {
+                        StringBuilder nextSql = new StringBuilder();
+                        nextSql.append("    SELECT I.*                                                 ");
+                        nextSql.append("    FROM                                                       ");
+                        nextSql.append("      (SELECT T.APRO_ID, LEAD(T.APRO_MAN,1, -1) OVER(ORDER BY T.SORT ASC) NEXTS_ACOUNT, ");
+                        nextSql.append("        LEAD(T.APRO_ID,1,0) OVER(ORDER BY T.SORT ASC) NEXTS    ");
+                        nextSql.append("      FROM JC_WORK_FLOWC T                                     ");
+                        nextSql.append("      WHERE T.PID   = '402881945bec28ab015bec383aee0011'       ");
+                        nextSql.append("      ) I                                                      ");
+                        nextSql.append("    WHERE I.APRO_ID='"+aproIdArray[isSpArray.length-1]+"'      ");
+                        List<?> nextList = findBySql(nextSql.toString());
+                        if (nextList.size() > 0) {
+                            Object[] objNext = (Object[]) nextList.get(0);
+                            aproId = objNext[1].equals("-1") ? "" : objNext[2];
+                            aproMan = objNext[1].equals("-1") ? "无" : objNext[1];
+                        } else {
+                            aproId = null;
+                            aproMan = "无";
+                        }
+                    } else {
+                        aproId = null;
+                        aproMan = "无";
+                    }
+                }
+                checkMap.put("aproId", aproId);
+                checkMap.put("aproMan", aproMan);
+                checkMap.put("isSp", obj[8]);
+                checkDataList.add(checkMap);
+            }
+        }
+
+        Map<String, Object> dataMap = new HashMap<String, Object>();
+        dataMap.put("data", checkDataList);
+        dataMap.put("total", pager.getTotalCount());
+
+        return dataMap;
+    }
+
+    @Override
+    public String isCheckAUth(String ids, String userName) {
+        // 只有最后审核通过的有权限修改为不通过
+        String[] idsArray = ids.split(",");
+        Map<String, Object> infoMap = new HashMap<String, Object>();
+        for (int ii = 0; ii < idsArray.length; ii++) {
+            StringBuilder sql = new StringBuilder();
+            sql.append("     SELECT                                                                    ");
+            sql.append("     WFC.APRO_ID,                                                               ");
+            sql.append("     LISTAGG(WFC.APRO_MAN, ',') WITHIN GROUP (ORDER BY AR.CHECK_DATE) APRO_MAN, ");
+            sql.append("     LISTAGG(AR.IS_SP, ',') WITHIN GROUP (ORDER BY AR.CHECK_DATE) IS_SP,        ");
+            sql.append("     MIN(SA.IS_FAFANG) IS_FAFANG        ");
+            sql.append("     FROM JC_WORK_FLOW WF                                                      ");
+            sql.append("     LEFT JOIN JC_WORK_FLOWC WFC                                                     ");
+            sql.append("     ON WF.ID = WFC.PID                                                       ");
+            sql.append("     LEFT JOIN XC_ASSIGNATION_RECORD AR                                        ");
+            sql.append("     ON WFC.APRO_ID    = AR.ASSIGNATION_ACCOUNT                                 ");
+            sql.append("     AND AR.SALARY_ASSIGNATION_ID = '"+idsArray[ii]+"'  ");
+            sql.append("     AND AR.IS_GIVEUP = 0                                                      ");
+            sql.append("     AND AR.IS_DELETE = 0                                                      ");
+            sql.append("     LEFT JOIN XC_SALARY_ASSIGNATION SA                                        ");
+            sql.append("     ON SA.ID = AR.SALARY_ASSIGNATION_ID                                       ");
+            sql.append("     WHERE WF.ID   = '402881945bec28ab015bec383aee0011'                        ");
+            sql.append("     AND WF.WORK_FLOW_STATE = 1                                                      ");
+            sql.append("     GROUP BY WFC.APRO_ID                                                       ");
+            sql.append("     ORDER BY MIN(WFC.SORT) ASC                                                 ");
+
+            List<?> list = findBySql(sql.toString());
+            if (list.size() == 0) {
+                infoMap.put("result", "fail");
+                infoMap.put("info", "该审批流程不存在");
+
+                return JsonUtil.Encode(infoMap);
+            }
+            for (int i=0, l = list.size(); i < l; i++) {
+                // 查找第一位审核者
+                Object[] firstObj = (Object[]) list.get(0);
+
+                // 上一位审核者
+                Object[] theOneObj = (Object[]) list.get(i==0 ? 0 : i-1);
+                // 当前登录用户
+                if (firstObj[0].equals(userName)) {// 正好是第一个审核者登录
+                    if (firstObj[2] == null) {// 没有审核记录
+                        infoMap.put("result", "success");
+                        infoMap.put("info", "");
+
+                        return JsonUtil.Encode(infoMap);// 当前登录人审核
+                    }
+                }
+
+                Object[] obj = (Object[]) list.get(i);
+                // 是否发放、发布
+                if (obj[3] != null && Integer.valueOf(obj[3].toString()) > 0) {
+                    infoMap.put("result", "13");
+                    infoMap.put("info", ii+1);
+
+                    return JsonUtil.Encode(infoMap);// 已经发放
+                }
+                // 当前登录用户
+                if (obj[0].equals(userName)) {
+                    if (obj[2] == null && i > 0) {
+                        if (theOneObj[2] == null) {
+                            infoMap.put("result", "11");
+                            infoMap.put("info", ii+1);
+
+                            return JsonUtil.Encode(infoMap);// 等待上一位审核者审核
+                        } else {
+                            String[] checks = theOneObj[2].toString().split(",");
+                            if (checks[checks.length-1].equals("0")) {
+                                infoMap.put("result", "12");
+                                infoMap.put("info", ii+1);
+
+                                return JsonUtil.Encode(infoMap);// 上一位审核者没有审核通过
+                            } else {
+                                infoMap.put("result", "success");
+                                infoMap.put("info", "");
+
+                                return JsonUtil.Encode(infoMap);// 当前登录人审核
+                            }
+                        }
+                    }
+                    String[] checks = obj[2].toString().split(",");
+                    // 最后一次的审查结果
+                    String lastRes = checks[checks.length-1];
+
+                    // 不是最后的审核者
+                    if (i != (list.size() - 1)) {
+                        // 下一位审核者是否已经审核
+                        Object[] lastObj = (Object[]) list.get(i+1);
+                        if (lastObj[2] != null) {
+                            String[] lastChecks = lastObj[2].toString().split(",");
+                            
+                            // 下一位审核者已经审核通过
+                            if (lastChecks[lastChecks.length-1].equals("1")) {
+                                infoMap.put("result", "3");
+                                infoMap.put("info", ii+1);
+
+                                return JsonUtil.Encode(infoMap);// 当前人不可以再次审核，下一位审核者通过，不必再审核
+                            } else {
+                                infoMap.put("result", "4");
+                                infoMap.put("info", ii+1);
+
+                                return JsonUtil.Encode(infoMap);// 当前人不可以再次审核，下一位审核者不通过，不必再审核
+                            }
+                        }
+
+                        if (lastRes.equals("0")) {// 审核不通过不可以再审核
+                            infoMap.put("result", "1");
+                            infoMap.put("info", ii+1);
+
+                            return JsonUtil.Encode(infoMap);
+                        } else if (lastRes.equals("1")) {// 审核通过也可以反审核
+                            infoMap.put("result", "2");
+                            infoMap.put("info", "");
+
+                            return JsonUtil.Encode(infoMap);
+                        }
+                    } else {
+                        // 是最后一位审核者
+                        if (lastRes.equals("0")) {// 审核不通过不可以再审核
+                            infoMap.put("result", "1");
+                            infoMap.put("info", ii+1);
+
+                            return JsonUtil.Encode(infoMap);
+                        }
+                        infoMap.put("result", "success");
+                        infoMap.put("info", "");
+
+                        return JsonUtil.Encode(infoMap);// 当前登录人审核
+                    }
+                }
+            }
+        }
+
+        infoMap.put("result", "fail");
+        infoMap.put("info", "请选择一条记录");
+
+        return JsonUtil.Encode(infoMap);
+    }
+
+    @Override
+    public Map<String, Object> getCheckListData(String id, Pager pager) {
+        StringBuilder checkSql = new StringBuilder();
+        checkSql.append("     SELECT                                                       ");
+        checkSql.append("       WF.APRO_MAN,                                 ");
+        checkSql.append("       NVL(AR.IS_SP, -1) IS_SP,                              ");
+        checkSql.append("       WF.APRO_ID, AR.NOTE,           ");
+        checkSql.append("       TO_CHAR(AR.CHECK_DATE, 'yyyy-mm-dd hh24:mi:ss') CHECK_DATE            ");
+        checkSql.append("       FROM XC_ASSIGNATION_RECORD AR                         ");
+        checkSql.append("       LEFT JOIN JC_WORK_FLOWC WF                                      ");
+        checkSql.append("       on WF.APRO_ID = ar.ASSIGNATION_ACCOUNT                     ");
+        checkSql.append("       WHERE WF.PID   = '402881945bec28ab015bec383aee0011'        ");
+        checkSql.append("         AND AR.SALARY_ASSIGNATION_ID   = '"+id+"'               ");
+        checkSql.append("         AND AR.IS_DELETE = 0               ");
+        checkSql.append("       ORDER BY AR.CHECK_DATE DESC                                  ");
+
+        pager = findPagerBySql(pager, checkSql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("aproMan", obj[0]);
+            map.put("isSp", obj[1]);
+            map.put("aproId", obj[2]);
+            map.put("note", obj[3]);
+            map.put("checkDate", obj[4]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT JBI.ID,                                                 ");
+        sql.append("  MIN(JBI.JOB_NUMBER) JOBNUMBER,                                 ");
+        sql.append("  MIN(JBI.NAME) NAME,                                            ");
+        sql.append("  LISTAGG(SI.ID, ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) ITEMSID,                           ");
+        sql.append("  LISTAGG(SI.NAME, ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) ITEMSNAME,                       ");
+        sql.append("  LISTAGG(NVL(SF.ID, ' '), ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) FORMULAID,               ");
+        sql.append("  LISTAGG(NVL(SF.CNT_MATH, 0), ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) FORMULA,              ");
+        sql.append("  LISTAGG(NVL(SI.NUMBER_ACCURACY, 0), ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) XS,            ");
+        sql.append("  LISTAGG(NVL(GWAY.SX, 0), ',;') WITHIN GROUP (ORDER BY GWAY.SX ASC) SX,                       ");
+        sql.append("  MIN(NVL(SR.DEPTNAME, ' ')) DEPART_ID,             ");
+        sql.append("  MIN(NVL(QD.NAME, ' ')) DEPART_NAME,             ");
+        sql.append("  MIN(NVL(B.ID, ' ')) COMPANY_ID,             ");
+        sql.append("  MIN(NVL(B.FZX, ' ')) COMPANY_NAME             ");
+        sql.append("  FROM XC_SALARY_GROUP_WAGE SGW                                  ");
+        sql.append("  LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                          ");
+        sql.append("  ON SGW.ID = GWAY.WAGE_ID                                       ");
+        sql.append("  AND GWAY.IS_DELETE = 0                                         ");
+        sql.append("  LEFT JOIN XC_SALARY_PERSONAL SP                                ");
+        sql.append("  ON SGW.SALARY_GROUP_ID = SP.SALARY_GROUP_ID                    ");
+        sql.append("  AND SP.IS_DELETE = 0                                           ");
+        sql.append("  LEFT JOIN XC_SALARY_RECORD SR                             ");
+        sql.append("  ON SP.SALARY_RECORD_ID = SR.STAFF_ID                                ");
+        sql.append("  LEFT JOIN JC_BASIC_INFORMATION JBI                             ");
+        sql.append("  ON SR.STAFF_ID = JBI.ID                                ");
+        sql.append("  LEFT JOIN BRANCH B                             ");
+        sql.append("  ON SR.FILM_NAME = B.ID                                ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD                             ");
+        sql.append("  ON SR.DEPTNAME = QD.ID                                ");
+        sql.append("  LEFT JOIN XC_SALARY_ITEMS SI                                   ");
+        sql.append("  ON GWAY.ITEM_ID = SI.ID                                        ");
+        sql.append("  LEFT JOIN XC_SALARY_FORMULA SF                                 ");
+        sql.append("  ON (GWAY.ID = SF.BIND_ID OR GWAY.SALARY_WAGE_ID = SF.BIND_ID)  ");// 公式关联
+        sql.append("  AND SF.IS_DELETE = 0                                        ");
+        sql.append("  AND SF.IS_DEFAULT = 1                                        ");
+        sql.append("  WHERE SGW.SALARY_GROUP_ID = '"+groupId+"' ");
+        sql.append("  AND SGW.ID = '"+wageId+"'                ");
+//        sql.append("  AND JBI.ON_JOB IN (0,1,2)                                      ");// 实习期、试岗期、正式工
+        sql.append("  AND JBI.IS_DELETE = 0                                        ");
+        sql.append("   AND CASE WHEN SP.IS_OFF = 1                                                                            ");// 薪资组注销日期之前的人员
+        sql.append("            THEN CASE WHEN TO_CHAR(SP.OFF_DATE, 'yyyy-MM-dd') <= TO_CHAR(SYSDATE, 'yyyy-MM-dd') THEN 1    ");
+        sql.append("                ELSE 0 END                                                                                ");
+        sql.append("      ELSE 0 END = 0                                                                                      ");
+        sql.append("  GROUP BY JBI.ID, JBI.CREATEDATE                                ");
+        sql.append("  ORDER BY JBI.CREATEDATE DESC                                   ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("itemsId", obj[3]);
+            map.put("itemsName", obj[4]);
+            map.put("formulaId", obj[5]);
+            map.put("formula", obj[6]);
+            map.put("xs", obj[7]);
+            map.put("sx", obj[8]);
+            map.put("departId", obj[9]);
+            map.put("deptName", obj[10]);
+            map.put("companyId", obj[11]);
+            map.put("companyName", obj[12]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getAssignationForStaffData(String id, String ids, String searchData) {
+        String sql = getAssignationForStaffDataSql(id, ids, searchData);
+        List<?> list = findBySql(sql);
+
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("itemsId", obj[4]);
+            map.put("itemsName", obj[5]);
+            map.put("charge", obj[6]);
+            map.put("assId", obj[7]);
+            map.put("isNumber", obj[8]);
+            map.put("departId", obj[9]);
+            map.put("addOrLess", obj[10]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("summary", getTotalData(id));// 汇总计算
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getCompareAssignationForStaffData(String id, String ids, String searchData, String conditionData) {
+        List<?> list = findBySql(getCheckPeriodData(id, searchData, conditionData));
+
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("itemsId", obj[4]);
+            map.put("itemsName", obj[5]);
+            map.put("charge", obj[6]);
+            map.put("assId", obj[7]);
+            map.put("isNumber", obj[8]);
+            map.put("departId", obj[9]);
+            map.put("addOrLess", obj[10]);
+            map.put("type", obj[11]);
+            map.put("periodName", obj[12]);
+            map.put("checkId", obj[13]);
+            try {
+                map.put("note", LingUtil.ClobToString((java.sql.Clob)obj[14]));
+            } catch (Exception e) {
+                map.put("note", "");
+            }
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+
+        return map;
+    }
+
+    @Override
+    public String getCheckPeriodData(String id, String searchData, String conditionData) {
+        Map<String, String> conditionMap = JsonUtil.parseProperties(conditionData);
+        // 查找上个月的薪酬期间
+        Perioddata perioddata = salaryAssignationService.get(Perioddata.class, Restrictions.eq("id", conditionMap.get("salaryPeriod")));
+        if (perioddata == null) perioddata = new Perioddata();
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(perioddata.getStartDate());
+        String date = calendar.get(Calendar.YEAR) + "-" + (calendar.get(Calendar.MONTH) + 1) +"-" + calendar.get(Calendar.DATE);
+
+        String lastPeriiodId = "";
+
+        // 一月份需要获取去年的值
+        if ((calendar.get(Calendar.MONTH) + 1) == 1) {
+            Period period = salaryAssignationService.get(Period.class, Restrictions.eq("id", perioddata.getPeriodId()));
+            if (period != null) {
+                Period period2 = salaryAssignationService.get(Period.class,
+                        Restrictions.eq("year", period.getYear()-1),
+                        Restrictions.eq("payPerid", period.getPayPerid()));
+                if (period2 != null) {
+                    List<Perioddata> listPerioddatas = salaryAssignationService.getOrderList(Perioddata.class,
+                            Order.desc("startDate"),
+                            Restrictions.eq("periodId", period2.getId()));
+                    lastPeriiodId = listPerioddatas.size() > 0? listPerioddatas.get(0).getId() : "";
+                }
+            }
+        } else {
+            List<Perioddata> listPerioddatas = salaryAssignationService.getOrderList(Perioddata.class,
+                    Order.desc("startDate"),
+                    Restrictions.eq("periodId", perioddata.getPeriodId()),
+                    Restrictions.sqlRestriction("START_DATE < TO_DATE('"+date+"', 'yyyy-MM-dd')"));
+
+            // 上一个薪酬区间
+            lastPeriiodId = listPerioddatas.size() > 0? listPerioddatas.get(0).getId() : "";
+        }
+
+        StringBuilder conSql = new StringBuilder();
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 职工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                conSql.append("  AND TT.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                                 ");
+            }
+            // 职工名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                conSql.append("  AND TT.STAFF_NAME LIKE '%"+mapData.get("name").trim()+"%'                                 ");
+            }
+        }
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                                       ");
+        sql.append("     CDATA.ID,STAFFID,JOBNUMBER,NAME,ITEMSID,ITEMSNAME,CHARGE,ASSID,IS_NUMBER,                  ");
+        sql.append("     DEPART_ID,ADD_OR_LESS,TYP,PeriodName, CDATA.CHECK_ID, CMS.NOTE,CDATA.COMPANY_ID                  ");
+        sql.append("   FROM                                                                                         ");
+        sql.append("     (SELECT *                                                                                  ");
+        sql.append("     FROM                                                                                       ");
+        sql.append("       (SELECT TT.ID,                                                                           ");
+        sql.append("         MIN(TT.STAFF_ID) STAFFID,                                                              ");
+        sql.append("         MIN(TT.JOB_NUMBER) JOBNUMBER,                                                          ");
+        sql.append("         MIN(TT.STAFF_NAME) NAME,                                                               ");
+        sql.append("         LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,                          ");
+        sql.append("         LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,                      ");
+        sql.append("         LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,               ");
+        sql.append("         LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                             ");
+        sql.append("         LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER,                     ");
+        sql.append("         MIN(TT.DEPTNAME) DEPART_ID,                                                            ");
+        sql.append("         LISTAGG(TT.ADD_OR_LESS, ',') WITHIN GROUP(ORDER BY TT.SX) ADD_OR_LESS,                 ");
+        sql.append("         '1' typ,                                                            ");
+        sql.append("         MIN(TT.NAME) PeriodName, MIN(TT.Check_ID) Check_ID, MIN(TT.COMPANY_ID) COMPANY_ID                  ");
+        sql.append("       FROM                                                                                     ");
+        sql.append("         (SELECT ASTAFF.ID,                                                                     ");
+        sql.append("           ASTAFF.STAFF_ID,                                                                     ");
+        sql.append("           ASTAFF.JOB_NUMBER,                                                                   ");
+        sql.append("           ASTAFF.STAFF_NAME,                                                                   ");
+        sql.append("           ASS.IBF_ID,                                                                          ");
+        sql.append("           ASS.IBF_NAME,                                                                        ");
+        sql.append("           ASS.ASSIGNATION_CHARGE,                                                              ");
+        sql.append("           ASS.ID ASSID,                                                                        ");
+        sql.append("           ASTAFF.IS_DELETE,                                                                    ");
+        sql.append("           ASTAFF.CREATEDATE,                                                                   ");
+        sql.append("           ASS.SX,                                                                              ");
+        sql.append("           SI.IS_NUMBER,                                                                        ");
+        sql.append("           SR.DEPTNAME,                                                                         ");
+        sql.append("           SI.ADD_OR_LESS,                                                                      ");
+        sql.append("           PERIODDATA.NAME, SA.ID Check_ID, SA.COMPANY_ID                                       ");
+        sql.append("         FROM XC_ASSIGNATION_STAFF ASTAFF                                                       ");
+        sql.append("         LEFT JOIN XC_SALARY_RECORD SR                                                          ");
+        sql.append("         ON SR.STAFF_ID = ASTAFF.STAFF_ID                                                       ");
+        sql.append("         LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                                              ");
+        sql.append("         ON ASTAFF.ID      = ASS.ASSIGNATION_STAFF_ID                                           ");
+        sql.append("         AND ASS.IS_DELETE = 0                                                                  ");
+        sql.append("         LEFT JOIN XC_SALARY_ITEMS SI                                                           ");
+        sql.append("         ON ASS.IBF_ID                      = SI.ID                                             ");
+        sql.append("         LEFT JOIN XC_SALARY_ASSIGNATION SA                                                     ");
+        sql.append("         ON ASTAFF.SALARY_ASSIGNATION_ID = SA.ID                                            ");
+        sql.append("         LEFT JOIN XC_PERIODDATA PERIODDATA                                                     ");
+        sql.append("         ON PERIODDATA.ID = SA.SALARY_PERIOD                                                ");
+        sql.append("         WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+id+"'                ");
+        sql.append("         AND ASTAFF.IS_DELETE               = 0                                                 ");
+        sql.append("         ORDER BY ASTAFF.CREATEDATE DESC, ASTAFF.STAFF_ID ASC, ASS.SX ASC                       ");
+        sql.append("         ) TT                                                                                   ");
+        sql.append("       WHERE TT.IS_DELETE = 0                                                                   ");
+        sql.append(conSql);
+        sql.append("       GROUP BY TT.ID, TT.CREATEDATE                                                            ");
+        sql.append("       ORDER BY TT.CREATEDATE DESC                                                              ");
+        sql.append("       ) CUR                                                                                    ");
+        sql.append("     UNION ALL                                                                                  ");
+        sql.append("     SELECT *                                                                                   ");
+        sql.append("     FROM                                                                                       ");
+        sql.append("       (SELECT TT.ID,                                                                           ");
+        sql.append("         MIN(TT.STAFF_ID) STAFFID,                                                              ");
+        sql.append("         MIN(TT.JOB_NUMBER) JOBNUMBER,                                                          ");
+        sql.append("         MIN(TT.STAFF_NAME) NAME,                                                               ");
+        sql.append("         LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,                          ");
+        sql.append("         LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,                      ");
+        sql.append("         LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,               ");
+        sql.append("         LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                             ");
+        sql.append("         LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER,                     ");
+        sql.append("         MIN(TT.DEPTNAME) DEPART_ID,                                                            ");
+        sql.append("         LISTAGG(TT.ADD_OR_LESS, ',') WITHIN GROUP(ORDER BY TT.SX) ADD_OR_LESS,                  ");
+        sql.append("         '2' typ,                                                            ");
+        sql.append("         MIN(TT.NAME) PeriodName, MIN(TT.Check_ID) Check_ID, MIN(TT.COMPANY_ID) COMPANY_ID                  ");
+        sql.append("       FROM                                                                                     ");
+        sql.append("         (SELECT ASTAFF.ID,                                                                     ");
+        sql.append("           ASTAFF.STAFF_ID,                                                                     ");
+        sql.append("           ASTAFF.JOB_NUMBER,                                                                   ");
+        sql.append("           ASTAFF.STAFF_NAME,                                                                   ");
+        sql.append("           ASS.IBF_ID,                                                                          ");
+        sql.append("           ASS.IBF_NAME,                                                                        ");
+        sql.append("           ASS.ASSIGNATION_CHARGE,                                                              ");
+        sql.append("           ASS.ID ASSID,                                                                        ");
+        sql.append("           ASTAFF.IS_DELETE,                                                                    ");
+        sql.append("           ASTAFF.CREATEDATE,                                                                   ");
+        sql.append("           ASS.SX,                                                                              ");
+        sql.append("           SI.IS_NUMBER,                                                                        ");
+        sql.append("           SR.DEPTNAME,                                                                         ");
+        sql.append("           SI.ADD_OR_LESS,                                                                      ");
+        sql.append("           PERIODDATA.NAME, SA.ID Check_ID, SA.COMPANY_ID                                       ");
+        sql.append("         FROM XC_ASSIGNATION_STAFF ASTAFF                                                       ");
+        sql.append("         LEFT JOIN XC_SALARY_RECORD SR                                                          ");
+        sql.append("         ON SR.STAFF_ID = ASTAFF.STAFF_ID                                                       ");
+        sql.append("         LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                                              ");
+        sql.append("         ON ASTAFF.ID      = ASS.ASSIGNATION_STAFF_ID                                           ");
+        sql.append("         AND ASS.IS_DELETE = 0                                                                  ");
+        sql.append("         LEFT JOIN XC_SALARY_ITEMS SI                                                           ");
+        sql.append("         ON ASS.IBF_ID = SI.ID                                                                  ");
+        sql.append("         LEFT JOIN XC_SALARY_ASSIGNATION SA                                                     ");
+        sql.append("         ON ASTAFF.SALARY_ASSIGNATION_ID = SA.ID                                                ");
+        sql.append("         LEFT JOIN XC_PERIODDATA PERIODDATA                                                     ");
+        sql.append("         ON PERIODDATA.ID = SA.SALARY_PERIOD                                                ");
+        sql.append("         WHERE SA.SALARY_GROUP_ID        = '"+conditionMap.get("groupId")+"'                    ");
+        sql.append("         AND SA.SALARY_WAGE_ID           = '"+conditionMap.get("salaryWageId")+"'               ");
+        sql.append("         AND SA.SALARY_PERIOD            = '"+ lastPeriiodId +"'                   ");
+        sql.append("         AND SA.COMPANY_ID               = '"+conditionMap.get("companyId")+"'                   ");
+        sql.append("         AND ASTAFF.IS_DELETE            = 0                                                    ");
+        sql.append("         ORDER BY ASTAFF.CREATEDATE DESC, ASTAFF.STAFF_ID ASC, ASS.SX ASC                       ");
+        sql.append("         ) TT                                                                                   ");
+        sql.append("       WHERE TT.IS_DELETE = 0                                                                   ");
+        sql.append(conSql);
+        sql.append("       GROUP BY TT.ID, TT.CREATEDATE                                                            ");
+        sql.append("       ORDER BY TT.CREATEDATE DESC                                                              ");
+        sql.append("       ) CUR2                                                                                   ");
+        sql.append("     ) CDATA                                                                                    ");
+        sql.append("   LEFT JOIN XC_CHECK_MONTH_SALARY CMS                                                          ");
+        sql.append("   ON CMS.CHECK_ID = CDATA.CHECK_ID                                                          ");
+        sql.append("   AND CMS.STAFF_ID = CDATA.STAFFID                                                          ");
+        sql.append("   AND CMS.IS_DELETE = 0                                                                     ");
+        sql.append("   ORDER BY CDATA.STAFFID ASC                                                                   ");
+
+        return sql.toString();
+    }
+
+    @Override
+    public String getAssignationForStaffDataSql(String id, String ids, String searchData) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT TT.ID,                                    ");
+        sql.append("     MIN(TT.STAFF_ID) STAFFID,                      ");
+        sql.append("     MIN(TT.JOB_NUMBER) JOBNUMBER,                  ");
+        sql.append("     MIN(TT.STAFF_NAME) NAME,                       ");
+        sql.append("     LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,                  ");
+        sql.append("     LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,              ");
+        sql.append("     LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,       ");
+        sql.append("     LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                     ");
+        sql.append("     LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER,             ");
+        sql.append("     MIN(TT.DEPTNAME) DEPART_ID,                       ");
+        sql.append("     LISTAGG(TT.ADD_OR_LESS, ',') WITHIN GROUP(ORDER BY TT.SX) ADD_OR_LESS   ");
+        sql.append("   FROM                                             ");
+        sql.append("     (SELECT ASTAFF.ID,                             ");
+        sql.append("       ASTAFF.STAFF_ID,                             ");
+        sql.append("       ASTAFF.JOB_NUMBER,                           ");
+        sql.append("       ASTAFF.STAFF_NAME,                           ");
+        sql.append("       ASS.IBF_ID,                                  ");
+        sql.append("       ASS.IBF_NAME,                                ");
+        sql.append("       ASS.ASSIGNATION_CHARGE,                      ");
+        sql.append("       ASS.ID ASSID,                                ");
+        sql.append("       ASTAFF.IS_DELETE,                            ");
+        sql.append("       ASTAFF.CREATEDATE,                           ");
+        sql.append("       ASS.SX,                                      ");
+        sql.append("       SI.IS_NUMBER,                                ");
+        sql.append("       SR.DEPTNAME,                                 ");
+        sql.append("       SI.ADD_OR_LESS                               ");
+        sql.append("     FROM XC_ASSIGNATION_STAFF ASTAFF               ");
+        sql.append("     LEFT JOIN XC_SALARY_RECORD SR      ");
+        sql.append("     ON SR.STAFF_ID = ASTAFF.STAFF_ID             ");
+        sql.append("     LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS      ");
+        sql.append("     ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID        ");
+        sql.append("     AND ASS.IS_DELETE = 0                          ");
+        sql.append("     LEFT JOIN XC_SALARY_ITEMS SI      ");
+        sql.append("     ON ASS.IBF_ID = SI.ID        ");
+        sql.append("     WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+id+"'  ");
+        sql.append("     AND ASTAFF.IS_DELETE = 0                       ");
+        sql.append("     ORDER BY                                       ");
+        sql.append("       ASTAFF.CREATEDATE DESC,                      ");
+        sql.append("       ASTAFF.STAFF_ID ASC,                         ");
+        sql.append("       ASS.SX ASC                                   ");
+        sql.append("     ) TT                                           ");
+        sql.append("     WHERE TT.IS_DELETE = 0                         ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 职工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("  AND TT.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                                 ");
+            }
+            // 职工名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("  AND TT.STAFF_NAME LIKE '%"+mapData.get("name").trim()+"%'                                 ");
+            }
+        }
+
+        // 核算数据id
+        if (!StringUtils.isBlank(ids)) {
+            sql.append("  AND TT.ID IN ('"+StringUtils.join(ids.split(","), "','")+"') ");
+        }
+        sql.append("   GROUP BY TT.ID, TT.CREATEDATE                    ");
+        sql.append("   ORDER BY TT.CREATEDATE DESC                      ");
+
+        return sql.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Map<String, Object>> getTotalData(String id) {
+        StringBuilder summarySql = new StringBuilder();
+        summarySql.append("    SELECT                                                          ");
+        summarySql.append("        ASS.IBF_ID IBFID,                                           ");
+        summarySql.append("        SUM( CASE WHEN SI.ADD_OR_LESS = 2 THEN -TO_NUMBER(NVL(ASS.ASSIGNATION_CHARGE, 0))      ");
+        summarySql.append("                 ELSE TO_NUMBER(NVL(ASS.ASSIGNATION_CHARGE, 0)) END) CHARGE,      ");
+        summarySql.append("        MIN(NVL(SI.NUMBER_ACCURACY, 0)) XS                          ");
+        summarySql.append("      FROM XC_ASSIGNATION_STAFF ASTAFF                              ");
+        summarySql.append("      LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                     ");
+        summarySql.append("      ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                       ");
+        summarySql.append("      AND ASS.IS_DELETE = 0                                         ");
+        summarySql.append("      LEFT JOIN XC_SALARY_ITEMS SI                                  ");
+        summarySql.append("      ON SI.ID = ASS.IBF_ID                                         ");
+        summarySql.append("      WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+id+"'                 ");
+        summarySql.append("      AND ASTAFF.IS_DELETE = 0                                      ");
+        summarySql.append("      AND SI.IS_NUMBER = 1  ");// 数字验证
+        summarySql.append("    GROUP BY ASS.IBF_ID,ASS.SX                                      ");
+        summarySql.append("    ORDER BY ASS.SX ASC                                             ");
+        SQLQuery summaryQuery = getSession().createSQLQuery(summarySql.toString());
+        summaryQuery.setResultTransformer(CriteriaSpecification.ALIAS_TO_ENTITY_MAP);
+        List<Map<String, Object>> summaryList = summaryQuery.list();
+
+        return summaryList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSelectedStaffAssignData(String assignStaffId, String assignId, String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                    ");
+        sql.append("   WM_CONCAT(ASS.ID) ID,                                     ");
+        sql.append("   WM_CONCAT(ASS.IBF_ID) ITEMSID,                            ");
+        sql.append("   WM_CONCAT(TO_CHAR(NVL(SF.CNT_MATH, 'result=0'))) FORMULA  ");
+        sql.append("   FROM XC_ASSIGNATION_STAFF ASTAFF                          ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                 ");
+        sql.append("   ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                   ");
+        sql.append("   AND ASS.IS_DELETE = 0                                     ");
+        sql.append("   LEFT JOIN XC_SALARY_ASSIGNATION SA                        ");
+        sql.append("   ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID                   ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                        ");
+        sql.append("   ON SA.SALARY_WAGE_ID = SGW.ID                             ");
+        sql.append("   AND SGW.IS_DELETE = 0                                     ");
+        sql.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                     ");
+        sql.append("   ON SGW.ID = GWAY.WAGE_ID                                  ");
+        sql.append("   AND GWAY.IS_DELETE = 0                                    ");
+        sql.append("   AND GWAY.ITEM_ID = ASS.IBF_ID                             ");
+        sql.append("   LEFT JOIN XC_SALARY_FORMULA SF                            ");
+        sql.append("   ON GWAY.ID = SF.BIND_ID                                   ");
+        sql.append("   AND SF.IS_DELETE = 0                                      ");
+        sql.append("   AND SF.IS_DEFAULT = 1                                     ");
+        sql.append("   WHERE ASTAFF.IS_DELETE = 0                                  ");
+
+        // 如果薪酬分配过程ID存在说明全表操作
+        if (!StringUtils.isBlank(assignStaffId)) {
+            sql.append("   AND SA.ID = '" + assignStaffId + "'");
+        } else {
+            sql.append("   AND ASTAFF.ID IN ('"+StringUtils.join(assignId.split(","), "','")+"') ");
+
+            // 如果薪资项目不存在说明全部的薪资项目参与计算
+            if (!StringUtils.isBlank(id)) {
+                sql.append("   AND ASS.IBF_ID = '" + id + "'");
+            }
+        }
+        sql.append("   GROUP BY ASTAFF.ID                        ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("itemsId", obj[1]);
+            map.put("formula", obj[2]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, String>> getAllGroupWageFinancialList(String assignStaffId, String itemid) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT DISTINCT                                    ");
+        sql.append("   SF.ID, TO_CHAR(SF.CONTENT) CONTENT, TO_CHAR(SF.CNT_MATH) CNTMATH           ");
+        sql.append("   FROM XC_SALARY_FORMULA SF                          ");
+        sql.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY              ");
+        sql.append("   ON (GWAY.ID = SF.BIND_ID OR GWAY.SALARY_WAGE_ID = SF.BIND_ID)                            ");
+        sql.append("   AND GWAY.IS_DELETE = 0                             ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                 ");
+        sql.append("   ON SGW.ID = GWAY.WAGE_ID                           ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS          ");
+        sql.append("   ON GWAY.ITEM_ID = ASS.IBF_ID                       ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF              ");
+        sql.append("   ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID            ");
+        sql.append("   AND ASTAFF.IS_DELETE = 0                           ");
+        sql.append("   LEFT JOIN XC_SALARY_ASSIGNATION SA                 ");
+        sql.append("   ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID            ");
+        sql.append("   WHERE SF.IS_DELETE = 0                             ");
+        sql.append("   AND SA.ID = '"+assignStaffId+"'     ");
+        sql.append("   AND ASS.IBF_ID = '"+itemid+"'");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, String> map = new HashMap<String, String>();
+            map.put("id", obj[0]+"");
+            try {
+                map.put("cntMath", obj[2].toString());
+                map.put("content", obj[1].toString());
+            } catch (Exception e) {
+                map.put("cntMath", "");
+                map.put("content", "");
+            }
+            map.put("type", "1");
+            dataList.add(map);
+        }
+        HashMap<String, String> map = new HashMap<String, String>();
+        map.put("id", "0");
+        map.put("content", "简单计算公式");
+        map.put("type", "2");
+        dataList.add(map);
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getNeedCheckStaffData(String id, Pager pager) {
+        // 获取薪酬核算过程中的薪资组ID与工资套ID
+        String selectAssign = "SELECT SALARY_GROUP_ID, SALARY_WAGE_ID FROM XC_SALARY_ASSIGNATION WHERE ID = '"+id+"'";
+        List<?> selectList = findBySql(selectAssign);
+        String groupId = "";
+        String wageId = "";
+        if (selectList.size() > 0) {
+            Object[] obj = (Object[]) selectList.get(0);
+            groupId = obj[0].toString();
+            wageId = obj[1].toString();
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT MIN(JBI.ID) ID,                                     ");
+        sql.append("      MIN(JBI.JOB_NUMBER) JOBNUMBER,                   ");
+        sql.append("      MIN(JBI.NAME) NAME,                              ");
+        sql.append("      MIN(BRANCH.FZX) company,                         ");
+        sql.append("      MIN(QD.NAME) deptName,                           ");
+        sql.append("      MIN(JBI.POST) post,                              ");
+        sql.append("      WM_CONCAT(SI.ID) ITEMSID,                        ");
+        sql.append("      WM_CONCAT(SI.NAME) ITEMSNAME,                    ");
+        sql.append("      WM_CONCAT(NVL(GWAY.SX, 0)) SX,                     ");
+        sql.append("      MIN(QD.ID) deptId,                     ");
+        sql.append("      MIN(BRANCH.ID) company_Id                     ");
+        sql.append("    FROM XC_SALARY_GROUP_WAGE SGW                      ");
+        sql.append("    LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY              ");
+        sql.append("    ON SGW.ID = GWAY.WAGE_ID                           ");
+        sql.append("    AND GWAY.IS_DELETE = 0                             ");
+        sql.append("    LEFT JOIN XC_SALARY_PERSONAL SP                    ");
+        sql.append("    ON SGW.SALARY_GROUP_ID = SP.SALARY_GROUP_ID        ");
+        sql.append("    AND SP.IS_DELETE       = 0                         ");
+        sql.append("    LEFT JOIN XC_SALARY_RECORD SR                      ");
+        sql.append("    ON SP.SALARY_RECORD_ID = SR.STAFF_ID               ");
+        sql.append("    LEFT JOIN JC_BASIC_INFORMATION JBI                 ");
+        sql.append("    ON SR.STAFF_ID = JBI.ID                            ");
+        sql.append("    LEFT JOIN XC_SALARY_ITEMS SI                       ");
+        sql.append("    ON GWAY.ITEM_ID = SI.ID                            ");
+        sql.append("    LEFT JOIN QX_DEPARTMENT QD                         ");
+        sql.append("    ON QD.ID = SR.DEPTNAME                           ");
+        sql.append("    LEFT JOIN BRANCH                                   ");
+        sql.append("    ON SR.FILM_NAME = BRANCH.ID                         ");
+        sql.append("    WHERE SGW.SALARY_GROUP_ID = '"+groupId+"'          ");
+        sql.append("    AND SGW.ID = '"+wageId+"'                          ");
+        sql.append("    AND JBI.ON_JOB IN (0,1,2, 5,6)                          ");
+        sql.append("    AND JBI.IS_DELETE=0                            ");
+        sql.append("    AND JBI.ID NOT IN                                  ");
+        sql.append("      (SELECT ASSTAFF.STAFF_ID                         ");
+        sql.append("      FROM XC_SALARY_ASSIGNATION SA                    ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF ASSTAFF           ");
+        sql.append("      ON SA.ID    = ASSTAFF.SALARY_ASSIGNATION_ID      ");
+        sql.append("      WHERE SA.ID = '"+id+"' ");
+        sql.append("      AND ASSTAFF.IS_DELETE = 0                        ");
+        sql.append("      )                                                ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(pager.getSearchData());
+        if (mapData != null) {
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("   AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                      ");
+            }
+            // 员工姓名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND JBI.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+        }
+        sql.append("    GROUP BY SR.ID                     ");
+        sql.append("    ORDER BY MIN(SR.CREATEDATE) DESC                       ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("company", obj[3]);
+            map.put("deptName", obj[4]);
+            map.put("post", obj[5]);
+            map.put("itemsId", obj[6]);
+            map.put("itemsName", obj[7]);
+            map.put("sx", obj[8]);
+            map.put("deptId", obj[9]);
+            map.put("companyId", obj[10]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String getLastMonthSalaryPeriod(String salaryPeriod) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        Perioddata perioddata = salaryAssignationService.get(Perioddata.class, Restrictions.eq("id", salaryPeriod));
+        if (perioddata != null) {
+            Period period = salaryAssignationService.get(Period.class, Restrictions.eq("id", perioddata.getPeriodId()));
+            if (period == null) {
+                map.put("success", 0);
+                map.put("info", perioddata.getName() + "薪酬期间不存在");
+
+                return JsonUtil.Encode(map);
+            } else if (period.getIsDelete() == 1) {
+                map.put("success", 0);
+                map.put("info", period.getYear() + "年度的薪酬期间不存在，已经被删除");
+
+                return JsonUtil.Encode(map);
+            }
+            // 本月开始日期
+            Date curDate = perioddata.getStartDate();
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(curDate);
+            calendar.add(Calendar.MONTH, -1);
+
+            int year = calendar.get(Calendar.YEAR);
+            int month = calendar.get(Calendar.MONTH) + 1;
+
+            // 查找上月
+            Period lastPeriod = salaryAssignationService.get(Period.class,
+                    Restrictions.eq("id", perioddata.getPeriodId()),
+                    Restrictions.eq("year", year),
+                    Restrictions.eq("isDelete", 0));
+            if (lastPeriod == null) {
+                map.put("success", 0);
+                map.put("info", year + "年度的薪酬期间不存在");
+
+                return JsonUtil.Encode(map);
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("   SELECT PE.ID, PE.START_DATE, PE.END_DATE         ");
+            sql.append("   FROM XC_PERIOD P                                 ");
+            sql.append("   LEFT JOIN XC_PERIODDATA PE                       ");
+            sql.append("   ON P.ID = PE.PERIOD_ID                           ");
+            sql.append("   WHERE P.YEAR = "+year+"                          ");
+            sql.append("   AND P.DEP_ID = '"+lastPeriod.getDepId()+"'       ");
+            sql.append("   AND P.IS_DELETE = 0                              ");
+            sql.append("   AND TO_CHAR(PE.START_DATE, 'yyyy-MM') = '"+year+"-"+String.format("%02d", month)+"'");
+
+            List<?> list = findBySql(sql.toString());
+            if (list.size() > 0) {
+                Object[] obj = (Object[]) list.get(0);
+
+                map.put("success", 1);
+                map.put("info", obj[0].toString());
+
+                return JsonUtil.Encode(map);
+            }
+        }
+
+        map.put("success", 0);
+        map.put("info", perioddata.getName() + "薪酬期间不存在");
+
+        return JsonUtil.Encode(map);
+    }
+
+    @Override
+    public Map<String, Object> getFpqxPeopleCount(String assignId, String fpqx, String deptId) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT COUNT(ASTAFF.ID) PEOPLE,          "); 
+        sql.append("     MIN(SR.FPQX) FPQX                      ");
+        sql.append("   FROM XC_ASSIGNATION_STAFF ASTAFF         ");
+//        sql.append("   LEFT JOIN JC_BASIC_INFORMATION JBI       ");
+//        sql.append("   ON ASTAFF.STAFF_ID = JBI.ID              ");
+        sql.append("   LEFT JOIN XC_SALARY_RECORD SR            ");
+        sql.append("   ON ASTAFF.STAFF_ID = SR.STAFF_ID         ");
+        sql.append("   WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+assignId+"'  ");
+        sql.append("   AND SR.FPQX = '"+fpqx+"'                 ");
+        sql.append("   AND SR.DEPTNAME = '"+deptId+"'                 ");
+        sql.append("   AND ASTAFF.IS_DELETE = 0                 ");
+        sql.append("   GROUP BY SR.DEPTNAME                     ");
+
+        List<?> list = findBySql(sql.toString());
+        HashMap<String, Object> map = new HashMap<String, Object>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            map.put(obj[1].toString(), obj[0]);
+        }
+
+        return map;
+    }
+
+    @Override
+    public String[] getAuthCompany() {
+        String userId = LingUtil.userinfo().getId();
+        String conpanyId = LingUtil.userinfo().getCid();
+
+        // 获取下属有权限的公司
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT B.ID                                 ");
+        sql.append("    FROM BRANCH B                               ");
+        sql.append("    INNER JOIN QX_USER_DATAUTH UD               ");
+        sql.append("    ON UD.BRANCH_DEP =B.ID                      ");
+        sql.append("    AND UD.FLG       ='0'                       ");
+        sql.append("    AND UD.USERID    = '"+userId+"'             ");
+        sql.append("    AND (B.ID='"+conpanyId+"' OR B.PID = '"+conpanyId+"')                 ");
+        sql.append("    WHERE B.IS_DELETE = 0                       ");
+
+        List<?> data = this.findBySql(sql.toString());
+        String[] obj = data.toArray(new String[data.size()]);
+
+        return obj;
+    }
+
+    @Override
+    public String getNeedSendSalaryRecordsSql(String ids) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                                       ");
+        sql.append("     ID,STAFF_ID,JOB_NUMBER,STAFF_NAME,                                                         ");
+        sql.append("     REGEXP_SUBSTR(ITEM_ID, '[^,]+', 1, LEVEL) ITEM_ID,                                         ");
+        sql.append("     REGEXP_SUBSTR(NAME, '[^,]+', 1, LEVEL) NAME,                                               ");
+        sql.append("     REGEXP_SUBSTR(ASSIGNATION_CHARGE, '[^,]+', 1, LEVEL) ASSIGNATION_CHARGE,                   ");
+        sql.append("     COMPANYID,FZX,DEPTID,DEPTNAME                                                              ");
+        sql.append("   FROM (                                                                                       ");
+        sql.append("     SELECT ID,STAFF_ID,JOB_NUMBER,STAFF_NAME,ITEM_ID,NAME,ASSIGNATION_CHARGE,                  ");
+        sql.append("        COMPANYID,FZX,DEPTID,DEPTNAME                  ");
+        sql.append("     FROM                                                                                       ");
+        sql.append("       (SELECT SA.ID,                                                                           ");
+        sql.append("         MIN(ASTAFF.STAFF_ID) STAFF_ID,                                                         ");
+        sql.append("         MIN(ASTAFF.JOB_NUMBER) JOB_NUMBER,                                                     ");
+        sql.append("         MIN(ASTAFF.STAFF_NAME) STAFF_NAME,                                                     ");
+        sql.append("         LISTAGG(SI.ID, ',') WITHIN GROUP (ORDER BY ASS.SX) ITEM_ID,                            ");
+        sql.append("         LISTAGG(SI.NAME, ',') WITHIN GROUP (ORDER BY ASS.SX) NAME,                             ");
+        sql.append("         LISTAGG(ASS.ASSIGNATION_CHARGE, ',') WITHIN GROUP (ORDER BY ASS.SX) ASSIGNATION_CHARGE,");
+        sql.append("         MAX(CASE WHEN SP.NO_SEND = SI.ID AND TO_NUMBER(ASS.ASSIGNATION_CHARGE) = 0 THEN 1      ");
+        sql.append("           ELSE 0 END) NO_SEND,                                                                 ");
+        sql.append("         MIN(B.ID) COMPANYID, MIN(B.FZX) FZX,                                                   ");
+        sql.append("         MIN(QD.ID) DEPTID, MIN(QD.NAME) DEPTNAME                                               ");
+        sql.append("       FROM XC_SALARY_ASSIGNATION SA                                                            ");
+        sql.append("       LEFT JOIN XC_SALARY_GROUP_WAGE SGW                                                       ");
+        sql.append("       ON SA.SALARY_WAGE_ID = SGW.ID                                                            ");
+        sql.append("       AND SGW.IS_DELETE    = 0                                                                 ");
+        sql.append("       AND SA.COMPANY_ID    = SGW.COMPANY_ID                                                    ");
+        sql.append("       LEFT JOIN XC_SALARY_WAGE SW                                                              ");
+        sql.append("       ON SGW.SALARY_WAGE_ID= SW.ID                                                             ");
+        sql.append("       AND SW.IS_DELETE     = 0                                                                 ");
+        sql.append("       LEFT JOIN XC_SALARY_GROUP SG                                                             ");
+        sql.append("       ON SGW.SALARY_GROUP_ID = SG.ID                                                           ");
+        sql.append("       AND SG.IS_DELETE       = 0                                                               ");
+        sql.append("       AND SA.SALARY_GROUP_ID = SG.ID                                                           ");
+        sql.append("       LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF                                                    ");
+        sql.append("       ON ASTAFF.SALARY_ASSIGNATION_ID = SA.ID                                                  ");
+        sql.append("       AND ASTAFF.IS_DELETE            = 0                                                      ");
+        sql.append("       LEFT JOIN XC_SALARY_RECORD SR                                                            ");
+        sql.append("       ON SR.STAFF_ID = ASTAFF.STAFF_ID                                                         ");
+        sql.append("       ON SR.ZFXS = 1                                                         ");// 自发薪可以发工资条
+        sql.append("       LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                                                ");
+        sql.append("       ON ASTAFF.ID      = ASS.ASSIGNATION_STAFF_ID                                             ");
+        sql.append("       AND ASS.IS_DELETE = 0                                                                    ");
+        sql.append("       LEFT JOIN XC_SALARY_ITEMS SI                                                             ");
+        sql.append("       ON ASS.IBF_ID = SI.ID                                                                    ");
+        sql.append("       LEFT JOIN XC_SALARY_PART SP                                                              ");
+        sql.append("       ON SGW.ID         = SP.GROUP_WAGE_AND_TYPE_ID                                            ");
+        sql.append("       AND SP.IS_DELETE  = 0                                                                    ");
+        sql.append("       AND SP.IS_DEFAULT = 1                                                                    ");
+        sql.append("       RIGHT JOIN XC_PART_SALARY PS                                                             ");
+        sql.append("       ON SP.ID         = PS.PART_ID                                                            ");
+        sql.append("       AND PS.IS_DELETE = 0                                                                     ");
+        sql.append("       AND ASS.IBF_ID   = PS.ITEM_ID                                                            ");
+        sql.append("       LEFT JOIN BRANCH B                                                                       ");
+        sql.append("       ON SR.FILM_NAME = B.ID                                                                   ");
+        sql.append("       LEFT JOIN QX_DEPARTMENT QD                                                               ");
+        sql.append("       ON SR.DEPTNAME     = QD.ID                                                               ");
+        sql.append("       WHERE SA.IS_DELETE = 0                                                                   ");
+        sql.append("       AND SA.ID IN ('"+StringUtils.join(ids.split(","), "','")+"')                             ");
+        sql.append("       AND PS.IS_ZREO = 1                                                                       ");
+        sql.append("       GROUP BY SA.ID, ASTAFF.STAFF_ID                                                          ");
+        sql.append("       ORDER BY SA.ID ASC) ASSIGN                                                               ");
+        sql.append("     WHERE ASSIGN.NO_SEND = 0                                                                   ");
+        sql.append("   ) SENDDATA                                                                                   ");
+        sql.append("   CONNECT BY LEVEL <= REGEXP_COUNT(SENDDATA.NAME, ',')                                         ");
+
+        return sql.toString();
+    }
+
+    @Override
+    public String getSelectReCalculateStaffsItem(String ids, String itemID) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("      SELECT                                        ");
+        sql.append("        ASS.ID, ASTAFF.STAFF_ID,SI.NUMBER_ACCURACY, ASTAFF.COMPANY_ID  ");
+        sql.append("      FROM XC_ASSIGNATION_STAFF ASTAFF              ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS     ");
+        sql.append("      ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID       ");
+        sql.append("      AND ASS.IS_DELETE = 0                         ");
+        sql.append("      LEFT JOIN XC_SALARY_ITEMS SI                  ");
+        sql.append("      ON ASS.IBF_ID = SI.ID                         ");
+        sql.append("      WHERE ASTAFF.ID IN ('"+StringUtils.join(ids.split(","), "','")+"')                            ");
+        sql.append("      AND ASS.IBF_ID = '"+itemID+"'                           ");
+
+        return sql.toString();
+    }
+
+}

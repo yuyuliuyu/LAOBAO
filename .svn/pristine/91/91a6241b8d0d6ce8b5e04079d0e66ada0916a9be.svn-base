@@ -1,0 +1,62 @@
+package com.lingnet.hcm.action.personnel;
+
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+
+/**
+ * 
+ * @ClassName: DepartureAction 
+ * @Description: 离岗人员管理Action 
+ * @author duanjj
+ * @date 2017年3月10日 上午10:56:46 
+ *
+ */
+@Controller
+public class DepartureAction extends BaseAction{
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -4533377460351784579L;
+    
+    /**
+     * 列表页面
+     */
+    public String list(){
+        return LIST;
+    }
+    /**
+     * 添加页面
+     */
+    public String addLz(){
+        return "addlz";
+    }
+    /**
+     * 添加页面
+     */
+    public String addTx(){
+        return "addtx";
+    }
+    /**
+     * 退休单位管理
+     */
+    public String txUpdate(){
+        return "txupdate";
+    }
+    /**
+     * 离退人员亡故管理
+     */
+    public String ltUpdate(){
+        return "ltupdate";
+    }
+    
+    /**
+     * 查看页面
+     */
+    public String look(){
+        return ADD;
+    }
+    
+
+}

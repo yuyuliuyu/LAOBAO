@@ -1,0 +1,180 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * JcEmpChange entity.
+ *  @author MyEclipse Persistence Tools
+ *  员工异动表
+ */
+@Entity
+@Table(name = "JC_EMP_CHANGE")
+public class Change extends BaseEntity implements java.io.Serializable {
+
+    // Fields
+	private static final long serialVersionUID = -8889169954328661192L;
+    private String jobNumber;//工号
+    private Integer changeType;//异动类型
+    private String film;//公司
+    private String dep;//部门
+    private String spanPost;//岗位
+    private String spPost;//具体岗位
+    private Date changedate;//异动时间
+    private Integer empType;//员工类型
+    private Integer onJob;//在职状态
+    private Integer onPost;//在岗状态
+    private String remark;//备注
+    private Date depbeginDate;//部门开始时间
+    private Date dependDate;//部门结束时间
+    private Date postbeginDate;//岗位开始时间
+    private Date postendDate;//岗位结束时间
+
+    // Constructors
+    @Column(name = "JOB_NUMBER", length = 20)
+    public String getJobNumber() {
+        return this.jobNumber;
+    }
+
+    public void setJobNumber(String jobNumber) {
+        this.jobNumber = jobNumber;
+    }
+
+    @Column(name = "CHANGE_TYPE", precision = 2, scale = 0)
+    public Integer getChangeType() {
+        return this.changeType;
+    }
+
+    public void setChangeType(Integer changeType) {
+        this.changeType = changeType;
+    }
+
+    @Column(name = "FILM", length = 20)
+    public String getFilm() {
+        return this.film;
+    }
+
+    public void setFilm(String film) {
+        this.film = film;
+    }
+
+    @Column(name = "DEP", length = 20)
+    public String getDep() {
+        return this.dep;
+    }
+
+    public void setDep(String dep) {
+        this.dep = dep;
+    }
+
+    @Column(name = "STAN_POST")
+    public String getSpanPost() {
+		return spanPost;
+	}
+
+	public void setSpanPost(String spanPost) {
+		this.spanPost = spanPost;
+	}
+
+    @Column(name = "SP_POST")
+    public String getSpPost() {
+        return this.spPost;
+    }
+
+    public void setSpPost(String spPost) {
+        this.spPost = spPost;
+    }
+
+    @Temporal(TemporalType.DATE)
+    @Column(name = "CHANGEDATE", length = 7)
+    public Date getChangedate() {
+        return this.changedate;
+    }
+
+    public void setChangedate(Date changedate) {
+        this.changedate = changedate;
+    }
+
+    @Column(name = "EMP_TYPE", precision = 2, scale = 0)
+    public Integer getEmpType() {
+        return this.empType;
+    }
+
+    public void setEmpType(Integer empType) {
+        this.empType = empType;
+    }
+
+    @Column(name = "ON_JOB", precision = 2, scale = 0)
+    public Integer getOnJob() {
+        return this.onJob;
+    }
+
+    public void setOnJob(Integer onJob) {
+        this.onJob = onJob;
+    }
+
+    @Column(name = "ON_POST", precision = 2, scale = 0)
+    public Integer getOnPost() {
+        return this.onPost;
+    }
+
+    public void setOnPost(Integer onPost) {
+        this.onPost = onPost;
+    }
+
+    @Column(name = "REMARK", length = 50)
+    public String getRemark() {
+        return this.remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    @Column(name = "DEPBEGIN_DATE")
+	public Date getDepbeginDate() {
+		return depbeginDate;
+	}
+
+	public void setDepbeginDate(Date depbeginDate) {
+		this.depbeginDate = depbeginDate;
+	}
+
+	@Column(name = "DEPEND_DATE")
+	public Date getDependDate() {
+		return dependDate;
+	}
+
+	public void setDependDate(Date dependDate) {
+		this.dependDate = dependDate;
+	}
+
+	@Column(name = "POSTBEGIN_DATE")
+	public Date getPostbeginDate() {
+		return postbeginDate;
+	}
+
+	public void setPostbeginDate(Date postbeginDate) {
+		this.postbeginDate = postbeginDate;
+	}
+
+	@Column(name = "POSTEND_DATE")
+	public Date getPostendDate() {
+		return postendDate;
+	}
+
+	public void setPostendDate(Date postendDate) {
+		this.postendDate = postendDate;
+	}
+
+	
+
+
+}

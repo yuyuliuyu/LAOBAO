@@ -1,0 +1,16 @@
+package com.lingnet.hcm.service.salary;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+
+/**
+ * 总量表
+ * @ClassName: SalaryTotalAmountService 
+ * @Description: 总量表 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:13:28 
+ *
+ */
+public interface SalaryTotalAmountService extends BaseService<SalaryTotalAmount, String> {
+
+}

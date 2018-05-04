@@ -1,0 +1,323 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>分配总量</title>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+
+    <style type="text/css">
+        .link {text-decoration:none}
+    </style>
+</head>
+
+<body>
+    <div class="mini-toolbar" style="padding:0px;border-top:0;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:100%;">
+                    &nbsp;公司:
+                    <input class="mini-textbox" id="company" style="width: 120px" onenter="onKeyEnter"/>
+                    &nbsp;分配权限:
+                    <input class="mini-combobox" style="width: 120px" id="fpqx" onvaluechanged="onValueChanged"
+                        data="[{id: 1, text:'公司'},{id: 2, text:'基层'}]" onenter="onKeyEnter"/>
+                    <a id="searchButton" class="mini-button" iconCls="icon-search" onclick="searchS()">查询</a>
+                    <br>
+                    <a class="mini-button" iconCls="icon-save" onclick="onOK()">保存</a>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-fit">
+        <div id="grid1" class="mini-datagrid" style="width:100%;height:100%;" pageSize="20" showPager = "false"
+            pagerSize="20" idField="id" allowResize="false" borderStyle="border-center:0px;border-right:0px;" multiSelect="true"
+            allowCellEdit="true" allowCellSelect="true"allowHeaderWrap ="true">
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var grid1 = mini.get("grid1");
+        var fpqx = mini.get("fpqx");
+        fpqx.select(1);
+
+        function onValueChanged(e) {
+            searchS();
+        }
+
+        // 原合计
+        var byjxldkhField = [];
+        // 分配合计
+        var actualField = [];
+
+        function searchS() {
+            dynamicTable('company,fpqx','company,fpqx');
+        }
+
+        function searchCondition(name,attr) {
+            var names=name.split(",");
+            var attrs=attr.split(",");
+            var searchData="{";
+            for(var i=0;i<names.length;i++){
+                if(mini.get(names[i])){
+                    var value=mini.get(names[i]).getValue();
+                    if(value!=null&&value!=""&&typeof(value)!=undefined){
+                        searchData=searchData+"\""+attrs[i]+"\""+":\""+value+"\",";
+                    }
+                }
+            }
+            var cd = searchData.length;//长度
+            var fy = searchData.charAt(cd-1);
+            if(fy==","){
+                searchData = searchData.substring(0,cd-1);
+            }
+            searchData=searchData+"}";
+
+            return searchData;
+        }
+
+        function dynamicTable(name,attr) {
+            var ss = searchCondition(name,attr);
+            $.ajax({
+                url: "../salary/salary_amount!getAmountForPeriodListData.action",
+                type: "POST",
+                data : {
+                    period : '${period}',
+                    searchData : ss
+                },
+                success: function(text) {
+                    var jsonData = mini.decode(text);
+                    byjxldkhField.splice(0, byjxldkhField.length);
+                    actualField.splice(0, actualField.length);
+                    var arr = [];
+                    arr.push({ type: "checkcolumn", headerAlign:"center", width : 40});
+                    arr.push({ type: "indexcolumn", headerAlign:"center", width: 40,header: "序列"});
+                    arr.push({ field: "id", id:"id", name:"id", headerAlign:"center", width: 40});
+                    arr.push({ field: "companyId", id:"companyId", name:"companyId", headerAlign:"center", width: 40, header: "单位ID"});
+                    arr.push({ field:"company", width:"150", headerAlign:"center", align:"center", header: "单位"});
+                    arr.push({ field:"peopleCount", width:"60", headerAlign:"center", align:"center", header: "人数"});
+                    arr.push({ field:"lastMonthAmount", width:"80", headerAlign:"center", align:"center", header: "上月结余"});
+
+                    var second = [];
+                    var secondAmount = mini.decode(jsonData.secondAmount);
+                    // 数值数组
+                    var secondValue = new Array(secondAmount.length);
+                    for (var i=0; i< secondAmount.length;i++) {
+                        var column = { field:"second"+secondAmount[i].IBF_ID, width:"80", headerAlign:"center", align:"center", header: secondAmount[i].IBF_NAME};
+                        second.push(column);
+                        secondValue["second"+secondAmount[i].IBF_ID] = 0;
+                        secondValue["actual"+secondAmount[i].IBF_ID] = 0;
+                        byjxldkhField.push({item: "second"+secondAmount[i].IBF_ID});
+                        actualField.push({item: "actual"+secondAmount[i].IBF_ID});
+                    }
+                    second.push({field:"secondTotal", width:"80", headerAlign:"center", align:"center", header: "合计"});
+                    arr.push({ headerAlign:"center", align:"center", header: "二次分配总量", columns : second});
+                    arr.push({ field:"byjxldkh", width:"80", headerAlign:"center", align:"center", header: "本月绩效联动考核*",vtype: "float;required:true",
+                                   editor: { type: "textbox", maxLength: 20}});
+                    arr.push({ headerAlign:"center", align:"center", header: "其他奖励",
+                        columns : [
+                               { field:"specialReward", width:"80", headerAlign:"center", align:"center", header: "特殊激励*",vtype: "float;required:true",
+                                   editor: { type: "textbox", maxLength: 20}},
+                               { field:"otherReward", width:"80", headerAlign:"center", align:"center", header: "其他*",vtype: "float;required:true",
+                                   editor: { type: "textbox", maxLength: 20}},
+                               { field:"rewardTotal", width:"80", headerAlign:"center", align:"center", header: "合计"}
+                        ]});
+                    arr.push({ field:"bykfpzl", width:"80", headerAlign:"center", align:"center", header: "本月可分配总量"});
+
+                    var actualSecond = [];
+                    for (var i=0; i< secondAmount.length;i++) {
+                    	var column = { field:"actual"+secondAmount[i].IBF_ID, width:"80", headerAlign:"center", align:"center", header: secondAmount[i].IBF_NAME};
+                        actualSecond.push(column);
+                    }
+                    actualSecond.push({field:"actualSecondTotal", width:"80", headerAlign:"center", align:"center", header: "合计"});
+                    arr.push({ headerAlign:"center", align:"center", header: "实际工资分配结果", columns : actualSecond});
+                    arr.push({ field:"curMonthAmount", width:"80", headerAlign:"center", align:"center", header: "本月结余"});
+                    arr.push({ field:"note", width:"150", headerAlign:"center", align:"center", header: "备注",
+                                  editor: { type: "textbox", maxLength: 1000}});
+
+                    var dd = jsonData.data;
+                    var table = [];
+                    for (var i=0; i< jsonData.total;i++) {
+                        var row = dd[i];
+                        var column = {id: row.id, companyId: row.companyId, company: row.company, peopleCount: row.peopleCount, lastMonthAmount: row.lastMonthAmount,
+                                byjxldkh: row.byjxldkh, specialReward: row.specialReward, otherReward: row.otherReward, rewardTotal: row.rewardTotal,
+                                bykfpzl: row.bykfpzl, curMonthAmount: row.curMonthAmount, note: row.note, secondTotal: 0, actualSecondTotal: 0};
+                        var objs = eval(column);
+                        var newObjs = $.extend({}, objs, secondValue);
+                        if (row.itemId != null) {
+                            var itemId = row.itemId.split(",");
+                            var staticValue = row.staticValue.split(",");
+                            var actualItemid = row.actualItemid.split(",");
+                            var needAmount = row.needAmount.split(",");
+                            for (var j=0; j< itemId.length;j++) {
+                                newObjs["second"+itemId[j]] = staticValue[j];
+                                newObjs["actual"+actualItemid[j]] = needAmount[j];
+                            }
+                        }
+                        table.push(newObjs);
+                    }
+                    grid1.setData(table);
+                    grid1.setTotalCount(jsonData.total);
+                    grid1.set({columns : arr, ondrawcell: "onDrawCell"});
+                    grid1.hideColumn("id");
+                    grid1.hideColumn("companyId");
+                    grid1.frozenColumns(0, 6);
+                }
+            });
+        }
+
+        /**
+         * 单元格绘制
+         * zhanghj
+         **/
+        function onDrawCell(e) {
+            var field = e.field;
+            var record = e.record;
+            // 求出二次分配总量合计
+            if (field == "secondTotal") {
+                var formula = 0;
+                for (var i=0; i< byjxldkhField.length; i++) {
+                    var s = byjxldkhField[i].item;
+                    var d = record[s];
+                    if (d != null) {
+                        formula = parseFloat(formula) + parseFloat(d);
+                    }
+                }
+                record.secondTotal = formula;
+                e.cellHtml = formula;
+            }
+
+            // 其他奖励合计
+            if (field == "rewardTotal") {
+                var specialReward = record.specialReward, otherReward = record.otherReward;
+                var rewardTotal = parseFloat(specialReward) + parseFloat(otherReward);
+                record.rewardTotal = rewardTotal;
+                e.cellHtml = rewardTotal;
+            }
+
+            // 本月可分配总量
+            if (field == "bykfpzl") {
+                var lastMonthAmount = record.lastMonthAmount, secondTotal = record.secondTotal, byjxldkh = record.byjxldkh, rewardTotal = record.rewardTotal;
+                var bykfpzl = parseFloat(lastMonthAmount) + parseFloat(secondTotal) + parseFloat(byjxldkh) + parseFloat(rewardTotal);
+                record.bykfpzl = bykfpzl;
+                e.cellHtml = bykfpzl;
+            }
+
+            // 实际二次分配总量
+            if (field == "actualSecondTotal") {
+                var formula = 0;
+                for (var i=0; i< actualField.length; i++) {
+                    var s = actualField[i].item;
+                    var d = record[s];
+                    if (d != null) {
+                        formula = parseFloat(formula) + parseFloat(d);
+                    }
+                }
+                record.actualSecondTotal = formula;
+                e.cellHtml = formula;
+            }
+
+            // 本月结余
+            if (field == "curMonthAmount") {
+                var bykfpzl = record.bykfpzl, actualSecondTotal = record.actualSecondTotal;
+                var curMonthAmount = parseFloat(bykfpzl) - parseFloat(actualSecondTotal);
+                record.curMonthAmount = curMonthAmount;
+                e.cellHtml = curMonthAmount;
+            }
+        }
+
+        function onOK() {
+            var gridjson="";
+            if(grid1){
+                // 验证
+                grid1.validate();
+                if (grid1.isValid() == false) {
+                    gridError(grid1);
+                    return;
+                }
+                var data = grid1.getData();
+                if(data.length<1){// 空行也算length
+                    mini.alert("详细信息为空，保存失败！");
+                    return;
+                }
+                gridjson= mini.encode(data);
+            }
+
+            window.parent.loading();
+            $.ajax({
+                url : "../salary/salary_amount!saveOrUpdate.action",
+                type : "POST",
+                data : {
+                    period: '${period}',
+                    fpqx: fpqx.getValue(),
+                    griddata : gridjson
+                },
+                success : function(text) {
+                    if (text == "success") {
+                        mini.showMessageBox({
+                            title: "提醒",
+                            width: 250,
+                            iconCls: "mini-messagebox-warning",
+                            buttons: ["ok"],
+                            message: "保存成功",
+                            callback: function (action) {
+                                searchS();
+                            }
+                        });
+                    } else {
+                        window.parent.unmask();
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                }
+            });
+        }
+
+        /*******************************************************************************
+         * grid 错误提示
+         ******************************************************************************/
+        function gridError(grid){
+            var error = grid.getCellErrors()[0];
+            var head = error.column.header.replace(/[\r\n]/g,"").replace(/[ ]/g,"");
+            var errorText = error.errorText;
+            mini.showMessageBox({
+                 title: "提醒",
+                 iconCls: "mini-messagebox-warning",
+                 buttons: ["ok"],
+                 message: head+":"+errorText+",请修改后重新操作!",
+                 callback: function (action) {
+                      grid.setSelected(error.record);
+                      grid.beginEditCell(error.record, error.column);
+                      return;
+                   }
+                 });
+        }
+
+        /**点击回车查询
+         * JSP:onkeydown="onKeyEnter"
+         * 查询按钮id：searchButton
+         * 火狐下不识别 event is not defined
+         * */
+        function onKeyEnter(){
+            if((event.keyCode || event.which) == 13){
+                $("#searchButton").click();
+            }
+        }
+
+    </script>
+</body>
+</html>

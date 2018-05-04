@@ -1,0 +1,213 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryMonthDao;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 平均工资计算过程与薪资项目关联表
+ * @ClassName: SalaryMonthDaoImpl 
+ * @Description: 平均工资计算过程与薪资项目关联表 
+ * @author zhanghj
+ * @date 2017年3月23日 下午5:12:18 
+ *
+ */
+@Repository("salaryMonthDao")
+public class SalaryMonthDaoImpl extends BaseDaoImplInit<SalaryMonth, String> implements SalaryMonthDao {
+
+    @Override
+    public List<Map<String, Object>> getMonthItemForId(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                ");
+        sql.append("   MI.ID,MI.ITEMS_ID, SI.NAME, MI.IS_ADD ");
+        sql.append("   FROM XC_MONTH_ITEM MI                 ");
+        sql.append("   LEFT JOIN XC_SALARY_ITEMS SI          ");
+        sql.append("   ON MI.ITEMS_ID = SI.ID                ");
+        sql.append("   WHERE MI.IS_DELETE=0                  ");
+        sql.append("   AND MI.SALARY_MONTH_ID = '"+id+"'                                        ");
+        sql.append("   ORDER BY MI.CREATEDATE ASC            ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("itemsId", obj[1]);
+            map.put("itemName", obj[2]);
+            map.put("isAdd", obj[3]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getPersonalToAllocationListData(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT             ");
+        sql.append("       JBI.ID, JBI.JOB_NUMBER,JBI.NAME , BRANCH.FZX, QD.NAME deptName,   ");
+        sql.append("       JBI.POST, JBI.ON_JOB , JBI.ON_POST               ");
+        sql.append("  FROM JC_BASIC_INFORMATION JBI                                             ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD                                                ");
+        sql.append("  ON QD.ID = JBI.DEPART_ID                                                  ");
+        sql.append("  LEFT JOIN BRANCH                                                          ");
+        sql.append("  ON JBI.FILM_ID = BRANCH.ID                                                ");
+        sql.append("  WHERE JBI.FILM_ID = '"+id+"'                  ");
+        sql.append("    AND JBI.ON_JOB = 2                  ");
+        sql.append("    AND JBI.IS_DELETE = 0                  ");
+        sql.append("  ORDER BY JBI.CREATEDATE ASC                  ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("companyName", obj[3]);
+            map.put("deptName", obj[4]);
+            map.put("post", obj[5]);
+            map.put("onJob", obj[6]);
+            map.put("onPost", obj[7]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getMonthSalaryListData(String id, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT             ");
+        sql.append("       JBI.ID, JBI.JOB_NUMBER,JBI.NAME , BRANCH.FZX, QD.NAME QDNAME,   ");
+        sql.append("       JBI.POST, JBI.ON_JOB , JBI.ON_POST,MS.AVERAGE_SALARY,MS.ID sID               ");
+        sql.append("  FROM JC_BASIC_INFORMATION JBI                                             ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD                                                ");
+        sql.append("  ON QD.ID = JBI.DEPART_ID                                                  ");
+        sql.append("  LEFT JOIN BRANCH                                                          ");
+        sql.append("  ON JBI.FILM_ID = BRANCH.ID                                                ");
+        sql.append("  LEFT JOIN XC_MONTH_STAFF MS                                               ");
+        sql.append("  ON JBI.ID = MS.STAFF_ID                                                ");
+        sql.append("  WHERE MS.SALARY_MONTH_ID = '"+id+"'                  ");
+        sql.append("    AND MS.IS_DELETE = 0                              ");
+
+        String searchData = pager.getSearchData();
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("    AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'           ");
+            }
+            // 名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("    AND JBI.NAME LIKE '%"+mapData.get("name").trim()+"%'           ");
+            }
+        }
+        sql.append("  ORDER BY JBI.CREATEDATE ASC                  ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("companyName", obj[3]);
+            map.put("deptName", obj[4]);
+            map.put("post", obj[5]);
+            map.put("onJob", obj[6]);
+            map.put("onPost", obj[7]);
+            map.put("averageSalary", obj[8]);
+            map.put("monthStaffId", obj[9]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getMonthAvgSalary(String depId, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                                      ");
+        sql.append("     MS.ID, JBI.ID staffId, JBI.JOB_NUMBER, JBI.NAME,BRANCH.FZX,               ");
+        sql.append("     QD.NAME DEPTNAME, NVL(MS.AVERAGE_SALARY, 0) AVERAGE_SALARY ");
+        sql.append("    FROM XC_SALARY_RECORD SR                                    ");
+        sql.append("    LEFT JOIN JC_BASIC_INFORMATION JBI                          ");
+        sql.append("    ON SR.STAFF_ID = JBI.ID                                     ");
+        sql.append("    LEFT JOIN XC_MONTH_SALARY MS                                ");
+        sql.append("    ON JBI.ID = MS.STAFF_ID                                     ");
+        sql.append("    AND MS.IS_DELETE = 0                                        ");
+
+        StringBuilder checkSql = new StringBuilder();
+        String searchData = pager.getSearchData();
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                checkSql.append("    AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'           ");
+            }
+            // 名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                checkSql.append("    AND JBI.NAME LIKE '%"+mapData.get("name").trim()+"%'           ");
+            }
+            // 年份
+            if (!StringUtils.isBlank(mapData.get("effectiveYear"))) {
+                sql.append("    AND MS.EFFECTIVE_YEAR = "+mapData.get("effectiveYear").trim()+"           ");
+            }
+            // 部门
+            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] deptArray = mapData.get("depId").split(",");
+                checkSql.append("  AND SR.DEPTNAME IN ('"+StringUtils.join(deptArray, "','")+"') ");
+            }
+        }
+
+        sql.append("    LEFT JOIN BRANCH                                            ");
+        sql.append("    ON SR.FILM_NAME = BRANCH.ID                                 ");
+        sql.append("    LEFT JOIN QX_DEPARTMENT QD                                  ");
+        sql.append("    ON QD.ID = SR.DEPTNAME                                      ");
+        sql.append("    WHERE 1=1                             ");
+        sql.append(checkSql);
+        sql.append("  ORDER BY SR.CREATEDATE ASC                  ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("companyName", obj[4]);
+            map.put("deptName", obj[5]);
+            map.put("averageSalary", obj[6]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+}

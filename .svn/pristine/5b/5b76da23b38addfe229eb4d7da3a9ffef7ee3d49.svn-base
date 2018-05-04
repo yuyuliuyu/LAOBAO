@@ -1,0 +1,225 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path;
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%@ include file="../includes/taglibs.jsp"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /> 
+	<title>人员考勤档案维护页</title>
+	<style type="text/css">
+	body{
+	    margin:0;padding:0;border:0;width:100%;height:100%;overflow:hidden;
+	}
+	</style>
+	<script src="${base}/template/miniui/boot.js" type="text/javascript"></script>
+	<link href="${base}/template/system/css/base.css" rel="stylesheet" type="text/css" />
+	<script src="${base}/template/plugin/public/treeList.js" type="text/javascript"></script>
+	<!--引入皮肤样式-->
+	<link href="${base}/template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+	<div class="mini-splitter" style="width:100%;height:100%;">
+		<div size="300" showCollapseButton="true">
+			<!-- ckId -->
+			<input type="hidden" value="${sessionScope.depId}" id="depId" />
+			<div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+				<span style="padding-left:5px;">组织机构：</span>
+			</div>
+			<div class="mini-fit" style=" border-top:0;">
+				<ul id="deptree" class="mini-tree" url="../basis/branch!getTreeListByUser.action" style="width:100%;height:100%;"
+					showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true" >
+				</ul>
+			</div>
+		</div>
+		<div showCollapseButton="false">	
+			<div style="width:100%;">
+				<div class="mini-toolbar" style="padding:0px;border-top:0;border-left:0;">
+					<table style="width:100%;">
+						<tr>
+							<td style="width:200px;">职工号：
+								<input class="mini-textbox" id="jobNumberSearch" name="jobNumberSearch" emptyText="请输入职工号"/>
+							</td>
+							<td style="width:200px;">姓名：
+								<input class="mini-textbox" id="nameSearch" name="nameSearch" emptyText="请输入员工姓名"/>
+							</td>
+							<td style="width:200px;">班制：
+								<input id="classNoSearch" name="classNoSearch" class="mini-combobox" emptyText="请选择..." nullItemText="请选择..."
+                          			url="../check/class_group!getClassInfos.action" textField="className" valueField="classNo" allowInput="false" 
+                          			showNullItem="true"/>
+                    		</td>
+							<td style="white-space:nowrap;">
+								<a class="mini-button" iconCls="icon-search" onclick="search('jobNumberSearch,nameSearch,classNoSearch','jobNumber,name,classNo')" onenter="onKeyEnter">查询</a>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+			<div class="mini-toolbar" style="border-left:0;padding:0px;">
+				<table style="width:100%;">
+					<tr>
+						<td>
+							<a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a> 
+							<a class="mini-button" iconCls="icon-download" onclick="importEmpInfo()">导入</a> 
+							<a class="mini-button" iconCls="icon-upload" onclick="exportEmpInfo()">导出</a> 
+							<a class="mini-button" iconCls="icon-redo" onclick="changeClass()">更换班制</a> 
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div class="mini-fit">
+				<div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+					 url="../check/employee!getData.action" idField="id" multiSelect="true" 
+					 allowAlternating="true" pageSize="20" >
+					<div property="columns">
+						<div type="checkcolumn"></div>
+						<div type="indexcolumn" width="50" headerAlign="center">序列</div>
+						<div field="id" id="id" name="id" width="120" headerAlign="center" allowSort="true">id</div>
+						<div field="jobNumber" name="jobNumber" width="120" headerAlign="center" align="center" >职工号</div>
+						<div field="name" name="name" width="120" headerAlign="center" align="center" >姓名</div>
+						<div field="checkUnit" name="checkUnit" width="120" headerAlign="center" align="center">考勤单位</div>
+						<div field="className" name="className" width="120" headerAlign="center" align="center">班制名称</div>
+						<div field="standardPost" name="standardPost" width="120" headerAlign="center" align="center" >标准岗位</div>
+						<div field="spePost" name="spePost" width="120" headerAlign="center" align="center" >具体岗位</div>
+						<div field="isMonitor" name="isMonitor" width="100" headerAlign="center" align="center">是否班长</div>
+						<div field="isSpecialHour" name="isSpecialHour" width="100" headerAlign="center" align="center">是否特殊工时</div><!-- 标准：167小时; 是，按统计小时数算加班天数，否，按审核勾选算加班 -->
+						<div field="wageForm" name="wageForm" width="100" headerAlign="center" align="center">工资形式</div><!-- 计时、计件 -->
+						<div field="checkNo" name="checkNo" width="120" headerAlign="center" align="center">考勤编号</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>	
+<script type="text/javascript">
+	mini.parse();
+	var grid = mini.get("grid");
+	grid.hideColumn("id");
+	grid.load();
+	
+	//编辑
+	function edit() {
+		var rows = grid.getSelecteds();
+		var row = grid.getSelected();
+		if (rows.length <= 0){
+			mini.alert("请选择一条记录！");
+		} else if (rows.length > 1){
+			mini.alert("只能选择一条记录！");
+		} else {
+			mini.open({
+				url : "../check/employee!edit.action?id=" + row.id,
+				title : "修改人员档案信息",
+				width : 550,
+				height : 450,
+				/* allowResize:false, */
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					//刷新页面
+					window.location.reload();
+				}
+			});
+		}
+	}
+	
+	//导入员工考勤基本信息
+	function importEmpInfo(){
+		mini.open({
+				url : "../check/employee!importInfos.action",
+				title : "导入人员档案信息",
+				width : 500,
+				height : 380,
+				/* allowResize:false, */
+				onload : function() {
+				},
+				ondestroy : function(action) {
+					//刷新页面
+					window.location.reload();
+				}
+			});
+	}
+	
+	//导出人员基本信息
+	function exportEmpInfo(){
+		var depIds = "";
+		//如果有树
+		var tree=mini.get("deptree");
+		if(tree){
+			var node = tree.getSelectedNode();
+			if(node){
+				var ids = "";
+				ids = depAll(ids,tree,node);
+				depIds = ids.substring(0,ids.length);
+			}
+		}
+		window.location.href="../check/employee!expertEmpInfo.action?depIds="+depIds;
+	}
+	//更换班组
+	function changeClass(){
+		var depIds = "";
+		//如果有树
+		var tree=mini.get("deptree");
+		if(tree){
+			var node = tree.getSelectedNode();
+			if(node){
+				var ids = "";
+				ids = depAll(ids,tree,node);
+				depIds = ids.substring(0,ids.length);
+			}
+		}
+		var rows = grid.getSelecteds();
+		var row = grid.getSelected();
+		if (rows.length <= 0 && depIds == ""){
+			mini.alert("请选择职工或部门！");
+			return;
+		}
+		if (rows.length > 0){
+			if (confirm("确定将 选中的人员更换班组？")) {
+				var ids = [];
+				for (var i = 0, l = rows.length; i < l; i++) {
+					var r = rows[i];
+					ids.push(r.id);
+				}
+				var sid = ids.join(',');
+				mini.open({
+					url : "../check/employee!changeClass.action?ids=" + sid,
+					title : "修改人员班组",
+					width : 500,
+					height : 300,
+					/* allowResize:false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+			}
+		} else {
+			if (confirm("确定将 选中部门下的所有人更换班组？")) {
+				mini.open({
+					url : "../check/employee!changeClass.action?depIds=" + depIds,
+					title : "修改人员班组",
+					width : 500,
+					height : 300,
+					/* allowResize:false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+			}
+		}
+	}
+</script>
+</body>
+</html>

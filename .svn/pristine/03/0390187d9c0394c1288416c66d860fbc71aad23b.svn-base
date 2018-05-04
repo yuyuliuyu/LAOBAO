@@ -1,0 +1,108 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryAgeQx;
+import com.lingnet.hcm.entity.salary.SalaryNjAge;
+import com.lingnet.hcm.entity.salary.SalaryNjProgram;
+import com.lingnet.util.Pager;
+
+/**
+ * 企业年金缴费分配方案
+ * @ClassName: SalaryNjProgramService 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年6月15日 上午11:37:41 
+ *
+ */
+public interface SalaryNjProgramService extends BaseService<SalaryNjProgram, String> {
+
+    /**
+     * @Title: 年金计算增加更新
+     * @param gridData1
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年6月15日 V 1.0
+     */
+    public String saveOrUpdate(String companyId, String gridData1,
+            String gridData2, String gridData3, String gridData4, String formdata)
+            throws Exception;
+
+    /**
+     * @Title: 获取年金计算
+     * @param searchData
+     * @param companyId
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月15日 V 1.0
+     */
+    public Map<String, Object> getNjListData(String searchData, String companyId, Pager pager);
+
+    /**
+     * @Title: 获取职级缴费比例数据
+     * @param companyId
+     * @return 
+     * List<SalaryNjProgram> 
+     * @author zhanghj
+     * @since 2017年6月15日 V 1.0
+     */
+    public List<SalaryNjProgram> getZjjfblData(String companyId);
+
+    /**
+     * @Title: 获取年龄倾斜系数数据
+     * @param companyId
+     * @return 
+     * List<SalaryNjProgram> 
+     * @author zhanghj
+     * @since 2017年6月15日 V 1.0
+     */
+    public List<SalaryAgeQx> getNlqxxsData(String companyId);
+
+    /**
+     * @Title: 获取年龄系数数据
+     * @param companyId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月15日 V 1.0
+     */
+    public List<Map<String, Object>> getNlxsData(String companyId);
+
+    /**
+     * @Title: 重新计算
+     * @param companyId
+     * @param qyjfbl 企业缴费比例
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月16日 V 1.0
+     */
+    public String updateReCalculate(String companyId, String qyjfbl);
+
+    /**
+     * @Title: 获取年龄截止日期
+     * @param companyId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月16日 V 1.0
+     */
+    public List<SalaryNjAge> getNlJzDateData(String companyId);
+
+    /**
+     * @Title: 获取缴费信息汇总
+     * @param companyId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月16日 V 1.0
+     */
+    public Map<String, Object> getNjTotalListData(String companyId);
+
+}

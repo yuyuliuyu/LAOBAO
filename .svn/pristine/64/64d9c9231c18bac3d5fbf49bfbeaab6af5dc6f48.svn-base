@@ -1,0 +1,127 @@
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.util.Pager;
+
+/**
+ * 缴费标准表
+ * @ClassName: SalaryInsuranceDao 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年4月19日 下午4:26:24 
+ *
+ */
+public interface SalaryInsuranceDao extends BaseDao<SalaryInsurance, String>{
+
+    /**
+     * @Title: 查询无参保人员 
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public Map<String, Object> getNoInsuranceOfStaffListData(String depId, String searchData,
+            Pager pager);
+
+    /**
+     * @Title: 查询已选择的无参保人员 
+     * @param ids
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public List<Map<String, Object>> getNoChoseStaffListData(String ids);
+
+    /**
+     * @Title: 查询已参保人员信息 
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月20日 V 1.0
+     */
+    public Map<String, Object> getInsuranceItemsListData(String searchData,
+            Pager pager);
+
+    /**
+     * @Title: 获取选中的员工的福利项目 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public List<Map<String, Object>> getChoseStaffInsurances(String id);
+
+    /**
+     * @Title: 获取员工信息 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public Map<String, Object> getEmployeeBaseInfo(String id);
+
+    /**
+     * @Title: 获取员工保险信息 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public List<Map<String, Object>> getStaffCanBaoInfo(String id);
+
+    /**
+     * @Title: 可以进行投保的保险项目
+     * @param ids
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月8日 V 1.0
+     */
+    public List<Map<String, Object>> getNeedJoinInsuranceItemsData(String ids);
+
+    /**
+     * @Title: 获取工资报表
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月2日 V 1.0
+     */
+    public Map<String, Object> getSlaryReportListData(String searchData,
+            Pager pager);
+
+    /**
+     * @Title: 获取报盘文件
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月3日 V 1.0
+     */
+    public Map<String, Object> getOffBankListData(String searchData, Pager pager);
+
+    /**
+     * @Title: 获取工资报表SQL
+     * @param searchData
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月4日 V 1.0
+     */
+    public String getSlaryReportSql(String searchData);
+
+}

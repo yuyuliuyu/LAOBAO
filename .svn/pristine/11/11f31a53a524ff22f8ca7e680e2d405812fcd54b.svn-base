@@ -1,0 +1,875 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryItemsDao;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.SalaryItemAndType;
+import com.lingnet.hcm.entity.salary.SalaryItemType;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.hcm.entity.salary.SalaryPersonal;
+import com.lingnet.hcm.entity.salary.SalaryRecord;
+import com.lingnet.hcm.entity.salary.SalaryValue;
+import com.lingnet.hcm.service.salary.SalaryItemAndTypeService;
+import com.lingnet.hcm.service.salary.SalaryItemTypeService;
+import com.lingnet.hcm.service.salary.SalaryItemsService;
+import com.lingnet.hcm.service.salary.SalaryPersonalService;
+import com.lingnet.hcm.service.salary.SalaryRecordService;
+import com.lingnet.hcm.service.salary.SalaryValueService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.JcDictionary;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+
+/**
+ * 薪酬项目
+ * @ClassName: SalaryItemsServiceImpl 
+ * @Description: 薪酬项目
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+@Service("salaryItemsService")
+public class SalaryItemsServiceImpl extends BaseServiceImpl<SalaryItems, String>
+              implements SalaryItemsService {
+
+    @Resource(name="salaryItemTypeService")
+    private SalaryItemTypeService salaryItemTypeService;
+    @Resource(name="salaryItemsService")
+    private SalaryItemsService salaryItemsService;
+    @Resource(name="salaryItemAndTypeService")
+    private SalaryItemAndTypeService salaryItemAndTypeService;
+    @Resource(name="salaryPersonalService")
+    private SalaryPersonalService salaryPersonalService;
+    @Resource(name="salaryValueService")
+    private SalaryValueService salaryValueService;
+    @Resource(name="salaryRecordService")
+    private SalaryRecordService salaryRecordService;
+    @Resource(name="salaryItemsDao")
+    private SalaryItemsDao salaryItemsDao;
+
+    @Override
+    public String getItemsTypeListData(String depId) {
+        return salaryItemsDao.getItemsTypeListData(depId);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata) throws Exception {
+        SalaryItemType salaryItemType = JsonUtil.toObject(formdata, SalaryItemType.class);
+        if (salaryItemType != null) {
+            String id = salaryItemType.getId();
+            if (StringUtils.isBlank(id)) {
+                salaryItemType.setIsControl(0);
+                salaryItemType.setIsDelete(0);
+                id = salaryItemTypeService.save(salaryItemType);
+                if (StringUtils.isBlank(id))
+                    throw new Exception("保存失败");
+            } else {
+                SalaryItemType sit = salaryItemTypeService.get(SalaryItemType.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+                if (sit == null) {
+                    throw new Exception("该条记录不存在");
+                }
+                salaryItemType.setIsDelete(0);
+                sit.copyFrom(salaryItemType);
+                salaryItemTypeService.update(sit);
+            }
+        } else return "信息不能为空";
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String id) {
+        SalaryItemType sit = salaryItemTypeService.get(SalaryItemType.class, Restrictions.eq("id", id));
+        if (sit != null) {
+            // 是否是一级类别
+            if ("-1".equals(sit.getPid())) {
+                List<SalaryItemType> sitList = salaryItemTypeService.getList(SalaryItemType.class, Restrictions.eq("pid", id));
+                if (sitList.size() == 0) {
+                    salaryItemTypeService.delete(sit);
+                } else {
+                    return "该薪资类别下存在二级薪资类别";
+                }
+            } else {
+                // 二级类别
+                List<SalaryItemAndType> siat = salaryItemAndTypeService.getList(SalaryItemAndType.class, Restrictions.eq("typeId", id),
+                        Restrictions.eq("isDelete", 0));
+                for (SalaryItemAndType salaryItemAndType : siat) {
+                    if (!StringUtils.isBlank(salaryItemAndType.getItemId())) {
+                        return "该薪资类别下存在薪资项目";
+                    }
+                    salaryItemAndType.setIsDelete(0);
+                    salaryItemAndTypeService.update(salaryItemAndType);
+                }
+            }
+        } else {
+            return "该薪资类别不存在";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getSalaryItemListData(String depId, String id, String searchData, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+        if (!StringUtils.isBlank(depId)) {
+            and.add(Restrictions.eq("depId", depId));
+        }
+        if (!StringUtils.isBlank(id)) {
+            and.add(Restrictions.eq("id", id));
+        }
+        Map<String, String> map = JsonUtil.parseProperties(searchData);
+        if (map != null) {
+            // 薪资项目名称
+            if (!StringUtils.isBlank(map.get("name"))) {
+                and.add(Restrictions.like("name", map.get("name"), MatchMode.ANYWHERE));
+            }
+            // 项目类型
+            if (!StringUtils.isBlank(map.get("itemType"))) {
+                and.add(Restrictions.eq("itemType", Integer.valueOf(map.get("itemType"))));
+            }
+            // 公司ID
+            if (!StringUtils.isBlank(map.get("companyId"))) {
+                and.add(Restrictions.eq("depId", map.get("companyId")));
+            }
+            // 有效
+            if (!StringUtils.isBlank(map.get("type"))) {
+                and.add(Restrictions.eq("type", Integer.valueOf(map.get("type"))));
+            }
+        }
+        pager = findPagerByOrder(SalaryItems.class, pager, Order.asc("sx"), and, Restrictions.eq("isDelete", 0));
+        Map<String, Object> mm = new HashMap<String, Object>();
+        mm.put("data", pager.getResult());
+        mm.put("total", pager.getTotalCount());
+
+        return mm;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryItemListDatas(String depId, String id,
+            String searchData, Pager pager) {
+        return salaryItemsDao.getSalaryItemListData(depId, id, searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryItemToTypeData(int type, String depId) {
+        String[][] itemsArr = {{"fixed", "固定薪资项目"}, {"yd", "异动项目"}, {"bzl", "标准类项目"}, {"njl", "年金类项目"}, {"tcl", "统筹类项目"}};
+        List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
+        for (int i = 0; i < itemsArr.length; i++) {
+            Map<String, Object> mapParent = new HashMap<String, Object>();
+            mapParent.put("id", i);
+            mapParent.put("name", itemsArr[i][1]);
+            list.add(mapParent);
+            list.addAll(salaryItemsDao.getSalaryItemToTypeData(depId, mapParent.get("id"), itemsArr[i][0]));
+        }
+
+        return list;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryItemToItemTypeData(String companyId) {
+        return salaryItemsDao.getSalaryItemToItemTypeData(companyId);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateItems(String formdata, String griddata) throws Exception {
+        SalaryItems items = JsonUtil.toObject(formdata, SalaryItems.class);
+        if (items != null) {
+            String id ="";
+            if (StringUtils.isBlank(items.getId())) {
+                SalaryItems itemsMore = get(SalaryItems.class, Restrictions.eq("depId", items.getDepId()),
+                        Restrictions.eq("isDelete", 0), Restrictions.eq("name", items.getName()));
+                if (itemsMore != null) {
+                    return "存在相同的薪资项目";
+                }
+                items.setIsDelete(0);
+                id = save(items);
+                if (StringUtils.isBlank(id)) {
+                    throw new Exception("保存失败");
+                }
+            } else {
+                SalaryItems itemsMore = get(SalaryItems.class, Restrictions.eq("depId", items.getDepId()),
+                        Restrictions.ne("id", items.getId()),
+                        Restrictions.eq("isDelete", 0),
+                        Restrictions.eq("name", items.getName()));
+                if (itemsMore != null) {
+                    return "存在相同的薪资项目";
+                }
+                SalaryItems newItems = get(SalaryItems.class,
+                        Restrictions.eq("id", items.getId()),
+                        Restrictions.eq("isDelete", 0));
+                if (newItems == null) {
+                    return "该薪资项目不存在";
+                }
+                items.setIsDelete(0);
+                newItems.copyFrom(items);
+                salaryItemsService.update(newItems);
+                id = newItems.getId();
+            }
+            List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+            for (int i =0, l = list.size(); i < l; i++) {
+                Map<String, String> m = list.get(i);
+                SalaryItemAndType bean = JsonUtil.toObject(JsonUtil.Encode(m), SalaryItemAndType.class);
+                bean.setTypeId(m.get("typeId"));
+                bean.setItemId(id);
+                if ("removed".equals(m.get("_state"))) {
+                    SalaryItemAndType itemAndType = get(SalaryItemAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("itemId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.setIsDelete(1);
+                        salaryItemAndTypeService.update(itemAndType);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    SalaryItemAndType itemAndType = get(SalaryItemAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("itemId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.copyFrom(bean);
+                        salaryItemAndTypeService.update(itemAndType);
+                    } else throw new Exception("发生异常");
+                } else if ("added".equals(m.get("_state"))) {
+                    bean.setIsDelete(0);
+                    String result = salaryItemAndTypeService.save(bean);
+                    if (StringUtils.isBlank(result))
+                        throw new Exception("保存失败");
+                }
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getSalaryItemAndTypeListData(String id) {
+        return salaryItemsDao.getSalaryItemAndTypeListData(id);
+    }
+
+    @Override
+    public String removeSlaryItems(String ids) {
+        String[] idss = ids.split(",");
+        if (idss.length > 0 && !StringUtils.isBlank(idss[0])) {
+            for (int i =0, l = idss.length; i < l; i++) {
+                SalaryItems items = get(SalaryItems.class, Restrictions.eq("id", idss[i]), Restrictions.eq("isDelete", 0));
+                if (null == items) {
+                    return "选中的第 "+(i+1)+" 个薪资项目不存在";
+                }
+                items.setIsDelete(1);
+                salaryItemsService.update(items);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getPersonalToAllocationListData(String ids) {
+        return salaryItemsDao.getPersonalToAllocationListData(ids);
+    }
+
+    @Override
+    public String getPersonalGroupListData(String ids) {
+        return salaryItemsDao.getPersonalGroupListData(ids);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String savePersonalGroupListData(String griddata) throws Exception {
+        List<SalaryPersonal> list = JsonUtil.toList(griddata, SalaryPersonal.class);
+        List<Map<String, String>> gridList = JsonUtil.getMapList(griddata);
+        SimpleDateFormat format2 = new SimpleDateFormat("yyyy年MM月dd日");
+        for (int i= 0, l = gridList.size(); i < l; i++) {
+            SalaryPersonal per = list.get(i);
+            Map<String, String> personal = gridList.get(i);
+            SalaryPersonal salaryPersonal = get(SalaryPersonal.class, Restrictions.eq("id", personal.get("id")),
+                    Restrictions.eq("isDelete", 0));
+            if (salaryPersonal == null) {
+                throw new Exception("第"+(i+1)+"个薪资项目：" + personal.get("name") + "不存在");
+            }
+            if (salaryPersonal.getIsOff() == 1) {
+                throw new Exception("第"+(i+1)+"个薪资项目：" + personal.get("name") + "已注销");
+            }
+            salaryPersonal.setIsOff(1);
+            salaryPersonal.setOffDate(per.getOffDate());
+            // 开始日期与注销日期比较
+            if (salaryPersonal.getStartDate().getTime() > salaryPersonal.getOffDate().getTime()) {
+                throw new Exception("第"+(i+1)+"个薪资项目分配的开始日期" + format2.format(salaryPersonal.getStartDate())+ "应早于截止日期");
+            }
+            salaryPersonalService.update(salaryPersonal);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String removePersonalGroupListData(String ids, String personalIds) {
+        String[] idss = ids.split(",");
+        if (idss.length > 0 && !StringUtils.isBlank(idss[0])) {
+            for (int i =0, l = idss.length; i < l; i++) {
+                SalaryPersonal items = get(SalaryPersonal.class, Restrictions.eq("id", idss[i]), Restrictions.eq("isDelete", 0));
+                if (null != items) {
+                    items.setIsDelete(1);
+                    salaryPersonalService.update(items);
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToPersonal(String formdata, String griddata) throws Exception {
+        List<Map<String, String>> formData = JsonUtil.getMapList(formdata);
+        if (formData.size() > 0) {
+            List<SalaryPersonal> listData = JsonUtil.toList(griddata, SalaryPersonal.class);
+            List<Map<String, String>> gridList = JsonUtil.getMapList(griddata);
+
+            List<SalaryRecord> records = new ArrayList<SalaryRecord>();
+            List<SalaryValue> salaryValues = new ArrayList<SalaryValue>();
+            // 薪资组
+            for (int i= 0, l = formData.size(); i < l; i++) {
+                Map<String, String> perMap = formData.get(i);
+                String perId = perMap.get("id");
+                // 工资档案是否存在
+                SalaryRecord record = get(SalaryRecord.class, Restrictions.eq("staffId", perId));
+                if (record == null) {
+                    record = new SalaryRecord();
+                    record.setStaffId(perId);
+                    record.setFilmName(perMap.get("companyId"));
+                    record.setDeptname(perMap.get("deptId"));
+                    records.add(record);
+                }
+                for (SalaryPersonal personal : listData) {
+                    BasicInformation information = get(BasicInformation.class, Restrictions.eq("id", perId), Restrictions.eq("isDelete", 0));
+                    if (information == null) {
+                        throw new Exception("员工不存在");
+                    }
+                    personal.setSalaryRecordId(perId);
+
+                    // 查找一个员工是否存在相同的薪资组
+                    List<SalaryPersonal> personalList = getList(SalaryPersonal.class, Restrictions.eq("salaryGroupId", personal.getSalaryGroupId()),
+                            Restrictions.eq("salaryRecordId", perId), Restrictions.eq("isOff", 0), Restrictions.eq("isDelete", 0));
+                    if (personalList.size() > 0) {
+                        throw new Exception(information.getName() + " 存在相同的薪资组:" + gridList.get(0).get("groupName"));
+                    }
+                    personal.setIsOff(0);
+                    personal.setIsDelete(0);
+                    personal.setIsPei(1);
+                    String result= salaryPersonalService.save(personal);
+                    if (StringUtils.isBlank(result)) {
+                        throw new Exception(information.getName() + " 分配失败");
+                    }
+
+                    // 获取薪资组关联的薪资项目，保存员工的薪资组以及薪资项目，SalaryValue
+                    String itemSql = salaryItemsDao.getGroupToItems(personal.getSalaryGroupId());
+                    List<?> items = findBySql(itemSql);
+                    for (int j = 0, m = items.size(); j < m; j++) {
+                        Object[] obj = (Object[]) items.get(j);
+                        SalaryValue salaryValue = get(SalaryValue.class,
+                                Restrictions.eq("staffId", information.getId()),
+                                Restrictions.eq("salaryGroupId", personal.getSalaryGroupId()),
+                                Restrictions.eq("salaryItemsId", obj[0]),
+                                Restrictions.eq("isDelete", 0));
+                        if (salaryValue == null) {
+                            salaryValue = new SalaryValue();
+                            salaryValue.setStaffId(information.getId());
+                            salaryValue.setSalaryGroupId(personal.getSalaryGroupId());
+                            salaryValue.setSalaryItemsId(obj[0].toString());
+                            salaryValue.setStaticValue("0");
+                            salaryValue.setIsDelete(0);
+                            salaryValues.add(salaryValue);
+                        }
+                    }
+                }
+                // 检查是否存在一个是否需要发薪的单位
+                List<SalaryPersonal> canSalaryList = getList(SalaryPersonal.class, Restrictions.eq("isSalary", 1), Restrictions.eq("isOff", 0),
+                        Restrictions.eq("salaryRecordId", perId), Restrictions.eq("isDelete", 0));
+                if (canSalaryList.size() == 0) {
+                    BasicInformation information = get(BasicInformation.class, Restrictions.eq("id", perId), Restrictions.eq("isDelete", 0));
+                    throw new Exception(information.getName() + " 需要指定一个需要发薪的单位");
+                } else if (canSalaryList.size() > 1) {
+                    BasicInformation information = get(BasicInformation.class, Restrictions.eq("id", perId), Restrictions.eq("isDelete", 0));
+                    throw new Exception(information.getName() + " 只能存在一个需要发薪的单位");
+                }
+
+                // 将固定薪资项目保存到个人薪酬配置中,获取此人的所有薪资组
+//                List<Map<String, Object>> staffs = salaryItemsDao.getGuDingItems(ids[i]);
+//                DecimalFormat df = new DecimalFormat();
+//                List<SalaryValue> salaryValues = new ArrayList<SalaryValue>();
+//                for (Map<String, Object> map : staffs) {
+//                    SalaryValue salaryValue = salaryValueService.get(SalaryValue.class,
+//                            Restrictions.eq("staffId", ids[i]),
+//                            Restrictions.eq("isDelete", 0),
+//                            Restrictions.eq("salaryItemsId", map.get("id")),
+//                            Restrictions.eq("salaryGroupId", map.get("groupId")));
+//                    if (salaryValue == null) {
+//                        SalaryValue value = new SalaryValue();
+//                        value.setSalaryGroupId(map.get("groupId").toString());
+//                        value.setSalaryItemsId(map.get("id").toString());
+//                        value.setIsDelete(0);
+//                        value.setStaffId(ids[i]);
+//                        if (Integer.valueOf(map.get("xs").toString()) == 0) {
+//                            df.applyPattern("0");
+//                        } else {
+//                            df.applyPattern("0."+String.format("%0"+map.get("xs")+"d%n", 0));
+//                        }
+//                        value.setStaticValue(df.format(0));
+//                        salaryValues.add(value);
+//                    }
+//                }
+//                salaryValueService.saveBatch(salaryValues);
+            }
+            if (records.size() > 0) salaryRecordService.saveBatch(records);
+            if (salaryValues.size() > 0) salaryValueService.saveBatch(salaryValues);
+        } else {
+            return "保存失败";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryGroupItems(String id) {
+        return salaryItemsDao.getSalaryGroupItems(id);
+    }
+
+    @Override
+    public Map<String, Object> getSalaryItemGKListData(String depId, String searchData, Pager pager) {
+        return salaryItemsDao.getSalaryItemGKListData(depId, searchData, pager);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public void export(String depId, String searchData) {
+        try {
+            searchData = URLDecoder.decode(searchData, "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        String sql = salaryItemsDao.getSalaryItemGKListDataSql(depId, searchData);
+        List<?> list = findBySql(sql);
+        ArrayList<ArrayList> tableData = new ArrayList<ArrayList>();
+        for (int i = 0; i < list.size(); i++) {
+            ArrayList rowList=new ArrayList();
+            Object[] obj = (Object[]) list.get(i);
+            rowList.add(i+1);//序号
+            Object company = obj[15];
+            Branch branch = get(Branch.class, Restrictions.eq("id", company));
+            if (branch != null) {
+                company = branch.getFzx();
+            }
+            rowList.add(company);// 公司
+            rowList.add(obj[1]);// 薪资项目名称
+            rowList.add(obj[2]);// 保留小数
+            String[] addOrLess = {"加","减","其它项"};
+            rowList.add(addOrLess[Integer.valueOf(obj[3].toString())-1]);// 增减属性
+            rowList.add(obj[4]);// 顺序
+            String[] bj = {"否","是"};
+            rowList.add(bj[Integer.valueOf(obj[5].toString())]);// 固定薪资项目
+            rowList.add(bj[Integer.valueOf(obj[6].toString())]);// 异动项目
+            rowList.add(bj[Integer.valueOf(obj[7].toString())]);// 标准类项目
+            rowList.add(bj[Integer.valueOf(obj[8].toString())]);// 年金类项目
+            rowList.add(bj[Integer.valueOf(obj[9].toString())]);// 统筹类项目
+
+            Object itemTypeV = obj[10];
+            JcDictionary itemType = get(JcDictionary.class,
+                    Restrictions.eq("pid", "402881945cc8c4c8015cc926f00d0008"),
+                    Restrictions.eq("dicvalue", itemTypeV.toString()));
+            if (itemType != null) itemTypeV = itemType.getDicname();
+            rowList.add(itemTypeV);// 项目类型
+            Object itemProV = obj[11];
+            JcDictionary itemPro = get(JcDictionary.class,
+                    Restrictions.eq("pid", "402881945cc8c4c8015cc92867ae000e"),
+                    Restrictions.eq("dicvalue", itemProV.toString()));
+            if (itemPro != null) itemProV = itemPro.getDicname();
+            rowList.add(itemProV);// 项目属性
+            rowList.add(bj[Integer.valueOf(obj[12].toString())]);// 是否编辑
+            String[] isDisplay = {"不显示","显示"};
+            rowList.add(isDisplay[Integer.valueOf(obj[13].toString())]);// 是否显示
+            String[] status = {"无效","有效"};
+            rowList.add(status[Integer.valueOf(obj[16].toString())]);// 状态
+            tableData.add(rowList);
+        }
+
+        //表格标题
+        String[] tableCaption ={"序号","公司","薪资项目名称","保留小数","增减属性",
+                "顺序","固定薪资项目","异动项目","标准类项目","年金类项目","统筹类项目","项目类型","项目屬性","是否編輯","是否显示","状态"};
+
+        //表格脚部分
+        String dcr=ToolUtil.userName();
+        Date dcrq=new Date();
+        ArrayList footData=new ArrayList();
+        footData.add("导出人： "+ ExcelUtil.toString(dcr));
+        footData.add("导出日期： "+ ExcelUtil.toString(dcrq));
+        ExcelUtil.export("薪资项目", null, tableCaption, tableData, footData);
+    }
+
+    @Override
+    public String copyItems(String id, String name) {
+        SalaryItems items = get(SalaryItems.class , Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (items == null) {
+            return "该薪资项目不存在";
+        }
+
+        // 检查是否存在项目的薪资项目
+        SalaryItems itemsMore = get(SalaryItems.class, Restrictions.eq("depId", items.getDepId()),
+                Restrictions.eq("isDelete", 0), Restrictions.eq("name", name));
+        if (itemsMore != null) {
+            return "存在相同的薪资项目";
+        }
+        SalaryItems newItem = new SalaryItems();
+        newItem.copyFrom(items);
+        newItem.setName(name);
+        newItem.setId(null);
+        String result = save(newItem);
+        if (StringUtils.isBlank(result)) {
+            return "复制失败";
+        }
+
+        List<SalaryItemAndType> list = new ArrayList<SalaryItemAndType>();
+        List<SalaryItemAndType> andTypes = getList(SalaryItemAndType.class,
+                Restrictions.eq("itemId", items.getId()), Restrictions.eq("isDelete", 0));
+        for (SalaryItemAndType salaryItemAndType : andTypes) {
+            SalaryItemAndType type = new SalaryItemAndType();
+            type.copyFrom(salaryItemAndType);
+            type.setItemId(result);
+            type.setId(null);
+            list.add(type);
+        }
+        salaryItemAndTypeService.saveBatch(list);
+
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String uploadItems(String companyId, String endSuffix, File uploadFile) throws Exception {
+        if (StringUtils.isBlank(companyId)) return "请选择公司";
+        // 读取数据
+        List<String[]> list = ExcelUtil.readData(0, 2, endSuffix, uploadFile);
+
+        // 导入名单只有表头没有人员信息
+        if (list.size() == 1) {
+            return "文件导入失败：导入名单中不存在项目信息";
+        }
+
+        // 第一行内容
+        String[] firstRow = {"薪资项目名称","保留小数","增减属性","固定薪资项目","异动项目","标准类项目",
+                "年金类项目","统筹类项目","项目类型","项目属性","是数值","顺序","是否编辑","状态","档案是否显示","项目类别"};
+        // 单独把第一行抽取出来
+        String[] firstValues = list.get(0);
+
+        for (int i = 0, z = firstRow.length; i < z; i++) {
+            if (!firstRow[i].trim().equals(firstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + firstValues[i].trim() + "</font>列必须是 " + firstRow[i].trim();
+            }
+        }
+
+        // 薪资项目与项目类别中间表集合
+        List<SalaryItemAndType> andTypes = new ArrayList<SalaryItemAndType>();
+
+        // 循环遍历存储的Excel值
+        for (int i = 1, z = list.size(); i < z; i++) {
+            // 组装列
+            String[] columns = new String[firstValues.length];
+            String[] values = list.get(i);
+            // 判断是否整行是空行
+            Boolean isEmpty= true;
+            for(int q=0;q<values.length;q++){
+                if (q < firstValues.length) {
+                    columns[q]=values[q].trim();
+                    if (!StringUtils.isBlank(columns[q])) {
+                        isEmpty = false;
+                    }
+                } else continue;
+            }
+
+            // 存在空白行
+            if (isEmpty) {
+                // 文档结束
+                break;
+            }
+            for(int k=values.length;k<firstValues.length;k++){// 补充剩余的列值
+                columns[k]="";
+            }
+
+            SalaryItems items = new SalaryItems();
+            items.setDepId(companyId);
+            items.setIsDelete(0);
+
+            // 薪资项目名称
+            if (!StringUtils.isBlank(columns[0])) {
+                items.setName(columns[0].trim());
+            } else throw new Exception("第"+ (i+1) +"行【薪资项目名称】不能为空");
+
+            // 保留小数
+            if (!StringUtils.isBlank(columns[1])) {
+                Pattern pattern = Pattern.compile("^[-\\+]?[\\d]*$");
+                if (!pattern.matcher(columns[1].trim()).matches())
+                    throw new Exception("第"+ (i+1) +"行【保留小数】必须是整数");
+                items.setNumberAccuracy(columns[1].trim());
+            } else throw new Exception("第"+ (i+1) +"行【保留小数】不能为空");
+
+            // 增减属性
+            if (!StringUtils.isBlank(columns[2])) {
+                int addOrLess = -1;
+                String[] addOrLesss = {"增","减","其它项"};
+                if (columns[2].trim().equals(addOrLesss[0])) {
+                    addOrLess = 1;
+                } else if (columns[2].trim().equals(addOrLesss[1])) {
+                    addOrLess = 2;
+                } else if (columns[2].trim().equals(addOrLesss[2])) {
+                    addOrLess = 3;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【增减属性】必须是【增】、【减】、【其它项】中的任意一个");
+                items.setAddOrLess(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【增减属性】不能为空");
+
+            String[] is = {"否","是"};
+            // 固定薪资项目
+            if (!StringUtils.isBlank(columns[3])) {
+                int addOrLess = -1;
+                if (columns[3].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[3].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【固定薪资项目】必须是【否】、【是】中的任意一个");
+                items.setFixed(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【固定薪资项目】不能为空");
+
+            // 异动项目
+            if (!StringUtils.isBlank(columns[4])) {
+                int addOrLess = -1;
+                if (columns[4].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[4].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【异动项目】必须是【否】、【是】中的任意一个");
+                items.setYd(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【异动项目】不能为空");
+
+            // 标准类项目
+            if (!StringUtils.isBlank(columns[5])) {
+                int addOrLess = -1;
+                if (columns[5].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[5].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【标准类项目】必须是【否】、【是】中的任意一个");
+                items.setBzl(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【标准类项目】不能为空");
+
+            // 年金类项目
+            if (!StringUtils.isBlank(columns[6])) {
+                int addOrLess = -1;
+                if (columns[6].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[6].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【年金类项目】必须是【否】、【是】中的任意一个");
+                items.setNjl(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【年金类项目】不能为空");
+
+            // 统筹类项目
+            if (!StringUtils.isBlank(columns[7])) {
+                int addOrLess = -1;
+                if (columns[7].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[7].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【统筹类项目】必须是【否】、【是】中的任意一个");
+                items.setTcl(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【统筹类项目】不能为空");
+
+            // 项目类型
+            if (!StringUtils.isBlank(columns[8])) {
+                JcDictionary dictionary = get(JcDictionary.class,
+                        Restrictions.eq("dicname", columns[8].trim()),
+                        Restrictions.eq("pid", "402881945cc8c4c8015cc926f00d0008"));
+                if (dictionary == null)
+                    throw new Exception("第"+ (i+1) +"行【项目类型】不存在");
+                items.setItemType(Integer.valueOf(dictionary.getDicvalue()));
+            } else throw new Exception("第"+ (i+1) +"行【项目类型】不能为空");
+
+            // 项目属性
+            if (!StringUtils.isBlank(columns[9])) {
+                JcDictionary dictionary = get(JcDictionary.class,
+                        Restrictions.eq("dicname", columns[9].trim()),
+                        Restrictions.eq("pid", "402881945cc8c4c8015cc92867ae000e"));
+                if (dictionary == null)
+                    throw new Exception("第"+ (i+1) +"行【项目属性】不存在");
+                items.setItemPro(Integer.valueOf(dictionary.getDicvalue()));
+            } else throw new Exception("第"+ (i+1) +"行【项目属性】不能为空");
+
+            // 是数值
+            if (!StringUtils.isBlank(columns[10])) {
+                int addOrLess = -1;
+                if (columns[10].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[10].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【是数值】必须是【否】、【是】中的任意一个");
+                items.setIsNumber(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【是数值】不能为空");
+
+            // 顺序
+            if (!StringUtils.isBlank(columns[11])) {
+                Pattern pattern = Pattern.compile("^[-\\+]?[\\d]*$");
+                if (!pattern.matcher(columns[11].trim()).matches())
+                    throw new Exception("第"+ (i+1) +"行【顺序】必须是整数");
+                items.setSx(Integer.valueOf(columns[11].trim()));
+            } else throw new Exception("第"+ (i+1) +"行【顺序】不能为空");
+
+            // 是否编辑
+            if (!StringUtils.isBlank(columns[12])) {
+                int addOrLess = -1;
+                if (columns[12].trim().equals(is[0])) {
+                    addOrLess = 0;
+                } else if (columns[12].trim().equals(is[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【是否编辑】必须是【否】、【是】中的任意一个");
+                items.setBj(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【是否编辑】不能为空");
+
+            // 状态
+            if (!StringUtils.isBlank(columns[13])) {
+                String[] isy = {"无效", "有效"};
+                int addOrLess = -1;
+                if (columns[13].trim().equals(isy[0])) {
+                    addOrLess = 0;
+                } else if (columns[13].trim().equals(isy[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【状态】必须是【无效】、【有效】中的任意一个");
+                items.setType(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【状态】不能为空");
+
+            // 档案是否显示
+            if (!StringUtils.isBlank(columns[14])) {
+                String[] isy = {"不显示", "显示"};
+                int addOrLess = -1;
+                if (columns[14].trim().equals(isy[0])) {
+                    addOrLess = 0;
+                } else if (columns[14].trim().equals(isy[1])) {
+                    addOrLess = 1;
+                }
+                if (addOrLess == -1)
+                    throw new Exception("第"+ (i+1) +"行【档案是否显示】必须是【不显示】、【显示】中的任意一个");
+                items.setIsDisplay(addOrLess);
+            } else throw new Exception("第"+ (i+1) +"行【档案是否显示】不能为空");
+
+            // 保存薪资项目
+            String result = save(items);
+            if (StringUtils.isBlank(result)) {
+                throw new Exception("薪资项目保存失败");
+            }
+
+            // 拆分项目类别
+            if (!StringUtils.isBlank(columns[15])) {
+                String[] itemType = columns[15].split(",");
+                for (String type : itemType) {
+                    SalaryItemType itemTypes = get(SalaryItemType.class,
+                            Restrictions.eq("name", type),
+                            Restrictions.eq("isDelete", 0));
+                    if (itemTypes == null) {
+                        throw new Exception("第"+ (i+1) +"行【项目类别】"+type+"不存在");
+                    }
+                    if (StringUtils.isBlank(itemTypes.getPid())) {
+                        throw new Exception("第"+ (i+1) +"行【项目类别】不是二级类别");
+                    }
+                    SalaryItemAndType andType = new SalaryItemAndType();
+                    andType.setItemId(result);
+                    andType.setTypeId(itemTypes.getId());
+                    andType.setIsDelete(0);
+                    andTypes.add(andType);
+                }
+            } else throw new Exception("第"+ (i+1) +"行【档案是否显示】不能为空");
+        }
+        if (andTypes.size() > 0) salaryItemAndTypeService.saveBatch(andTypes);
+        else throw new Exception("保存失败");
+
+        return "success";
+    }
+
+    @Override
+    public String setControl(String id) {
+        SalaryItemType sit = salaryItemTypeService.get(SalaryItemType.class, Restrictions.eq("id", id));
+        if (sit != null) {
+            // 是否是一级类别
+            if ("-1".equals(sit.getPid())) {
+                return "请选择二级级别";
+            }
+            sit.setIsControl(1);
+            salaryItemTypeService.update(sit);
+
+            return "success";
+        } else {
+            return "该条记录不存在";
+        }
+    }
+
+    @Override
+    public String setNoControl(String id) {
+        SalaryItemType sit = salaryItemTypeService.get(SalaryItemType.class, Restrictions.eq("id", id));
+        if (sit != null) {
+            // 是否是一级类别
+            if ("-1".equals(sit.getPid())) {
+                return "请选择二级级别";
+            }
+            sit.setIsControl(0);
+            salaryItemTypeService.update(sit);
+
+            return "success";
+        } else {
+            return "该条记录不存在";
+        }
+    }
+
+    @Override
+    public Map<String, Object> getListData(String userName, String searchData, Pager pager) {
+        return salaryItemsDao.getListData(userName, searchData, pager);
+    }
+
+}

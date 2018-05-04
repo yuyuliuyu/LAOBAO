@@ -1,0 +1,24 @@
+package com.lingnet.hcm.service.impl.empdata;
+
+import java.util.HashMap;
+
+import javax.annotation.Resource;
+import org.springframework.stereotype.Service;
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.empdata.RecordDao;
+import com.lingnet.hcm.entity.person.Record;
+import com.lingnet.hcm.service.empdata.RecordService;
+import com.lingnet.util.Pager;
+
+/**
+ * 档案service实现类
+ */
+@Service("recordService")
+public class RecordServiceImpl extends BaseServiceImpl<Record, String> implements RecordService{
+	@Resource(name = "recordDao")
+	private RecordDao recordDao;
+	@Override
+	public HashMap getListData(Pager pager, String searchData) {
+		return recordDao.getListData(pager,searchData);
+	}
+}

@@ -1,0 +1,254 @@
+package com.lingnet.hcm.action.check;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkOvertimeRecord;
+import com.lingnet.hcm.service.check.OvertimeRecordService;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.WorkFlowChildService;
+import com.lingnet.qxgl.service.WorkFlowService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+/**
+ * 
+ * @ClassName: OvertimeRecordAction 
+ * @Description: 加班管理控制层 
+ * @author wangqiang
+ * @date 2017年5月5日 上午11:11:53 
+ *
+ */
+public class OvertimeRecordAction extends BaseAction{ 
+
+    private static final long serialVersionUID = 1L;
+    
+    private String id;
+    private CkOvertimeRecord evection;
+    private String jsondate;
+    private String advid;
+    private String state;
+    private List<CkOvertimeRecord> evectionlist;
+    
+    @Resource(name = "adminService")
+    private AdminService adminService;
+    
+    @Resource(name = "workflowservice")
+    private WorkFlowService workflowservice;
+    
+    @Resource(name = "overtimeRecordService")
+    private OvertimeRecordService overtimeRecordService;
+    
+    @Resource(name = "workFlowChildService")
+    private WorkFlowChildService workFlowChildService;
+    
+    /**
+     * 跳转到加班申请列表页
+     */
+    public String list(){
+        return "list";
+    }
+    
+    /**
+     * 获取加班申请信息集合
+     * @Title: jsonlist 
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月3日 V 1.0
+     */
+    public String jsonlist(){
+    	Map<String, Object> result = overtimeRecordService.getDataByCond(pager, state);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+    }
+    
+    /**
+     * 添加/编辑员工加班申请信息
+     */
+    public String add(){
+        if(id==null||"".equals(id.trim())){
+            evection=new CkOvertimeRecord(); 
+            evection.setEmpId(LingUtil.userinfo().getId());//qxuser的ID
+            evection.setJobNumber(LingUtil.userinfo().getUsername());
+            evection.setApplyName(LingUtil.userinfo().getName());
+        }else{
+            evection=this.getBeanById(CkOvertimeRecord.class, id);
+        }
+        return "add";
+    }
+    
+    /**
+     * 查看加班申请信息
+     * @Title: view 
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月3日 V 1.0
+     */
+    public String view(){
+    	evection = overtimeRecordService.get(id);
+    	return "view";
+    }
+    
+    /**
+     * 查看加班申请信息
+     * @Title: view 
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月3日 V 1.0
+     */
+    public String saveOrUpdate(){
+        if(jsondate==null||"".equals(jsondate.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        Map<String,String> dataMap = JsonUtil.parseProperties(jsondate);
+        if (dataMap != null){
+        	evection = new CkOvertimeRecord();
+        	evection.setId(dataMap.get("id"));
+        	evection.setJobNumber(dataMap.get("jobNumber"));
+        	evection.setEmpId(dataMap.get("empId"));
+        	evection.setApplyName(dataMap.get("applyName"));
+        	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        	String startDate = dataMap.get("startDate").replace("T", " ");
+        	try {
+				evection.setStartDate(sdf.parse(startDate));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+        	String endDate = dataMap.get("endDate").replace("T", " ");
+        	try {
+				evection.setEndDate(sdf.parse(endDate));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+        	evection.setOvertimeDay(Double.parseDouble(dataMap.get("overtimeDay")));
+        	evection.setEvectionType(dataMap.get("evectionType"));
+        	evection.setProcessId(dataMap.get("processId"));
+        	evection.setRemark(dataMap.get("remark"));
+        }
+        //evection=JsonUtil.toObject(jsondate, CkOvertimeRecord.class);
+        if(evection==null){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else if(evection.getId()==null||"".equals(evection.getId().trim())){
+        	evection.setApplyDate(new Date());
+        	evection.setAuditStatus(0);//待审核状态
+        	evection.setIsDelete(0);
+            this.save(evection);
+        }else{
+        	CkOvertimeRecord record = overtimeRecordService.get(evection.getId());
+        	record.setStartDate(evection.getStartDate());
+        	record.setEndDate(evection.getEndDate());
+        	record.setOvertimeDay(evection.getOvertimeDay());
+        	record.setEvectionType(evection.getEvectionType());
+        	if (!record.getProcessId().equals(evection.getProcessId())){
+        		record.setNodeId(null);//更换流程后，初始节点
+        	}
+        	record.setProcessId(evection.getProcessId());
+        	record.setRemark(evection.getRemark());
+        	record.setAuditStatus(0);//恢复待审核状态
+            this.update(record);
+        }
+        return ajax(Status.success,"保存成功");
+    }
+    
+    /**
+     * 查询申请的审核状态
+     * @Title: getAuditStatus 
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月3日 V 1.0
+     */
+    public String getAuditStatus(){
+    	CkOvertimeRecord record = overtimeRecordService.get(id);
+    	String auditStatus = "";
+    	if (record != null){
+    		auditStatus = record.getAuditStatus()+"";
+    	}
+    	String json = JsonUtil.Encode(auditStatus);
+        return ajax(Status.success, json);
+    }
+    
+    /**
+     * 删除申请信息
+     * @Title: remove 
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月3日 V 1.0
+     */
+    public String remove(){
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else{
+            try {
+                this.deleteByCriteria(CkOvertimeRecord.class, id);
+                return ajax(Status.success,"删除成功");
+            } catch (Exception e) {
+                return ajax(Status.success,"数据错误，请联系管理员");
+            }
+        }
+    }
+
+    /**
+     * 将审批提报上级
+     * @Title: giveapp 
+     * @return 
+     * String 
+     * @author 马晓鹏
+     * @since 2017年4月15日 V 1.0
+     */
+    public String nextapp(){
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        evection=this.getBeanById(CkOvertimeRecord.class, id);
+        if(evection==null){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        evection.setNodeId(advid);
+        this.update(evection);
+        return ajax(Status.success,"提报成功");
+    }
+/*----------------------********************************************************************/
+    
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public CkOvertimeRecord getEvection() {
+        return evection;
+    }
+    public void setEvection(CkOvertimeRecord evection) {
+        this.evection = evection;
+    }
+    public String getJsondate() {
+        return jsondate;
+    }
+    public void setJsondate(String jsondate) {
+        this.jsondate = jsondate;
+    }
+    public String getAdvid() {
+        return advid;
+    }
+    public void setAdvid(String advid) {
+        this.advid = advid;
+    }
+    public List<CkOvertimeRecord> getEvectionlist() {
+        return evectionlist;
+    }
+    public void setEvectionlist(List<CkOvertimeRecord> evectionlist) {
+        this.evectionlist = evectionlist;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+}

@@ -1,0 +1,177 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>薪资项目</title>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <script src="../template/plugin/public/list.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="mini-splitter" style="width:100%;height:100%;" borderStyle="border:0">
+        <div size="16%" showCollapseButton="true">
+            <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+                <span style="padding-left:5px;">组织机构：</span>
+            </div>
+            <div class="mini-fit" style=" border-top:0;">
+                <ul id="tree1" class="mini-tree" url="../basis/branch!getTreeListByUser.action" style="width:100%;height:100%;"
+                    showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true">
+                </ul>
+            </div>
+        </div>
+        <div showCollapseButton="true">
+             <div class="mini-toolbar" style="padding:0px;border-top:0;">
+                <table style="width:100%;">
+                    <tr>
+                        <td style="width:100%;">
+                            <a class="mini-button" iconCls="icon-add" onclick="addNews()">增加</a>
+                            <a class="mini-button" iconCls="icon-edit" onclick="editWindow('薪资项目','salary','salary_items',620,480,false)">编辑</a>
+                            <a class="mini-button" iconCls="icon-reload" onclick="removes()">删除</a>
+                            &nbsp;薪酬名称：<input class="mini-textbox" id="name" onenter="onKeyEnter"/>
+                            <a id="searchButton"class="mini-button" iconCls="icon-search" onclick="search('name','name')">查询</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="mini-fit">
+                <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" pageSize="20"
+                    url="../salary/salary_items!getSalaryItemListData.action"
+                    allowAlternating="true" multiSelect="true" idField="id" allowResize="false">
+                    <div property="columns">
+                        <div type="checkcolumn" width="40"></div>
+                        <div type="indexcolumn" headerAlign="center" width="40">序列</div>
+                        <div field="id" id="id" width="80" name="id" class="mini-hidden"></div>
+                        <div type="comboboxcolumn" field="depId" width="140" headerAlign="center" align="center">公司
+                            <input property="editor" class="mini-combobox" textField="fzx" url="../salary/salary_manage!getBranches.action"/>
+                        </div>
+                        <div field="name" width="140" headerAlign="center" align="center">薪资项目名称</div>
+                        <div field="numberAccuracy" width="80" headerAlign="center" align="center">保留小数</div>
+                        <div type="comboboxcolumn" field="addOrLess" width="80" headerAlign="center" align="center">增减属性
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="addOrLess" />
+                        </div>
+                        <div field="sx" width="60" headerAlign="center" align="center">顺序</div>
+                        <div type="comboboxcolumn" field="fixed" width="100" headerAlign="center" align="center">固定薪资项目
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="fixed" />
+                        </div>
+                        <div type="comboboxcolumn" field="yd" width="80" headerAlign="center" align="center">异动项目
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="fixed" />
+                        </div>
+                        <div type="comboboxcolumn" field="bzl" width="80" headerAlign="center" align="center">标准类项目
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="fixed" />
+                        </div>
+                        <div type="comboboxcolumn" field="njl" width="80" headerAlign="center" align="center">年金类项目
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="fixed" />
+                        </div>
+                        <div type="comboboxcolumn" field="tcl" width="80" headerAlign="center" align="center">统筹类项目
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="fixed" />
+                        </div>
+                        <div type="comboboxcolumn" field="itemType" width="100" headerAlign="center" align="center">项目类型
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="itemType" />
+                        </div>
+                        <div type="comboboxcolumn" field="itemPro" width="100" headerAlign="center" align="center">项目属性
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="itemPro" />
+                        </div>
+                        <div type="comboboxcolumn" field="bj" width="80" headerAlign="center" align="center">是否编辑
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="[{id:0,text:'否'},{id:1,text:'是'}]" />
+                        </div>
+                        <div type="comboboxcolumn" field="type" width="80" headerAlign="center" align="center">状态
+                            <input property="editor" class="mini-combobox" style="width:100%;" data="type" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var addOrLess = [{id:1,text:'加'},{id:2,text:'减'}];
+        var fixed = [{id:0,text:'否'},{id:1,text:'是'}];
+        var itemType = [{id:1,text:'普通薪资项目'},{id:2,text:'应纳税所得额'},{id:3,text:'应缴税金'},{id:4,text:'实发工资'},{id:5,text:'应发合计'}];
+        var itemPro = [{id:1,text:'考勤类'},{id:2,text:'工资类'},{id:3,text:'奖金类'},{id:4,text:'税金类'}];
+        var type = [{id:0,text:'无效'},{id:1,text:'有效'}];
+
+        var grid = mini.get("grid");
+        var tree = mini.get("tree1");
+        tree.on("nodeselect", function (e) {
+            var node = tree.getSelectedNode();
+            if (node) {
+                var dId = "";
+                if (node.pid != "-1") {
+                    dId = node.branchId;
+                }
+                grid.setUrl("../salary/salary_items!getSalaryItemListData.action?depId="+dId);
+                $("#searchButton").click();
+            } 
+        });
+
+        function addNews() {
+            var node = tree.getSelectedNode();
+            if (node) {
+                var branchId = node.branchId;
+                if (branchId) {
+                    mini.open({
+                        url : "../salary/salary_items!add.action?depId="+branchId,
+                        title : "增加薪资项目",
+                        width : 620,
+                        height : 480,
+                        onload : function() {
+                        },
+                        ondestroy : function(action) {
+                            grid.reload();
+                        }
+                    });
+                }
+            } else {
+                mini.alert("请选择公司");
+                return;
+            }
+        }
+
+        function removes() {
+            var rows=grid.getSelecteds();
+            var l=rows.length
+            if (l == 0) {
+                mini.alert("请选择一条记录");
+                return;
+            }
+            var ids = rows[0].id;
+            for(var i=1;i<l;i++){
+                ids=ids+","+rows[i].id;
+            }
+            mini.confirm("您确定要删除该信息吗？","提醒",function(action){
+                if(action=="ok"){
+                    window.parent.loading();
+                    $.ajax({
+                        url : "../salary/salary_items!removeSlaryItems.action?ids="+ids,
+                        type:'post',
+                        success: function (text) {
+                            window.parent.unmask();
+                            if(text=="success"){
+                                grid.reload();
+                                mini.alert("删除成功！");
+                            }else{
+                                mini.alert(text);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>

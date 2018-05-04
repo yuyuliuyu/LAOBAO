@@ -1,0 +1,58 @@
+package com.lingnet.hcm.action.branch;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.basic.PerformanceAppraisal;
+
+public class PerformanceAppraisalAction extends BaseAction {
+    private static final long serialVersionUID = 1L;
+    private String id;
+    private String jsondata;
+    private String state;
+    private PerformanceAppraisal performappr;
+    public String list(){
+        return "list";
+    }
+    public String jsonlist(){
+        return ajax(Status.success,"");
+    }
+    public String add(){
+        return "add";
+    }
+    public String saveOrUpdate(){
+        return ajax(Status.success,"");
+    }
+    public String remove(){
+        return ajax(Status.success,"");
+    }
+    public String changestate(){
+        return ajax(Status.success,"");
+    }
+    public String rebiut(){
+        return ajax(Status.success,"");
+    }
+    /*--------------------------------------------------------------------------------------------------------------*/
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public String getJsondata() {
+        return jsondata;
+    }
+    public void setJsondata(String jsondata) {
+        this.jsondata = jsondata;
+    }
+    public String getState() {
+        return state;
+    }
+    public void setState(String state) {
+        this.state = state;
+    }
+    public PerformanceAppraisal getPerformappr() {
+        return performappr;
+    }
+    public void setPerformappr(PerformanceAppraisal performappr) {
+        this.performappr = performappr;
+    }
+}

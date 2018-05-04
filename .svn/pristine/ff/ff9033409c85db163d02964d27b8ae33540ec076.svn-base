@@ -1,0 +1,318 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>月度考勤统计树信息</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="../template/system/css/base.css" type="text/css"></link>
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+    body {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    </style>
+</head>
+<body>
+	<div class="mini-splitter" style="width:100%;height:100%;">
+		<div size="300" showCollapseButton="true">
+			<!-- ckId -->
+			<input type="hidden" value="${sessionScope.depId}" id="depId" />
+			<div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+				<span style="padding-left:5px;">组织机构：</span>
+			</div>
+			<div class="mini-fit" style=" border-top:0;">
+				<ul id="deptree" class="mini-tree" url="../basis/branch!getTreeListByUser.action" style="width:100%;height:100%;"
+					showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true" >
+				</ul>
+			</div>
+		</div>
+		<div showCollapseButton="flase">
+			<div class="mini-toolbar" style="padding:0px;border-top:0;border-left:0;">
+		        <table style="width:100%;">
+		            <tr>
+		                <td style="width:270px;padding-left:20px;">年月份：
+		                    <input class="mini-textbox" id="yearMonth" name="yearMonth" emptyText="请输入年月份：如1703" 
+		                    	vtype="float;rangeLength:4" onvalidation="onYearMonthValidation" 
+		                    	onenter="onKeyEnter" style="width:180px;"/>
+		                </td>
+		                <td style="width:250px;padding-left:20px;">职工号：
+		                    <input class="mini-textbox" id="jobNumber" name="jobNumber" emptyText="请输入职工号" 
+		                    	style="width:150px;"/>
+		                </td>
+		                <td style="white-space:nowrap;">
+		                    <a class="mini-button" iconCls="icon-search" onclick="search('yearMonth,jobNumber', 'yearMonth,jobNumber')" onenter="onKeyEnter">查询</a>
+		                </td>
+		            </tr>
+		        </table>
+		    </div>
+		    <div class="mini-toolbar" style="border-left:0;padding:0px;">
+				<table style="width:100%;">
+					<tr>
+						<td>
+							<a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a> 
+							<a class="mini-button" iconCls="icon-upload" onclick="exportMonthStatistics()">导出</a> 
+						</td>
+					</tr>
+				</table>
+			</div>
+		    <div class="mini-fit">
+		        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+		             url="../check/statistics!getMonthStatisticsData.action" idField="id" multiSelect="true" 
+		             allowAlternating="true" pageSize="20" >
+		            <div property="columns">
+		            	<div type="checkcolumn"></div>
+		                <div type="indexcolumn" width="50" headerAlign="center">序列</div>
+		                <div field="id" id="id" name="id" width="120" headerAlign="center" allowSort="true">id</div>
+		                <div field="jobNumber" width="80" headerAlign="center" align="center" >职工号</div>
+		                <div field="yearMonth" width="80" headerAlign="center" align="center" >年月份</div>
+		                <div field="name" width="80" headerAlign="center" align="center" >姓名</div>
+		                <div field="standardPostName" width="80" headerAlign="center" align="center" >标准岗位</div>
+		                <div field="postName" width="80" headerAlign="center" align="center" >具体岗位</div>
+		                <div field="salaryPostName" width="80" headerAlign="center" align="center" >薪酬岗位</div>
+		                <div field="empType" width="80" headerAlign="center" align="center" >人员类别</div>
+		                <div field="instituteName" width="80" headerAlign="center" align="center" >班制</div>
+		                <div field="wageForm" width="80" headerAlign="center" align="center" >工资形式</div>
+		                <div field="daytime" width="40" headerAlign="center" align="center" >白</div>
+		                <div field="night" width="40" headerAlign="center" align="center" >夜</div>
+		                <div field="offDuty" width="40" headerAlign="center" align="center" >下</div>
+		                <div field="centre" width="40" headerAlign="center" align="center" >中</div>
+		                <div field="overseas" width="40" headerAlign="center" align="center" >外</div>
+		                <div field="rest" width="40" headerAlign="center" align="center" >休</div>
+		                <div field="alls" width="40" headerAlign="center" align="center" >全</div>
+		                <div field="take" width="40" headerAlign="center" align="center" >带</div>
+		                <div field="flip" width="40" headerAlign="center" align="center" >弹</div>
+		                <div field="takeWork" width="40" headerAlign="center" align="center" >调</div>
+		                <div field="changes" width="40" headerAlign="center" align="center" >换</div>
+		                <div field="disease" width="40" headerAlign="center" align="center" >病</div>
+		                <div field="thing" width="40" headerAlign="center" align="center" >事</div>
+		                <div field="marry" width="40" headerAlign="center" align="center" >婚</div>
+		                <div field="injury" width="40" headerAlign="center" align="center" >伤</div>
+		                <div field="lost" width="40" headerAlign="center" align="center" >丧</div>
+		                <div field="give" width="40" headerAlign="center" align="center" >产</div>
+		                <div field="explore" width="40" headerAlign="center" align="center" >探</div>
+		                <div field="free" width="40" headerAlign="center" align="center" >旷</div>
+		                <div field="stay" width="40" headerAlign="center" align="center" >待</div>
+		                <div field="study" width="40" headerAlign="center" align="center" >学</div>
+		                <div field="very" width="40" headerAlign="center" align="center" >非</div>
+		                <div field="business" width="40" headerAlign="center" align="center" >公</div>
+		                <div field="evection" width="40" headerAlign="center" align="center" >差</div>
+		                <div field="team" width="40" headerAlign="center" align="center" >团</div>
+		                <div field="borrow" width="40" headerAlign="center" align="center" >借</div>
+		                <div field="retreat" width="40" headerAlign="center" align="center" >退</div>
+		                <div field="diction" width="40" headerAlign="center" align="center" >辞</div>
+		                <div field="leave" width="40" headerAlign="center" align="center" >离</div>
+		                <div field="piece" width="50" headerAlign="center" align="center" >计件</div>
+		                <div field="years" width="50" headerAlign="center" align="center" >年休</div>
+		                <div field="other" width="50" headerAlign="center" align="center" >其他</div>
+		                <div field="outWork" width="50" headerAlign="center" align="center" >出工</div>
+		                <div field="bigClass" width="50" headerAlign="center" align="center" >大班</div>
+		                <div field="smallClass" width="50" headerAlign="center" align="center" >小班</div>
+		                <div field="bigNight" width="50" headerAlign="center" align="center" >大夜</div>
+		                <div field="smallNight" width="50" headerAlign="center" align="center" >小夜</div>
+		                <div field="totals" width="50" headerAlign="center" align="center" >合计</div>
+		                <div field="attendanceDays" width="80" headerAlign="center" align="center" >出勤天数</div>
+		                <div field="nightDays" width="50" headerAlign="center" align="center" >夜班</div>
+		                <div field="vacation" width="50" headerAlign="center" align="center" >节加</div>
+		                <div field="overtime" width="50" headerAlign="center" align="center" >休加</div>
+		                <div field="delayed" width="100" headerAlign="center" align="center" >延时小时数</div>
+		                <div field="latency" width="50" headerAlign="center" align="center" >缓休</div>
+		                <div field="remark" width="200" headerAlign="center" align="center" >备注</div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		mini.parse();
+		var grid = mini.get("grid");
+		grid.hideColumn("id");
+		
+		//年月份格式验证
+		function onYearMonthValidation(e) {
+            if (e.isValid) {
+                var pattern = /\d{2}[0]\d{1}|\d{2}[1][0-2]/;
+                if (e.value.length != 0){
+                	if (e.value.length != 4 || pattern.test(e.value) == false) {
+	                    e.errorText = "必须输入4位年月份数字";
+	                    e.isValid = false;
+	                }
+                }
+            }
+        }
+		
+		$(function(){ 
+        	grid.load();
+			//如果有树
+			var tree=mini.get("deptree");
+			if(tree && grid){
+				//默认选中
+				var depId = $("#depId").val();
+				if(depId){
+					var originalNode=tree.getNode();
+					tree.selectNode(originalNode);
+				}
+				tree.on("nodeclick", function (e) {
+					var tree=mini.get("deptree");
+					var node = tree.getSelectedNode();
+					var yearMonth = mini.get("yearMonth").getValue();
+        			var jobNumber = mini.get("jobNumber").getValue();
+					//可见即可选
+					/*if(!tree.isAncestor ( originalNode, node )){
+						tree.selectNode ( originalNode );//选中原节点
+						//tree.unSelectNode( node );//取消选中当前节点
+						return;
+					}*/
+					if (node) {
+						if(document.getElementById("searchButton")){ 
+							$("#searchButton").click();
+						}else { 
+							var ids = "";
+							var tree=mini.get("deptree");
+							if(tree){
+								var node = tree.getSelectedNode();
+								if(node){
+									var ids = "";
+									ids = depAll(ids,tree,node);
+								}
+							}
+							if (yearMonth == ""){
+								if (jobNumber == ""){
+									mini.alert("请输入年月份");
+									return;
+								}
+							}
+							grid.load({ searchData:"{\"depId\":\""+ids+"\", \"yearMonth\":\""+yearMonth+"\", \"jobNumber\":\""+jobNumber+"\"}" });
+						}
+					} else {
+						grid.setData([]);
+						grid.setTotalCount(0);
+					}
+				});
+			}
+		});
+		
+		/**查询
+		 * name:所有查询条件框的name字符串
+		 * attr:所有查询条件的属性名
+		 * */
+		function search(name,attr){
+			var grid=mini.get("grid");
+			var yearMonth = mini.get("yearMonth").getValue();
+        	var jobNumber = mini.get("jobNumber").getValue();
+			if (yearMonth == ""){
+				if (jobNumber == ""){
+					mini.alert("请输入年月份");
+					return;
+				}
+			}
+			var searchData="{";
+			if(name&&attr){
+				var names=name.split(",");
+				var attrs=attr.split(",");
+				for(var i=0;i<names.length;i++){
+					if(mini.get(names[i])){
+						var value=mini.get(names[i]).getValue();
+						searchData=searchData+"\""+attrs[i]+"\""+":\""+value+"\"";
+						if(i!=names.length-1)searchData=searchData+",";
+					}
+				}
+			}
+			//searchData=searchData+",\"start\""+":\""+mini.get("start").getFormValue()
+			//			+"\","+"\"end\""+":\""+mini.get("end").getFormValue()+"\"";
+			//如果有树
+			var tree=mini.get("deptree");
+			if(tree){
+				var node = tree.getSelectedNode();
+				if(node){
+					var ids = "";
+					ids = depAll(ids,tree,node);
+					if (searchData == "{"){
+						searchData=searchData+"\"depId\":\""+ids+"\"";
+					} else {
+						searchData=searchData+",\"depId\":\""+ids+"\"";
+					}
+				}
+			}
+			searchData=searchData+"}";
+			grid.load({ searchData: searchData });
+		}
+		
+		function depAll(ids,tree,node){
+			if(node.flg==1){
+				ids += node.id+",";
+				return ids;
+			}else{
+				var list = tree.getChildNodes(node);
+				if(list.length>0){
+					 for ( var i = 0; i < list.length; i++) {
+					    	if(list[i].flg==1){
+					    		ids = ids + "," + list[i].id;
+					    	}else{
+					    		node = list[i];
+					    		ids = depAll(ids,tree,node);
+					    	}
+					 }
+				}
+				return ids;
+			}
+		}
+		//编辑
+		function edit() {
+			var rows = grid.getSelecteds();
+			var row = grid.getSelected();
+			if (rows.length <= 0){
+				mini.alert("请选择一条记录！");
+			} else if (rows.length > 1){
+				mini.alert("只能选择一条记录！");
+			} else {
+				mini.open({
+					url : "../check/statistics!editMonth.action?id=" + row.id,
+					title : "修改员工月度考勤统计信息",
+					width : 800,
+					height : 610,
+					/* allowResize:false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+			}
+		}
+		//导出月考勤统计信息集合
+		function exportMonthStatistics(){
+			var yearMonth = mini.get("yearMonth").getValue();
+			var jobNumber = mini.get("jobNumber").getValue();
+			var depIds = "";
+			//如果有树
+			var tree=mini.get("deptree");
+			if(tree){
+				var node = tree.getSelectedNode();
+				if(node){
+					var ids = "";
+					ids = depAll(ids,tree,node);
+					depIds = ids.substring(0,ids.length);
+				}
+			}
+			window.location.href="../check/statistics!exportMonthStatistics.action?yearMonth="+yearMonth
+				+"&jobNumber="+jobNumber+"&depIds="+depIds;
+		}
+	</script>
+</body>
+</html>

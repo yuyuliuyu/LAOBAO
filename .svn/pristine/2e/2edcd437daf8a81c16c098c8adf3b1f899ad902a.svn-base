@@ -1,0 +1,68 @@
+package com.lingnet.qxgl.entity;
+
+import java.io.Serializable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 数据字典
+ * @ClassName: JcDictionary 
+ * @Description: TODO 
+ * @author 马晓鹏
+ * @date 2017年4月1日 下午2:24:17 
+ *
+ */
+@Entity
+@Table(name = "JC_QX_DECTIONARY")
+public class JcDictionary extends BaseEntity implements Serializable{ 
+    private static final long serialVersionUID = 1L;
+    private String dicnum;
+    private String dicvalue;
+    private String dicname;
+    private String pid;
+    private String moduleType;//模块类型（考勤：check；）
+    public JcDictionary() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+    @Column(name = "DIC_NUM")
+    public String getDicnum() {
+        return dicnum;
+    }
+    public void setDicnum(String dicnum) {
+        this.dicnum = dicnum;
+    }
+    @Column(name = "DIC_VALUE")
+    public String getDicvalue() {
+        return dicvalue;
+    }
+    public void setDicvalue(String dicvalue) {
+        this.dicvalue = dicvalue;
+    }
+    @Column(name = "DIC_NAME")
+    public String getDicname() {
+        return dicname;
+    }
+    public void setDicname(String dicname) {
+        this.dicname = dicname;
+    }
+    @Column(name = "PID")
+    public String getPid() {
+        return pid;
+    }
+    public void setPid(String pid) {
+        this.pid = pid;
+    }
+    @Column(name = "MODULE_TYPE")
+	public String getModuleType() {
+		return moduleType;
+	}
+	public void setModuleType(String moduleType) {
+		this.moduleType = moduleType;
+	}
+               
+}

@@ -1,0 +1,133 @@
+package com.lingnet.hcm.action.check;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.check.CheckInfosService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.util.LingUtil;
+/**
+ * 
+ * @ClassName: ClassGroup 
+ * @Description: 生成考勤表功能控制层 
+ * @author wangqiang
+ * @date 2017年3月7日 下午4:11:49 
+ *
+ */
+public class GenerateAction extends BaseAction{
+
+	private static final long serialVersionUID = 5623909238890670719L;
+	private String monthDate;//年月份
+	private String jobNumber;//职工号
+	
+	@Resource(name = "checkInfosService")
+	private CheckInfosService checkInfosService;
+	
+	@Resource(name = "personnelService")
+	private PersonnelService personnelService;
+	
+	/**
+	 * 跳转到生成考勤表功能页
+	 */
+	public String list(){
+        return "list";
+    }
+	
+	/**
+	 * 同步考勤机最新数据
+	 * @Title: syncCheckData 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月12日 V 1.0
+	 */
+	public String syncCheckData(){
+		try {
+			checkInfosService.syncCheckData();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "同步失败");
+		}
+		return ajax(Status.success, "success");
+	}
+	
+	/**
+	 * 生成月度考勤表
+	 * @Title: generateMonthTable 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月13日 V 1.0
+	 */
+	public String generateMonthTable(){
+		String year = monthDate.substring(0,2);
+        String month = monthDate.substring(2, 4);
+		String beginDateStr = "20"+ year +"-"+ month +"-01";
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date beginDate = null;
+        Date currentMonth = null;
+        try {
+			beginDate = sdf.parse(beginDateStr);
+			currentMonth = sdf.parse(sdf.format(new Date()).substring(0, 8)+"01");
+		} catch (ParseException e1) {
+			e1.printStackTrace();
+		}
+        if (currentMonth.getTime() > beginDate.getTime()){//若当前时间大于要生成的月份时间
+        	return ajax(Status.error, "请输入当前年月份及之后的年月份！");
+        }
+        List<CkInfoCommit> list1 = this.getBeanListByCriteria(CkInfoCommit.class, Restrictions.ne("auditStatus", 1));
+        if(list1!=null&&list1.size()>0){
+            return ajax(Status.error, "本月度有未审核的考勤信息，请全部审核后再生成下月");
+        }
+        List<CkCheckInfo> list2 = checkInfosService.getList(CkCheckInfo.class,Restrictions.or(Restrictions.like("checkDepId", "null",MatchMode.ANYWHERE), Restrictions.isNull("checkDepId")) );
+        List<CkCheckInfo> list = checkInfosService.getList(CkCheckInfo.class, Restrictions.eq("monthCalendar", monthDate));
+        if (list2.size() > 0){
+            return ajax(Status.error, "该年月份的班制存在未提报审批的，请审批后再操作");
+        }
+		if (list.size() > 0){
+			return ajax(Status.error, "该年月份的班制表已生成，请勿重新生成！");
+		}
+        try {   
+            List<BasicInformation> baseinfo=this.getBeanListByCriteria(BasicInformation.class,Restrictions.eq("filmId", LingUtil.userinfo().getCid()));
+            if(baseinfo!=null&&baseinfo.size()>0){
+                String message="";
+                for (int i = 0; i < baseinfo.size(); i++) {
+                    message+=baseinfo.get(i).getName()+",";
+                }
+                message+="未设置考勤信息或班组信息，生成失败";
+                return ajax(Status.error, message);
+            }
+			checkInfosService.generateMonthTable(beginDate, monthDate, year, month);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "生成失败");
+		}
+		return ajax(Status.success, "success");
+	}
+
+	public String getMonthDate() {
+		return monthDate;
+	}
+
+	public void setMonthDate(String monthDate) {
+		this.monthDate = monthDate;
+	}
+
+	public String getJobNumber() {
+		return jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+	
+}

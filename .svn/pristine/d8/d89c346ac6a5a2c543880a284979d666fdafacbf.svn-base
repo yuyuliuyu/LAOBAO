@@ -1,0 +1,114 @@
+package com.lingnet.hcm.dao.impl.empdata;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.empdata.CareerDao;
+import com.lingnet.hcm.dao.empdata.HealthDao;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Health;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 人员岗位兼职Dao实现类
+ */
+@Repository("healthDao")
+public class HealthDaoImpl extends BaseDaoImpl<Health, String> implements HealthDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData,String depIds) {
+		StringBuilder sql=new StringBuilder()
+		.append("  SELECT BAS.JOB_NUMBER,BAS.NAME PERNAME,BR.FZX,QD.NAME,PP.POSITION_NAME PPNAME,DP.POSITION_NAME DPNAME,  ")
+		.append(" JH.ID,JH.HEIGHT,JH.BLOOD_TYPE,JH.WEIGHT,JH.HEALTH,JH.CHECK_TYPE,JH.CHECK_DATE, ")
+		.append(" JH.CHECK_RESULT,JH.PROFESSION_TABOO,JH.TABOO_CONTENT,JH.REMARK ")
+		.append(" FROM JC_HEALTH JH   ")
+		.append(" LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.ID=JH.PERSON_ID    ")
+		.append(" LEFT JOIN BRANCH BR ON BR.ID = BAS.FILM_ID  ")
+		.append(" LEFT JOIN QX_DEPARTMENT QD ON QD.ID = BAS.DEPART_ID  ")
+		.append(" LEFT JOIN POST_POSITION PP ON PP.ID = BAS.POST_ID  ")
+		.append(" LEFT JOIN DEPT_POSITION DP ON DP.ID = BAS.SPECIFIC_POST_ID  ")
+		.append(" WHERE 1=1  ")
+		;
+		if(searchData!=null&&!"".equals(searchData)){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and BAS.DEPART_ID in("+resql+")");
+				
+			} else {
+				sql.append(" AND BAS.DEPART_ID IN("+ depIds+") ");
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and BAS.JOB_NUMBER LIKE'%"+dataMap.get("jobNumber")+"%'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and BAS.NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("personId") != null && !"".equals(dataMap.get("personId"))){
+				sql.append(" and BAS.ID = '"+dataMap.get("personId")+"'");
+			}
+			if (dataMap.get("checkType") != null && !"".equals(dataMap.get("checkType"))){
+				sql.append(" and JH.CHECK_TYPE = '"+dataMap.get("checkType")+"'");
+			}
+		}else {
+			sql.append(" AND BAS.DEPART_ID IN("+ depIds+") ");
+		}
+		sql.append(" ORDER BY JH.CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        SimpleDateFormat form =new SimpleDateFormat("yyyy-MM-dd");
+        String stamp = "";
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("id", obj[6]);
+			map.put("height", obj[7]);
+			map.put("bloodType", obj[8]);
+			map.put("weight", obj[9]);
+			map.put("health", obj[10]);
+			map.put("checkType", obj[11]);
+			if(obj[12]!=null&&!"".equals(obj[12])){
+				stamp=form.format(obj[12]);
+				map.put("checkDate", stamp);
+			}
+			//map.put("checkDate", obj[12]);
+			map.put("checkResult", obj[13]);
+			map.put("professionTaboo", obj[14]);
+			map.put("tabooContent", obj[15]);
+			map.put("remark", obj[16]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

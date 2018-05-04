@@ -1,0 +1,217 @@
+package com.lingnet.hcm.entity;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * OrgHisMiddle entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "ORG_HIS_MIDDLE")
+public class OrgHisMiddle extends BaseEntity implements java.io.Serializable {
+
+	// Fields
+
+	/**
+     * 
+     */
+    private static final long serialVersionUID = -5606598046221266647L;
+	private Integer changeType;//变更类型    设立0     调整1     转移2     撤销3     合并4
+	private Date effectiveDate;//生效日期
+	private String applyComp;//申请单位
+	private String changeName;
+	private String changeReason;//变更原因     
+	private String attachment;//附件
+	private String changeId;//变更id--公司id或者部门id
+	private Integer type;//类型 公司0  部门1
+	private Integer flg;//审批状态  未提交0  审批中1 已审批2 已驳回3
+	private String effectiveId;//并入部门
+	private String applyPerson;//申请人
+    private Date applyDate;//申请时间
+	private String auditPerson;//审核人
+	private Date auditDate;//审核时间
+    private String auditDes;//审核说明
+	
+	
+
+    
+
+	// Constructors
+
+	/** default constructor */
+	public OrgHisMiddle() {
+	}
+
+
+	/** full constructor */
+	public OrgHisMiddle(String id, Date createdate, Date modifydate,
+	        Integer changeType, Date effectiveDate, String applyComp,
+			String changeReason, String attachment, String changeId,
+			Integer type) {
+		this.changeType = changeType;
+		this.effectiveDate = effectiveDate;
+		this.applyComp = applyComp;
+		this.changeReason = changeReason;
+		this.attachment = attachment;
+		this.changeId = changeId;
+		this.type = type;
+	}
+
+	// Property accessors
+
+	@Column(name = "CHANGE_TYPE", length = 32)
+	public Integer getChangeType() {
+		return this.changeType;
+	}
+
+	public void setChangeType(Integer changeType) {
+		this.changeType = changeType;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "EFFECTIVE_DATE", length = 7)
+	public Date getEffectiveDate() {
+		return this.effectiveDate;
+	}
+
+	public void setEffectiveDate(Date effectiveDate) {
+		this.effectiveDate = effectiveDate;
+	}
+
+	@Column(name = "APPLY_COMP", length = 32)
+	public String getApplyComp() {
+		return this.applyComp;
+	}
+
+	public void setApplyComp(String applyComp) {
+		this.applyComp = applyComp;
+	}
+
+	@Column(name = "CHANGE_REASON")
+	public String getChangeReason() {
+		return this.changeReason;
+	}
+
+	public void setChangeReason(String changeReason) {
+		this.changeReason = changeReason;
+	}
+
+	@Column(name = "ATTACHMENT")
+	public String getAttachment() {
+		return this.attachment;
+	}
+
+	public void setAttachment(String attachment) {
+		this.attachment = attachment;
+	}
+
+	@Column(name = "CHANGE_ID", length = 32)
+	public String getChangeId() {
+		return this.changeId;
+	}
+
+	public void setChangeId(String changeId) {
+		this.changeId = changeId;
+	}
+
+	@Column(name = "TYPE", precision = 1, scale = 0)
+	public Integer getType() {
+		return this.type;
+	}
+
+	public void setType(Integer type) {
+		this.type = type;
+	}
+
+	@Column(name = "FLG", precision = 1, scale = 0)
+    public Integer getFlg() {
+        return flg;
+    }
+
+
+    public void setFlg(Integer flg) {
+        this.flg = flg;
+    }
+
+    @Column(name = "EFFECTIVE_ID")
+    public String getEffectiveId() {
+        return effectiveId;
+    }
+
+
+    public void setEffectiveId(String effectiveId) {
+        this.effectiveId = effectiveId;
+    }
+    
+
+    @Column(name = "AUDIT_PERSON")
+    public String getAuditPerson() {
+        return auditPerson;
+    }
+
+
+    public void setAuditPerson(String auditPerson) {
+        this.auditPerson = auditPerson;
+    }
+
+    @Column(name = "AUDIT_DATE")
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date getAuditDate() {
+        return auditDate;
+    }
+
+
+    public void setAuditDate(Date auditDate) {
+        this.auditDate = auditDate;
+    }
+
+    @Column(name = "AUDIT_DES")
+    public String getAuditDes() {
+        return auditDes;
+    }
+
+
+    public void setAuditDes(String auditDes) {
+        this.auditDes = auditDes;
+    }
+
+    @Column(name = "APPLY_PERSON")
+    public String getApplyPerson() {
+        return applyPerson;
+    }
+
+
+    public void setApplyPerson(String applyPerson) {
+        this.applyPerson = applyPerson;
+    }
+
+    @Column(name = "APPLY_DATE")
+    public Date getApplyDate() {
+        return applyDate;
+    }
+
+
+    public void setApplyDate(Date applyDate) {
+        this.applyDate = applyDate;
+    }
+
+
+    @Column(name = "APPLY_COMP_NAME")
+    public String getChangeName() {
+        return changeName;
+    }
+
+
+    public void setChangeName(String changeName) {
+        this.changeName = changeName;
+    }
+
+
+}

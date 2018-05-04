@@ -1,0 +1,555 @@
+package com.lingnet.qxgl.service.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.qxgl.dao.BranchDao;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxCenDep;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxUseDep;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUserDatauth;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BaseAttachService;
+import com.lingnet.qxgl.service.BranchService;
+import com.lingnet.qxgl.service.QxUserDatauthService;
+import com.lingnet.qxgl.service.QxcendepService;
+import com.lingnet.qxgl.service.QxusedepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+@Service("branchService")
+public class BranceServiceImpl extends BaseServiceImpl<Branch, String> implements BranchService{
+
+    @Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+    @Resource(name="qxuserauthService")
+    private QxUserDatauthService  userauthservice;
+    @Resource(name="qxcendepService")
+    private QxcendepService qxcendepService;
+    @Resource(name="qxusedepService")
+    private QxusedepService qxusedepService;
+    @Resource(name="adminService")
+    private AdminService adminService;
+    @Resource(name="branchDao")
+    private BranchDao branchDao;
+    @Resource(name="baseAttachService")
+    private BaseAttachService baseAttachService;
+    /**
+     * 获取分区树
+     */
+    @Override
+    public String treeList() {
+       List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+       
+       List<Branch> data = this.getList(Branch.class,Restrictions.eq("isDelete", 0));
+       if(data!=null&&data.size()>0){
+           for(Branch b : data){
+               HashMap<String, String> map = new HashMap<String, String>();
+               
+               map.put("id", b.getId());
+               map.put("pid",b.getPid());
+               map.put("name", b.getFzx());
+               map.put("flg", b.getFlg());
+               map.put("branchId", b.getId());
+               map.put("img", "../jsp/basis/company.gif");
+               list.add(map);
+               
+               	//获取下级部门
+               List<QxDepartment> dataP = this.getList(QxDepartment.class,Restrictions.eq("isDelete", 0)
+            		   						,Restrictions.eq("barchId",  b.getId()));
+               for(QxDepartment dep : dataP){
+            	   map = new HashMap<String, String>();
+                   if("ROOT".equals(dep.getParent())){
+                	   map.put("id", dep.getId());
+                       map.put("pid",dep.getBarchId());
+                       map.put("name", dep.getName());
+                       map.put("flg", dep.getFlg());
+                       map.put("branchId", dep.getBarchId());
+                       map.put("img", "../jsp/basis/dep.png");
+                       list.add(map);
+                   }else{
+                	   map.put("id", dep.getId());
+                       map.put("pid",dep.getParent());
+                       map.put("name", dep.getName());
+                       map.put("flg", dep.getFlg());
+                       map.put("branchId", dep.getBarchId());
+                       map.put("img", "../jsp/basis/dep.png");
+                       list.add(map);
+                   }
+               }
+           }
+       }
+        return JsonUtil.Encode(list);
+    }
+    @SuppressWarnings("rawtypes")
+	@Override
+    public String getTreeListByUser(){
+    	 List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+    	 String userid=toolUtil.getUserId();
+         List data=this.findBySql("SELECT B.ID,B.PID,B.FZX,B.FLG FROM BRANCH B " +
+         		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID= '"+userid+"' " +
+         		"WHERE B.IS_DELETE=0 ");
+         if(data!=null&&data.size()>0){
+             for(int i=0,l=data.size();i<l;i++){
+            	 Object[]b=(Object[]) data.get(i);
+                 HashMap<String, String> map = new HashMap<String, String>();
+                 map.put("id", b[0]==null?"":b[0].toString());
+                 map.put("pid",b[1]==null?"":b[1].toString());
+                 map.put("name", b[2]==null?"":b[2].toString());
+                 map.put("text", b[2]==null?"":b[2].toString());
+                 map.put("flg", b[3]==null?"":b[3].toString());
+                 map.put("branchId", b[0]==null?"":b[0].toString());
+                 map.put("img", "../jsp/basis/company.gif");
+                 list.add(map);
+                 
+                 	//获取下级部门
+                 List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID,D.BARCH_ID,D.NAME,D.FLG FROM QX_DEPARTMENT D " +
+                 		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userid+"' " +
+                 		"WHERE D.BARCH_ID='"+b[0]+"' AND D.IS_DELETE=0 ");
+                 for(int k=0,s=dataP.size();k<s;k++){
+                	 Object[] dep=(Object[])dataP.get(k);
+              	     map = new HashMap<String, String>();
+              	     String branchId=dep[2]==null?"":dep[2].toString();
+              	     String parent=dep[0]==null?"":dep[0].toString();
+                     if("ROOT".equals(parent)){
+                  	     map.put("id", dep[1]==null?"":dep[1].toString());
+                         map.put("pid",branchId);
+                         map.put("name", dep[3]==null?"":dep[3].toString());
+                         map.put("text", dep[3]==null?"":dep[3].toString());
+                         map.put("flg", dep[4]==null?"":dep[4].toString());
+                         map.put("branchId", branchId);
+                         map.put("img", "../jsp/basis/dep.png");
+                         list.add(map);
+                     }else{
+                  	     map.put("id", dep[1]==null?"":dep[1].toString());
+                         map.put("pid",parent);
+                         map.put("text", dep[3]==null?"":dep[3].toString());
+                         map.put("name", dep[3]==null?"":dep[3].toString());
+                         map.put("flg", dep[4]==null?"":dep[4].toString());
+                         map.put("branchId", branchId);
+                         map.put("img", "../jsp/basis/dep.png");
+                         list.add(map);
+                     }
+                 }
+             }
+         }
+          return JsonUtil.Encode(list);
+    }
+    /**
+     * 获取分区树
+     */
+    @Override
+    public String getBranchList() {
+       List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+       
+       List<Branch> data = this.getList(Branch.class,Restrictions.eq("isDelete", 0));
+       if(data!=null&&data.size()>0){
+           for(Branch b : data){
+               HashMap<String, String> map = new HashMap<String, String>();
+               
+               map.put("id", b.getId());
+               map.put("pid",b.getPid());
+               map.put("name", b.getFzx());
+               map.put("flg", b.getFlg());
+               map.put("branchId", b.getId());
+               map.put("img", "../jsp/basis/company.gif");
+               list.add(map);
+           }
+       }
+        return JsonUtil.Encode(list);
+    }
+
+    /**
+     * 获取分区数据
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public String getTreedata(Pager pager) {
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String,String>>();
+        List<Branch> list = (List<Branch>) this.findPager(Branch.class, pager,Restrictions.eq("isDelete", 0)).getResult();
+        if(list!=null&&list.size()>0){
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            for(Branch b : list){
+                HashMap<String, String> map = new HashMap<String, String>();
+                
+                map.put("id", b.getId());
+                map.put("pid", b.getPid());
+                map.put("name", b.getFzx());
+                map.put("jm", b.getJm());
+                map.put("srm", b.getSrm());
+                map.put("createdate", sdf.format(b.getCreateDate()));
+                map.put("isDefault", b.getIsDefault()==null?"0":b.getIsDefault().toString());
+                
+                data.add(map);
+            }
+        }
+        
+        return JsonUtil.Encode(data);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdata(String formdata,
+            String child,String img,QxUser qxuser) throws Exception {
+        Branch b = JsonUtil.toObject(formdata, Branch.class);
+        String id = b.getId();
+        String pid = b.getPid();
+        String jm = b.getJm().toUpperCase();
+        b.setJm(jm);
+        String name = b.getFzx();
+        if(StringUtils.isBlank(pid)){
+            b.setPid("-1");
+            
+        }
+        if(StringUtils.isNotBlank(id)){//修改
+            b.setModifyDate(new Date());
+            Branch bean = this.get(Branch.class, id);
+            bean.copyFrom(b);
+           // bean.setImgpath(b.getImgpath());
+            this.update(bean);
+            String[] allid = child.split(",");
+            for(int i=0;i<allid.length;i++){
+                if(!allid[i].equals("null")&&!allid[i].equals("")){
+                    Branch branch = this.get(Branch.class, Restrictions.eq("id", allid[i]));
+                    branch.setPid(b.getId());
+                   this.update(branch);
+                }
+            } 
+           
+            baseAttachService.saveOrUpdate("branch", id, img,"1");
+        }else{//新增
+            Branch old = this.get(Branch.class, Restrictions.eq("jm",jm ),Restrictions.eq("isDelete",0));
+            if(old!=null){
+                throw new Exception("输入的简称："+jm+"在系统中已存在,请重新输入!");
+            }
+            Branch old1 = this.get(Branch.class, Restrictions.eq("fzx",name ),Restrictions.eq("isDelete",0));
+            if(old1!=null){
+                throw new Exception("输入的名称："+name+"在系统中已存在,请重新输入!");
+            }
+            b.setCreateDate(new Date());
+            b.setIsDelete(0);
+            b.setFlg("0");
+            id = this.save(b);
+            QxUserDatauth userauth=new QxUserDatauth();
+            userauth.setBranchDep(b.getId());
+            userauth.setFlg(0+"");
+            userauth.setUserid(qxuser.getId()); 
+            userauthservice.save(userauth);
+            baseAttachService.saveOrUpdate("branch", id, img,null);
+            
+        }
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String remove(String id) throws Exception {
+        String[] ids = id.split(",");
+            for(int i = 0 , l = ids.length ; i<l;i++){
+                Branch b =null;
+                try {
+                    b = this.get(Branch.class, Restrictions.eq("id", ids[i]),Restrictions.eq("isDelete", 0));
+                } catch (Exception e) { 
+                    continue;
+                }
+                if(b!=null){
+                    b.setIsDelete(1);
+                    this.update(b);
+                }
+            }
+        return "success";
+    }
+    
+    /**
+     * 获取分中心信息
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String getBranchData() {
+        //获取所有的分中心的信息
+        List<Branch> list=this.getOrderList(Branch.class,Order.desc("createDate"),Restrictions.eq("isDelete", 0));
+        List data=new ArrayList();
+        Map result=null;
+        //Map result2=new HashMap();
+        for(Branch branch:list){
+            result=new HashMap();
+            result.put("id", branch.getId());
+            result.put("srm", branch.getSrm());
+            result.put("fzx", branch.getFzx());
+            data.add(result);
+        }
+        //result2.put("id", "qb");
+        //result2.put("fzx", "全部");
+        //data.add(result2);
+        return JsonUtil.Encode(data);
+    }
+
+    @Override
+    public String depData(String cid) {
+        List<QxDepartment> list =  this.getOrderList(QxDepartment.class,Order.asc("xh"),Restrictions.eq("barchId", cid),Restrictions.eq("isDelete", 0));
+        List<HashMap<String, Object>> data = new ArrayList<HashMap<String,Object>>();
+        if(list!=null&&list.size()>0){
+            for(QxDepartment dept:list){
+            	HashMap<String, Object> map = new HashMap<String, Object>();
+            	if(dept==null){continue;}
+                //判断是否为跟部门
+                if(dept.getParent().equals("ROOT")){
+                    map.put("pid", "-1");
+                }else{
+                    map.put("pid", dept.getParent());
+                }
+                map.put("id", dept.getId());
+                map.put("did", dept.getId());
+                map.put("cid", cid);
+                map.put("name", dept.getName());
+                map.put("srm", dept.getInput_code());
+                map.put("descript", dept.getDescription());
+                SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                map.put("createdate", mat.format(dept.getCreateDate()));
+                map.put("isgnks", dept.getIs_function());//是否功能科室
+                map.put("xh",dept.getXh() );//序号
+                data.add(map);
+            }
+        }
+       
+        return JsonUtil.Encode(data);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String cenDepSaveOrUpdate(String formdata,QxUser userinfo) throws Exception {
+        QxDepartment dep = JsonUtil.toObject(formdata, QxDepartment.class);
+        if(dep.getId()!=null&&!"".equals(dep.getId())){
+            QxDepartment old = this.get(QxDepartment.class, dep.getId());
+            if(old!=null){
+                old.copyFrom(dep);
+                branchDao.update(old);
+            }else{
+                dep.setFlg("1");
+                dep.setIsDelete(0);
+                branchDao.save(dep);
+            }
+        }else{//新增
+            dep.setFlg("1");
+            dep.setIsDelete(0);
+            branchDao.save(dep);
+            QxUserDatauth userauth=new QxUserDatauth();
+            userauth.setBranchDep(dep.getId());
+            userauth.setFlg(1+"");
+            userauth.setUserid(userinfo.getId()); 
+            userauthservice.save(userauth);
+        }
+        return "success";
+    }
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    private void saveChild(String cid, String did) {
+        List<QxDepartment> dlist = backendDepService.getList(QxDepartment.class, Restrictions.eq("parent", did),Restrictions.eq("isDelete", 0));
+        if(dlist!=null&&dlist.size()>0){
+            for(QxDepartment d :dlist){
+                String id = d.getId();
+                QxCenDep cd = qxcendepService.get(QxCenDep.class, Restrictions.eq("cid", cid),Restrictions.eq("did", id));
+                if(cd==null||"".equals(cd)){
+                    cd = new QxCenDep();
+                    cd.setCid(cid);
+                    cd.setDid(id);
+                    cd.setCreateDate(new Date());
+                    cd.setModifyDate(new Date());
+                    cd.setImgpath(d.getImgpath());
+                    qxcendepService.save(cd);
+                    saveChild(cid,id);
+                }
+            }
+        }
+        
+    }
+
+    /**
+     * 删除分中心部门
+     * @Title: depRemove 
+     * @param id 分中心部门id
+     * @param cid 分中心id
+     * @return 
+     * String 
+     * @author lsp      
+     * @since 2016-8-12 V 1.0
+     */
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String depRemove(String id, String cid) throws Exception {
+        String[] ids = id.split(",");
+        List<QxCenDep> list = qxcendepService.getList(QxCenDep.class,Restrictions.in("id", ids));
+        if(list!=null&&list.size()>0){
+            int l = list.size();
+            for(int i = 0 ; i < l ; i++){
+                QxCenDep cd = list.get(i);
+                QxDepartment d = backendDepService.get(QxDepartment.class, Restrictions.eq("id",cd.getDid()));
+                /**人员部门表*/
+                List<QxUseDep> udlist = qxusedepService.getList(QxUseDep.class, Restrictions.eq("depId", d.getId()));
+               
+                if(udlist!=null&&udlist.size()>0){//该部门下有人员
+                    int length = udlist.size();
+                    String[] uids = new String[length];
+                    for(int j = 0 ; j < length ; j++){
+                        QxUseDep ud = udlist.get(j);
+                        uids[j] =  ud.getUserId();
+                    }
+                    /**人员*/
+                    List<QxUsers> ulist = adminService.getList(QxUsers.class, Restrictions.in("id", uids),Restrictions.eq("cid", cid),Restrictions.eq("isDelete", 0));
+                    if(ulist!=null&&ulist.size()>0){
+                        throw new Exception("操作失败:选中的部门下存在属于该分中心的人员!");
+                    }
+                    qxcendepService.delete(cd); 
+                }else{//该部门下没有人员
+                   qxcendepService.delete(cd); 
+                }
+            }
+        }
+        return "success";
+    }
+    
+    /**
+     * 获取分中心信息,进行分页展示
+     * @Title: getBranchData 
+     * @param pager
+     * @param key
+     * @return 
+     * String 
+     * @author mbx
+     * @since 2016年9月27日 V 1.0
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String getBranchData(Pager pager, String key) {
+        Conjunction and=Restrictions.conjunction();
+        if(StringUtils.isNotEmpty(key)){
+            and.add(Restrictions.like("srm", key.trim().toUpperCase(),MatchMode.ANYWHERE));
+        }
+        //获取所有的分中心的信息
+        pager=this.findPager(Branch.class,pager,and,Restrictions.eq("isDelete", 0));
+        List<Branch> list=(List<Branch>) pager.getResult();
+        List data=new ArrayList();
+        for(Branch branch:list){
+            Map result=new HashMap();
+            result.put("id", branch.getId());
+            result.put("fzx", branch.getFzx());
+            result.put("srm", branch.getSrm());
+            data.add(result);
+        }
+        return JsonUtil.Encode(data);
+    }
+    @Override
+    @Transactional
+    public String setDefault(String cid){
+    	Branch new_default=branchDao.get(Restrictions.eq("id",cid),Restrictions.eq("isDelete",0));
+    	if(new_default==null){
+    		return "所选分中心已被删除,设置失败!";
+    	}
+    	Branch old_default=branchDao.get(Restrictions.eq("isDefault",1),Restrictions.eq("isDelete",0));
+    	if(old_default!=null){
+    		old_default.setIsDefault(0);
+    	}
+    	new_default.setIsDefault(1);
+    	branchDao.update(old_default);
+    	branchDao.update(new_default);
+    	return "success";
+    }
+    
+    
+    @SuppressWarnings("rawtypes")
+	@Override
+    public String getAllTreeList(){
+   	 List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+        List data=this.findBySql("SELECT B.ID,B.PID,B.FZX,B.FLG FROM BRANCH B " +
+        		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' " +
+        		"WHERE B.IS_DELETE=0 ");
+        if(data!=null&&data.size()>0){
+            for(int i=0,l=data.size();i<l;i++){
+           	 Object[]b=(Object[]) data.get(i);
+                HashMap<String, String> map = new HashMap<String, String>();
+                map.put("id", b[0]==null?"":b[0].toString());
+                map.put("pid",b[1]==null?"":b[1].toString());
+                map.put("text", b[2]==null?"":b[2].toString());
+                map.put("flg", b[3]==null?"":b[3].toString());
+                map.put("branchId", b[0]==null?"":b[0].toString());
+                map.put("img", "../jsp/basis/company.gif");
+                list.add(map);
+                
+                	//获取下级部门
+                List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID,D.BARCH_ID,D.NAME,D.FLG FROM QX_DEPARTMENT D " +
+                		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' " +
+                		"WHERE D.BARCH_ID='"+b[0]+"' AND D.IS_DELETE=0 ");
+                for(int k=0,s=dataP.size();k<s;k++){
+               	 Object[] dep=(Object[])dataP.get(k);
+             	     map = new HashMap<String, String>();
+             	     String branchId=dep[2]==null?"":dep[2].toString();
+             	     String parent=dep[0]==null?"":dep[0].toString();
+                    if("ROOT".equals(parent)){
+                 	     map.put("id", dep[1]==null?"":dep[1].toString());
+                        map.put("pid",branchId);
+                        map.put("text", dep[3]==null?"":dep[3].toString());
+                        map.put("flg", dep[4]==null?"":dep[4].toString());
+                        map.put("branchId", branchId);
+                        map.put("img", "../jsp/basis/dep.png");
+                        list.add(map);
+                    }else{
+                 	     map.put("id", dep[1]==null?"":dep[1].toString());
+                        map.put("pid",parent);
+                        map.put("text", dep[3]==null?"":dep[3].toString());
+                        map.put("flg", dep[4]==null?"":dep[4].toString());
+                        map.put("branchId", branchId);
+                        map.put("img", "../jsp/basis/dep.png");
+                        list.add(map);
+                    }
+                }
+            }
+        }
+         return JsonUtil.Encode(list);
+   }
+    @SuppressWarnings("rawtypes")
+    @Override
+    public List<HashMap> findHistortData(String flg) {
+        return branchDao.findHistortData(flg);
+    }
+    @Override
+    public String compList() {
+        List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+        
+        List<Branch> data = this.getList(Branch.class,Restrictions.eq("isDelete", 0));
+        if(data!=null&&data.size()>0){
+            for(Branch b : data){
+                HashMap<String, String> map = new HashMap<String, String>();
+                
+                map.put("id", b.getId());
+                map.put("pid",b.getPid());
+                map.put("name", b.getFzx());
+                map.put("flg", b.getFlg());
+                map.put("branchId", b.getId());
+                map.put("img", "../jsp/basis/company.gif");
+                list.add(map);
+                
+            }
+        }
+         return JsonUtil.Encode(list);
+     }
+    
+    
+}

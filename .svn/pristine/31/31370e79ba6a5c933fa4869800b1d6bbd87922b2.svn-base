@@ -1,0 +1,226 @@
+package com.lingnet.hcm.service.impl.contract;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.xwork.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.contract.AutoProjectCodeDao;
+import com.lingnet.hcm.dao.contract.LaborOutsourceAppDao;
+import com.lingnet.hcm.entity.AutoProjectCode;
+import com.lingnet.hcm.entity.LaborOutsourceApp;
+import com.lingnet.hcm.entity.check.CkOvertimeSub;
+import com.lingnet.hcm.service.contract.LaborOutsourceAppService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ReflectionUtil;
+
+/**
+ * @ClassName: LaborOutsourceAppServiceImpl
+ * @Description: 外包合同计划申请SERVICE实现类
+ * @author duanjj
+ * @date 2017年4月25日 下午2:45:16
+ *
+ */
+@Service("laborOutsourceAppService")
+public class LaborOutsourceAppServiceImpl extends
+        BaseServiceImpl<LaborOutsourceApp, String> implements
+        LaborOutsourceAppService {
+
+    @Resource(name = "laborOutsourceAppDao")
+    private LaborOutsourceAppDao laborOutsourceAppDao;
+    @Resource(name="autoProjectCodeDao")
+    private AutoProjectCodeDao autoProjectCodeDao;
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String listdata(String id, Pager pager) {
+        // 根据
+        if (id != null && !"".equals(id)) {
+            pager = this.findPager(LaborOutsourceApp.class, pager,
+                    Restrictions.eq("applyCom", id),
+                    Restrictions.eq("state", 2));
+        } else {
+            pager = this.findPager(LaborOutsourceApp.class, pager);
+        }
+
+        List<HashMap> mapList = ReflectionUtil.getMapList(pager.getResult());
+        for (HashMap map : mapList) {
+            if (map.get("applyCom") != null) {
+                Branch branch = this.get(Branch.class, map.get("applyCom")
+                        .toString());
+                if (branch != null) {
+                    map.put("applyComName", branch.getFzx());
+                }
+            }
+            if (map.get("payCom") != null) {
+                Branch branch = this.get(Branch.class, map.get("payCom")
+                        .toString());
+                if (branch != null) {
+                    map.put("payComName", branch.getFzx());
+                }
+            }
+        }
+        return JsonUtil.toJson(mapList);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdata(String formdata) throws Exception {
+        LaborOutsourceApp app = JsonUtil.toObject(formdata,
+                LaborOutsourceApp.class);
+        if (app.getId() != null && !"".equals(app.getId())) {
+            // 修改
+            LaborOutsourceApp oldBean = this.get(LaborOutsourceApp.class,
+                    Restrictions.eq("id", app.getId()));
+            oldBean.copyFrom(app);
+            laborOutsourceAppDao.update(oldBean);
+        } else {
+            // 新增--判断数据库是否有
+            LaborOutsourceApp oldBean = this.get(LaborOutsourceApp.class,
+                    Restrictions.eq("applyCom", app.getApplyCom()),
+                    Restrictions.eq("payCom", app.getPayCom()));
+            if(oldBean!=null){
+                throw new Exception("计划申请中已经存在该付款单位！");
+            }
+            app.setProjectCode(this.getAutoCode());
+            app.setState(0);
+            laborOutsourceAppDao.save(app);
+        }
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String deleteByIds(String id) throws Exception {
+        String[] ids = id.split(",");
+        for (int i = 0; i < ids.length; i++) {
+            LaborOutsourceApp oldBean = this.get(LaborOutsourceApp.class,
+                    ids[i]);
+            if (oldBean.getState() != 0 && oldBean.getState() != 3) {
+                throw new Exception("当前申请单不允许删除！");
+            }
+            laborOutsourceAppDao.delete(oldBean);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String changeSubmit(String id) throws Exception {
+        String[] ids = id.split(",");
+        for (int i = 0; i < ids.length; i++) {
+            LaborOutsourceApp oldBean = this.get(LaborOutsourceApp.class,
+                    ids[i]);
+            if (oldBean.getState() != 0 && oldBean.getState() != 3) {
+                throw new Exception("当前申请单不需要提交！");
+            }
+            oldBean.setState(1);
+            laborOutsourceAppDao.update(oldBean);
+        }
+        return "success";
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public String auditData(String id, Pager pager) {
+        // 根据
+        if (id != null && !"".equals(id)) {
+            pager = this.findPager(LaborOutsourceApp.class, pager,
+                    Restrictions.eq("applyCom", id),
+                    Restrictions.eq("state", 1));
+        } else {
+            pager = this.findPager(LaborOutsourceApp.class, pager,
+                    Restrictions.eq("state", 1));
+        }
+
+        List<HashMap> mapList = ReflectionUtil.getMapList(pager.getResult());
+        for (HashMap map : mapList) {
+            if (map.get("applyCom") != null) {
+                Branch branch = this.get(Branch.class, map.get("applyCom")
+                        .toString());
+                if (branch != null) {
+                    map.put("applyComName", branch.getFzx());
+                }
+            }
+            if (map.get("payCom") != null) {
+                Branch branch = this.get(Branch.class, map.get("payCom")
+                        .toString());
+                if (branch != null) {
+                    map.put("payComName", branch.getFzx());
+                }
+            }
+        }
+        return JsonUtil.toJson(mapList);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String audit(String formdata) throws Exception {
+        CkOvertimeSub sub = JsonUtil.toObject(formdata, CkOvertimeSub.class);
+        LaborOutsourceApp middle = this.get(LaborOutsourceApp.class,
+                Restrictions.eq("id", sub.getNodeId()));
+        sub.setAuditId(LingUtil.userName());
+        sub.setAuditDate(new Date());
+        laborOutsourceAppDao.save(sub);// 保存审核记录
+        if(middle.getState()!=1){
+            throw new Exception("当前数据不需要审核！");
+        }
+        if (sub.getAuditStatus() == 0) {
+            // 驳回
+            middle.setState(3);
+
+        } else {
+            // 审核通过
+            middle.setState(2);
+        }
+        laborOutsourceAppDao.update(middle);
+        return "success";
+    }
+    
+public String getAutoCode() {
+        
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        int year = calendar.get(Calendar.YEAR);
+        
+        List<AutoProjectCode> codes  = autoProjectCodeDao.findCode();
+        AutoProjectCode entity;
+        if (codes != null && codes.size() > 0) {
+            entity = (AutoProjectCode)codes.get(0);
+            
+            if (entity.getNowYear().intValue() == year) {
+                int anjNo = Integer.parseInt(entity.getStartNo());
+                anjNo += 1;
+                
+                String newStartNo = StringUtils.leftPad(String.valueOf(anjNo), 5, "0");
+                entity.setStartNo(newStartNo);
+            } else {
+                entity.setNowYear(year);
+                entity.setStartNo("00001");
+            }
+            
+            autoProjectCodeDao.update(entity);
+        } else {
+            entity = new AutoProjectCode();
+            entity.setNowYear(year);
+            entity.setStartNo("00001");
+            autoProjectCodeDao.save(entity);
+        }
+        
+        String newCaseNo = entity.getNowYear()+entity.getStartNo(); 
+        
+        return newCaseNo;
+    }
+
+}

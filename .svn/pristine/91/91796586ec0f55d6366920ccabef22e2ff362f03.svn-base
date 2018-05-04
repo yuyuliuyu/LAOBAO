@@ -1,0 +1,390 @@
+package com.lingnet.hcm.service.impl.personnel;
+
+import java.util.HashMap;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.contract.ContractManagerDao;
+import com.lingnet.hcm.dao.contract.EmployAgreementDao;
+import com.lingnet.hcm.dao.empdata.CareerDao;
+import com.lingnet.hcm.dao.personnel.ChangeDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.dao.personnel.PtJobDao;
+import com.lingnet.hcm.entity.contract.ContractManager;
+import com.lingnet.hcm.entity.contract.EmployAgreement;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.personnel.ChangeService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.qxgl.dao.QxUsersDao;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 出国service实现类
+ */
+@Service("changeService")
+public class ChangeServiceImpl extends BaseServiceImpl<Change, String> implements ChangeService{
+	
+	@Resource(name = "changeDao")
+	private ChangeDao changeDao;
+	
+	@Resource(name="ptJobDao")
+	private PtJobDao ptJobDao;
+	
+	@Resource(name="careerDao")
+	private CareerDao careerDao;
+	
+	@Resource(name="personnelDao")
+	private PersonnelDao personnelDao;
+	
+	@Resource(name="contractManagerDao")
+	private ContractManagerDao contractManagerDao;
+	
+	@Resource(name="employAgreementDao")
+	private EmployAgreementDao employAgreementDao;
+	
+	@Resource(name="qxUsersDao")
+	private QxUsersDao qxUsersDao;
+	
+	
+	
+	@Resource(name="personnelService")
+    private PersonnelService personnelService;
+	
+	@Override
+	public HashMap getListData(Pager pager, String searchData) {
+		String depIds = personnelService.getAllDepIdStrs();
+	    return changeDao.getListData(pager, searchData,depIds);
+	}
+	@Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+	public String saveOrUpdate(String formdata) throws Exception{
+		
+        Change change=JsonUtil.toObject(formdata, Change.class);
+        if(change==null){
+        	return "信息不能为空";
+        }
+    	BasicInformation info=this.get(BasicInformation.class, Restrictions.eq("id", change.getPersonId()));
+    	change.setFilm(info.getFilmName());
+    	change.setDep(info.getDepartName());
+    	change.setSpanPost(info.getPost());
+    	change.setSpPost(info.getSpecificPost());
+    	change.setJobLevel(info.getJobLevel());
+    	change.setEmpType(info.getEmpType());
+    	change.setOnJob(info.getOnJob());
+    	change.setOnPost(info.getOnPost());
+    	change.setEmpType2(info.getEmpType());
+    	change.setOnJob2(info.getOnJob());
+    	change.setOnPost2(info.getOnPost());
+    	Career career=new Career();
+    	List<Career> listcareer=null;
+    	Career career1=null;
+    	QxUser qxUser=null;
+        if(change.getChangeType()==7){//调动部门
+        	//职业履历
+        	career.setPersonId(change.getPersonId());
+    		career.setJobNumber(info.getJobNumber());
+    		career.setCompany(change.getFilmName2());
+    		career.setDepartment(change.getDepName2());
+    		career.setPost(change.getSpPostName2());
+    		career.setJobLevel(Integer.valueOf(change.getJobLevel2()));
+    		career.setBegindate(change.getChangedate());
+    		if(info.getEmpType()==0){
+    			career.setRemark("正式工");
+    		}else if(info.getEmpType()==1){
+    			career.setRemark("劳务外包");
+    		}else if(info.getEmpType()==2){
+    			career.setRemark("业务外包");
+    		}
+    		//职业履历中，证明人为部门领导
+    		String sql=" SELECT JI.NAME,JI.JOB_LEVEL,JI.PHONE FROM JC_BASIC_INFORMATION JI  ";
+    		sql+=" LEFT JOIN POST_POSITION PP ON PP.ID = JI.POST_ID ";
+    		sql+=" WHERE JI.DEPART_ID='"+info.getDepartId()+"' AND rownum =1 ";
+    		sql+=" ORDER BY PP.POSITION_CODE ";
+    		List<?> leader1=this.findBySql(sql);
+    		if(leader1.size()>0){
+    			Object[] leader=(Object[]) leader1.get(0);
+    			career.setProve(leader[0]==null?"":leader[0].toString());
+				career.setProTel(leader[2]==null?"":leader[2].toString());
+				career.setProDuty(leader[1]==null?"":leader[1].toString());
+    		}
+    		//职业履历中，上衣职位的结束时间就是此次职位的开始时间
+    		listcareer=this.getOrderList(Career.class,Order.desc("begindate"),Restrictions.eq("personId", info.getId()));
+    		if(listcareer.size()>0){
+    			career1=listcareer.get(0);
+        		career1.setEnddate(change.getChangedate());
+    		}
+    		//用户表修改部门权限
+    		qxUser=this.get(QxUser.class, Restrictions.eq("username", info.getJobNumber()));
+    		if(qxUser==null){
+    			qxUser=this.get(QxUser.class, Restrictions.eq("username", info.getPracticeNum()));
+    		}
+    		
+    		qxUser.setDepId(change.getDep2());
+    		qxUser.setCid(change.getFilm2());
+    		
+    		
+        	//基本资料
+        	info.setFilmId(change.getFilm2());
+        	info.setFilmName(change.getFilmName2());
+        	info.setDepartId(change.getDep2());
+        	info.setDepartName(change.getDepName2());
+        	info.setBeginTime(change.getChangedate());
+        	info.setPostId(change.getSpanPost2());
+        	info.setPost(change.getSpanPostName2());
+        	info.setSpecificPostId(change.getSpPost2());
+        	info.setSpecificPost(change.getSpPostName2());
+        	info.setCheckUnitId(change.getDep2());
+        	info.setJobLevel(change.getJobLevel2());
+        
+        }else if(change.getChangeType()==8){//岗位调动
+        	change.setFilmName2(info.getFilmName());
+        	change.setDepName2(info.getDepartName());
+        	
+        	//职业履历
+        	career.setPersonId(change.getPersonId());
+    		career.setJobNumber(info.getJobNumber());
+    		career.setCompany(info.getFilmName());
+    		career.setDepartment(info.getDepartName());
+    		career.setPost(change.getSpPostName2());
+    		career.setJobLevel(Integer.valueOf(change.getJobLevel2()));
+    		career.setBegindate(change.getChangedate());
+    		if(info.getEmpType()==0){
+    			career.setRemark("正式工");
+    		}else if(info.getEmpType()==1){
+    			career.setRemark("劳务外包");
+    		}else if(info.getEmpType()==2){
+    			career.setRemark("业务外包");
+    		}
+    		String sql=" SELECT JI.NAME,JI.JOB_LEVEL,JI.PHONE FROM JC_BASIC_INFORMATION JI  ";
+    		sql+=" LEFT JOIN POST_POSITION PP ON PP.ID = JI.POST_ID ";
+    		sql+=" WHERE JI.DEPART_ID='"+info.getDepartId()+"' AND rownum =1 ";
+    		sql+=" ORDER BY PP.POSITION_CODE ";
+    		List<?> leader1=this.findBySql(sql);
+    		if(leader1.size()>0){
+    			Object[] leader=(Object[]) leader1.get(0);
+    			career.setProve(leader[0]==null?"":leader[0].toString());
+				career.setProTel(leader[2]==null?"":leader[2].toString());
+				career.setProDuty(leader[1]==null?"":leader[1].toString());
+    		}
+    		
+    		//职业履历中，上衣职位的结束时间就是此次职位的开始时间
+    		listcareer=this.getOrderList(Career.class,Order.desc("begindate"),Restrictions.eq("personId", info.getId()));
+    		if(listcareer.size()>0){
+    			career1=listcareer.get(0);
+        		career1.setEnddate(change.getChangedate());
+    		}
+        	//基本信息
+        	info.setBeginTime(change.getChangedate());
+        	info.setPostId(change.getSpanPost2());
+        	info.setPost(change.getSpanPostName2());
+        	info.setSpecificPostId(change.getSpPost2());
+        	info.setSpecificPost(change.getSpPostName2());
+        	info.setJobLevel(change.getJobLevel2());
+        	
+        }
+        PtJob ptJob=this.get(PtJob.class, Restrictions.eq("personId", info.getId()),
+    			Restrictions.eq("isHostPost", 1));
+		if(ptJob!=null&&!"".equals(ptJob)){
+    		ptJob.setDepId(info.getDepartId());//部门ID
+    		ptJob.setFirmId(info.getFilmId());//单位ID
+    		ptJob.setBeginTime(change.getChangedate());
+    		ptJob.setStandardPostId(info.getPostId());
+    		ptJob.setSpePostId(info.getSpecificPostId());
+    		
+    		ptJob.setDep(info.getDepartName());//部门
+    		ptJob.setFirm(info.getFilmName());//单位
+    		ptJob.setStandardPost(info.getPost());
+    		ptJob.setSpePost(info.getSpecificPost());
+		}
+		careerDao.update(career1);
+		String careerid=careerDao.save(career);
+		String changeid=changeDao.save(change);//保存
+		String jobid=ptJobDao.save(ptJob);//保存
+		personnelDao.update(info);
+		
+		qxUsersDao.update(qxUser);
+		
+		
+		if (StringUtils.isBlank(jobid))throw new Exception("保存兼职信息发生异常！");
+		if (StringUtils.isBlank(changeid))throw new Exception("保存异动信息发生异常！");
+		if (StringUtils.isBlank(careerid))throw new Exception("保存职位信息发生异常！");
+
+		return "success";
+	}
+	@Override
+	@Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+	public String saveOrUpdateLigang(String formdata,String username,String isEnd) throws Exception {
+
+		EmployAgreement employagre=JsonUtil.toObject(formdata,EmployAgreement.class);
+		Change change=JsonUtil.toObject(formdata, Change.class);
+    	employagre.setUserid(change.getPersonId());
+        employagre.setUsername(username);
+        
+        if(employagre==null){
+            return "数据错误，请查证后重新操作";
+        }else{
+        	BasicInformation info=this.get(BasicInformation.class, Restrictions.eq("id", change.getPersonId()));
+        	change.setDep(info.getDepartName());
+        	change.setFilm(info.getFilmName());
+        	change.setEmpType(info.getEmpType());
+        	change.setOnJob(info.getOnJob());
+        	change.setSpanPost(info.getPost());
+        	change.setSpPost(info.getSpecificPost());
+        	change.setJobLevel(info.getJobLevel());
+        	change.setOnPost(info.getOnPost());
+        	
+        	//change.setJobLevel2(info.getJobLevel());
+        	change.setEmpType2(info.getEmpType());
+        	change.setOnJob2(info.getOnJob());
+        	change.setOnPost2(change.getChangeType());
+        	
+        	Career career=new Career();
+        	career.setPersonId(info.getId());
+    		career.setJobNumber(info.getJobNumber());
+    		career.setCompany("无");
+    		career.setDepartment("无");
+    		career.setPost("无");
+    		if(change.getChangeType()==11){
+    			career.setRemark("长伤假");
+    		}else if(change.getChangeType()==12){
+    			career.setRemark("脱产学习");
+    		}else if(change.getChangeType()==3){
+    			career.setRemark("长病假");
+    		}else if(change.getChangeType()==4){
+    			career.setRemark("内退");
+    		}
+    		career.setBegindate(change.getChangedate());
+    		//职业履历中，上衣职位的结束时间就是此次职位的开始时间
+    		List<Career> listcareer=this.getOrderList(Career.class,Order.desc("begindate"),Restrictions.eq("personId", info.getId()));
+    		Career career1=listcareer.get(0);
+    		career1.setEnddate(change.getChangedate());
+    		
+    		
+    		info.setPost(null);
+        	info.setPostId(null);
+        	info.setSpecificPost(null);
+        	info.setSpecificPostId(null);
+        	info.setPostNature(null);
+        	info.setPostType(null);
+        	info.setJobLevel(null);
+        	info.setOnPost(change.getChangeType());//改变在岗状态
+        	
+        	ContractManager cma=this.get(ContractManager.class, Restrictions.eq("userid", change.getPersonId()));
+        	if(isEnd.equals("1")){
+        		cma.setContractstate("1");
+        		contractManagerDao.update(cma);
+        	}
+            careerDao.update(career1);
+    		String careerid=careerDao.save(career);
+    		String changeid=changeDao.save(change);//保存
+    		String jobid=employAgreementDao.save(employagre);//保存
+    		personnelDao.update(info);
+    		
+    		if (StringUtils.isBlank(jobid))throw new Exception("保存协议信息发生异常！");
+    		if (StringUtils.isBlank(changeid))throw new Exception("保存异动信息发生异常！");
+    		if (StringUtils.isBlank(careerid))throw new Exception("保存职位信息发生异常！");
+    		return  "success";
+        }
+        
+    
+	}
+	@Override
+	@Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+	public String saveOrUpdateOnpost(String formdata) throws Exception {
+
+        
+		Change change=JsonUtil.toObject(formdata, Change.class);
+    	BasicInformation info=this.get(BasicInformation.class, Restrictions.eq("jobNumber", change.getJobNumber()));
+    	change.setEmpType(info.getEmpType());
+    	change.setOnJob(info.getOnJob());
+    	change.setOnPost(info.getOnPost());
+    	
+    	Career career=new Career();
+    	//职业履历
+    	career.setPersonId(info.getId());
+		career.setJobNumber(info.getJobNumber());
+		career.setCompany(change.getFilmName2());
+		career.setDepartment(change.getDepName2());
+		career.setPost(change.getSpPostName2());
+		career.setJobLevel(Integer.valueOf(change.getJobLevel2()));
+		career.setBegindate(change.getChangedate());
+		if(info.getEmpType()==0){
+			career.setRemark("正式工");
+		}else if(info.getEmpType()==1){
+			career.setRemark("劳务外包");
+		}else if(info.getEmpType()==2){
+			career.setRemark("业务外包");
+		}
+		//职业履历中，证明人为部门领导
+		String sql=" SELECT JI.NAME,JI.JOB_LEVEL,JI.PHONE FROM JC_BASIC_INFORMATION JI  ";
+		sql+=" LEFT JOIN POST_POSITION PP ON PP.ID = JI.POST_ID ";
+		sql+=" WHERE JI.DEPART_ID='"+info.getDepartId()+"' AND rownum =1 ";
+		sql+=" ORDER BY PP.POSITION_CODE ";
+		List<?> leader1=this.findBySql(sql);
+		if(leader1.size()>0){
+			Object[] leader=(Object[]) leader1.get(0);
+			career.setProve(leader[0]==null?"":leader[0].toString());
+			career.setProTel(leader[2]==null?"":leader[2].toString());
+			career.setProDuty(leader[1]==null?"":leader[1].toString());
+		}
+		//职业履历中，上衣职位的结束时间就是此次职位的开始时间
+		List<Career> listcareer=this.getOrderList(Career.class,Order.desc("begindate"),Restrictions.eq("personId", info.getId()));
+		Career career1=listcareer.get(0);
+		career1.setEnddate(change.getChangedate());
+    	
+    	info.setFilmId(change.getFilm2());
+    	info.setFilmName(change.getFilmName2());
+    	info.setDepartId(change.getDep2());
+    	info.setDepartName(change.getDepName2());
+    	info.setBeginTime(change.getChangedate());
+    	info.setPostId(change.getSpanPost2());
+    	info.setPost(change.getSpanPostName2());
+    	
+    	info.setSpecificPostId(change.getSpPost2());
+    	info.setSpecificPost(change.getSpPostName2());
+    	info.setCheckUnitId(change.getDep2());
+    	info.setOnPost(0);
+    	
+    	PtJob ptJob = this.get(PtJob.class, Restrictions.eq("personId", info.getId()),
+					Restrictions.eq("isHostPost", 1));
+		
+		if(ptJob!=null&&!"".equals(ptJob)){
+    		ptJob.setDepId(info.getDepartId());//部门ID
+    		ptJob.setFirmId(info.getFilmId());//单位ID
+    		ptJob.setBeginTime(info.getBeginTime());
+    		ptJob.setStandardPost(info.getPostId());
+    		ptJob.setSpePost(info.getSpecificPostId());
+    		
+		}
+		change.setChangeType(14);
+		change.setEmpType2(info.getEmpType());
+    	change.setOnJob2(info.getOnJob());
+    	change.setOnPost2(0);
+		
+    	careerDao.update(career1);
+		String careerid=careerDao.save(career);
+		String changeid=changeDao.save(change);//保存
+		String jobid=ptJobDao.save(ptJob);//保存
+		personnelDao.update(info);
+		
+		if (StringUtils.isBlank(jobid))throw new Exception("保存兼职信息发生异常！");
+		if (StringUtils.isBlank(changeid))throw new Exception("保存异动信息发生异常！");
+		if (StringUtils.isBlank(careerid))throw new Exception("保存职位信息发生异常！");
+		
+        return "success";
+    
+	}
+}

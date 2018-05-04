@@ -1,0 +1,475 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.io.File;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryMonthDao;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.MonthItem;
+import com.lingnet.hcm.entity.salary.MonthSalary;
+import com.lingnet.hcm.entity.salary.MonthStaff;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.hcm.service.salary.MonthItemService;
+import com.lingnet.hcm.service.salary.MonthSalaryService;
+import com.lingnet.hcm.service.salary.MonthStaffService;
+import com.lingnet.hcm.service.salary.SalaryMonthService;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 平均工资计算过程
+ * @ClassName: SalaryMonthServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年4月24日 下午2:47:42 
+ *
+ */
+@Service("salaryMonthService")
+public class SalaryMonthServiceImpl extends BaseServiceImpl<SalaryMonth, String>
+              implements SalaryMonthService {
+
+    @Resource(name="monthItemService")
+    private MonthItemService monthItemService;
+    @Resource(name="monthStaffService")
+    private MonthStaffService monthStaffService;
+    @Resource(name="monthSalaryService")
+    private MonthSalaryService monthSalaryService;
+    @Resource(name="salaryMonthDao")
+    private SalaryMonthDao salaryMonthDao;
+
+    @Override
+    public Map<String, Object> getPerMonthSalary(String companyId, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+        if (!StringUtils.isBlank(companyId)) {
+            and.add(Restrictions.in("companyId", companyId.split(",")));
+        }
+        pager = findPager(SalaryMonth.class, pager, and, Restrictions.eq("isDelete", 0));
+        List<?> list = pager.getResult();
+        Map<String, Object> map =new HashMap<String, Object>();
+        map.put("data", list);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    @Transactional(rollbackFor=java.lang.Throwable.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata, String griddata) throws Exception {
+        SalaryMonth month = JsonUtil.toObject(formdata, SalaryMonth.class);
+
+        // 是否是新增
+        Boolean isAdd = false;
+        if (month != null) {
+            String id = "";
+            if (StringUtils.isBlank(month.getId())) {
+                // 查找是否存在相同的年份
+                List<SalaryMonth> months = getList(SalaryMonth.class,
+                        Restrictions.eq("isDelete", 0),
+                        Restrictions.eq("companyId", month.getCompanyId()),
+                        Restrictions.eq("year", month.getYear()));
+                if (months.size() > 0) {
+                    return "该组织结构年度"+month.getYear()+"的月平均工资过程只能有一个";
+                }
+                month.setIsDelete(0);
+                id = save(month);
+                if (StringUtils.isBlank(id)) {
+                    throw new Exception("发生异常，保存失败");
+                }
+                isAdd = true;
+            } else {
+                // 查找是否存在相同的年份
+                List<SalaryMonth> months = getList(SalaryMonth.class,
+                        Restrictions.ne("id", month.getId()),
+                        Restrictions.eq("isDelete", 0),
+                        Restrictions.eq("companyId", month.getCompanyId()),
+                        Restrictions.eq("year", month.getYear()));
+                if (months.size() > 0) {
+                    return "该组织结构年度"+month.getYear()+"的月平均工资过程只能有一个";
+                }
+                SalaryMonth salaryMonth = get(SalaryMonth.class,
+                        Restrictions.eq("id", month.getId()),
+                        Restrictions.eq("isDelete", 0));
+                if (salaryMonth == null) {
+                    return "当前计算过程"+month.getName()+"不存在，已经被删除";
+                }
+                salaryMonth.copyFrom(month);
+                update(salaryMonth);
+                id = month.getId();
+            }
+
+            List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+            for (int i = 0, l = list.size(); i < l; i++) {
+                Map<String, String> m = list.get(i);
+                if ("removed".equals(m.get("_state"))) {
+                    MonthItem perioddata = get(MonthItem.class,
+                            Restrictions.eq("salaryMonthId", id),
+                            Restrictions.eq("id", m.get("id")),
+                            Restrictions.eq("isDelete", 0));
+                    if (perioddata != null) {
+                        monthItemService.delete(perioddata);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    MonthItem perioddata = get(MonthItem.class,
+                            Restrictions.eq("salaryMonthId", id),
+                            Restrictions.eq("id", m.get("id")),
+                            Restrictions.eq("isDelete", 0));
+                    if (perioddata != null) {
+                        perioddata.setItemsId(m.get("itemsId"));
+                        perioddata.setSalaryMonthId(id);
+                        perioddata.setIsAdd(Integer.valueOf(m.get("isAdd")));
+                        monthItemService.update(perioddata);
+                    } else throw new Exception("发生异常");
+                } else if ("added".equals(m.get("_state"))) {
+                    MonthItem bean = new MonthItem();
+                    bean.setItemsId(m.get("itemsId"));
+                    bean.setSalaryMonthId(id);
+                    bean.setIsAdd(Integer.valueOf(m.get("isAdd")));
+                    bean.setIsDelete(0);
+                    if (StringUtils.isBlank(monthItemService.save(bean))) {
+                        throw new Exception("保存失败");
+                    }
+                }
+            }
+
+            // 将全部正式员工纳入计算范畴之内
+            if (isAdd) {
+                List<MonthStaff> monthStaffs = new ArrayList<MonthStaff>();
+                List<Map<String, Object>> can = salaryMonthDao.getCanJsStaffs(id, month.getYear(), month.getCompanyId());
+                DecimalFormat df = new DecimalFormat();
+                df.applyPattern("0.00");
+                for (Map<String, Object> map : can) {
+                    String[] charges = map.get("charge").toString().split(",");
+                    Double charge = 0d;
+                    for (int i = 0; i < charges.length; i++) {
+                        charge += Double.valueOf(charges[i]);
+                    }
+                    int count = Integer.valueOf(map.get("count").toString());
+                    MonthStaff monthStaff = new MonthStaff();
+                    monthStaff.setSalaryMonthId(id);
+                    monthStaff.setStaffId(map.get("staffId").toString());
+                    monthStaff.setAverageSalary(count== 0? "0" : df.format(charge));
+                    monthStaff.setIsDelete(0);
+                    monthStaffs.add(monthStaff);
+                }
+
+                if (monthStaffs.size() > 0) monthStaffService.saveBatch(monthStaffs);
+            }
+        } else {
+            return "内容不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0,l=idArray.length; i < l; i++) {
+            SalaryMonth insurance = get(SalaryMonth.class,
+                    Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (insurance != null) {
+                insurance.setIsDelete(1);
+                update(insurance);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getMonthItemForId(String id) {
+        return salaryMonthDao.getMonthItemForId(id);
+    }
+
+    @Override
+    public String updateReloadCalculation(String id) {
+        // 获取计算过程中存在的员工
+        SalaryMonth month = get(SalaryMonth.class,
+                Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        if (month != null) {
+            List<MonthStaff> monthStaffs = new ArrayList<MonthStaff>();
+            DecimalFormat df = new DecimalFormat();
+            df.applyPattern("0.00");
+            String sql = salaryMonthDao.updateReloadCalculation(id, month.getYear(), month.getCompanyId());
+            List<?> can = findBySql(sql);
+            for (int i=0, l = can.size(); i < l; i++) {
+                Object[] obj = (Object[]) can.get(i);
+                String[] charges = obj[3].toString().split(",");
+                Double charge = 0d;
+                for (int j = 0; j < charges.length; j++) {
+                    charge += Double.valueOf(charges[j]);
+                }
+                int count = Integer.valueOf(obj[4].toString());
+                MonthStaff monthStaff = get(MonthStaff.class, Restrictions.eq("id", obj[1]),Restrictions.eq("isDelete", 0));
+                if (monthStaff != null) {
+                    monthStaff.setAverageSalary(count== 0? "0" : df.format(charge));
+                    monthStaffs.add(monthStaff);
+                } else {
+                    return "发生异常，请刷新后再试";
+                }
+            }
+
+            if (monthStaffs.size() > 0) monthStaffService.saveBatch(monthStaffs);
+        } else {
+            return "月平均工资计算过程不存在，已经被删除";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getPersonalToAllocationListData(String id) {
+        return salaryMonthDao.getPersonalToAllocationListData(id);
+    }
+
+    @Override
+    public Map<String, Object> getMonthSalaryListData(String id, Pager pager) {
+        return salaryMonthDao.getMonthSalaryListData(id, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=java.lang.Throwable.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToPerson(String id, String griddata) throws Exception {
+        SalaryMonth salaryMonth = get(SalaryMonth.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (salaryMonth == null) {
+            return "该计算过程不存在，已经被删除";
+        }
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, String> m = list.get(i);
+            if ("removed".equals(m.get("_state"))) {
+                MonthStaff perioddata = get(MonthStaff.class,
+                        Restrictions.eq("salaryMonthId", id),
+                        Restrictions.eq("id", m.get("monthStaffId")),
+                        Restrictions.eq("isDelete", 0));
+                if (perioddata != null) {
+                    perioddata.setIsDelete(1);
+                    monthStaffService.update(perioddata);
+                }
+            } else if ("modified".equals(m.get("_state"))) {
+                MonthStaff perioddata = get(MonthStaff.class,
+                        Restrictions.eq("salaryMonthId", id),
+                        Restrictions.eq("id", m.get("monthStaffId")),
+                        Restrictions.eq("isDelete", 0));
+                if (perioddata != null) {
+                    // 查找是否存在相同员工
+                    List<MonthStaff> bean = getList(MonthStaff.class,
+                            Restrictions.eq("salaryMonthId", id),
+                            Restrictions.ne("id", m.get("monthStaffId")),
+                            Restrictions.eq("staffId", perioddata.getStaffId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (bean.size() > 0) {
+                        throw new Exception("存在相同的员工" + m.get("name"));
+                    }
+
+                    perioddata.setAverageSalary(m.get("averageSalary"));
+                    monthStaffService.update(perioddata);
+                } else throw new Exception("发生异常");
+            } else if ("added".equals(m.get("_state"))) {
+                MonthStaff bean = new MonthStaff();
+                bean.setSalaryMonthId(id);
+                bean.setStaffId(m.get("staffId"));
+                bean.setAverageSalary(m.get("averageSalary"));
+                bean.setIsDelete(0);
+
+                // 查找是否存在相同员工
+                List<MonthStaff> listMonthStaffs = getList(MonthStaff.class,
+                        Restrictions.eq("salaryMonthId", id),
+                        Restrictions.eq("staffId", m.get("staffId")),
+                        Restrictions.eq("isDelete", 0));
+                if (listMonthStaffs.size() > 0) {
+                    throw new Exception("存在相同的员工" + m.get("name"));
+                }
+                if (StringUtils.isBlank(monthStaffService.save(bean))) {
+                    throw new Exception("保存失败");
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getMonthAvgSalary(String depId, Pager pager) {
+        return salaryMonthDao.getMonthAvgSalary(depId, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=java.lang.Throwable.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateMonthAvgSalary(int year, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0; i < list.size(); i++) {
+            Map<String, String> map = list.get(i);
+            if ("modified".equals(map.get("_state"))) {
+                MonthSalary monthSalary = get(MonthSalary.class,
+                        Restrictions.eq("id", map.get("id")),
+                        Restrictions.eq("effectiveYear", year),
+                        Restrictions.eq("isDelete", 0));
+                if (monthSalary != null) {
+                    monthSalary.setAverageSalary(map.get("averageSalary"));
+                    monthSalaryService.update(monthSalary);
+                } else throw new Exception("发生异常");
+            } else if ("added".equals(map.get("_state"))) {
+                MonthSalary monthSalary = new MonthSalary();
+                monthSalary.setEffectiveYear(year);
+                monthSalary.setAverageSalary(map.get("averageSalary"));
+                monthSalary.setStaffId(map.get("staffId"));
+                monthSalary.setIsDelete(0);
+                String result = monthSalaryService.save(monthSalary);
+                if (StringUtils.isBlank(result)) {
+                    throw new Exception("保存失败");
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String replaceCurAvgSalary(String id) {
+        SalaryMonth month = get(SalaryMonth.class,
+                Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        List<MonthSalary> monthSalaries = new ArrayList<MonthSalary>();
+        if (month != null) {
+            // 查找员工并替换平均工资
+            List<MonthStaff> monthStaffs = getList(MonthStaff.class, Restrictions.eq("salaryMonthId", month.getId()),Restrictions.eq("isDelete", 0));
+            for (int i = 0, l = monthStaffs.size(); i < l; i++) {
+                MonthSalary monthSalary = get(MonthSalary.class, Restrictions.eq("staffId", monthStaffs.get(i).getStaffId()),
+                        Restrictions.eq("effectiveYear", month.getYear()),
+                        Restrictions.eq("isDelete", 0));
+                if (monthSalary == null) {
+                    monthSalary = new MonthSalary();
+                    monthSalary.setStaffId(monthStaffs.get(i).getStaffId());
+                    monthSalary.setEffectiveYear(month.getYear());
+                    monthSalary.setIsDelete(0);
+                }
+                monthSalary.setAverageSalary(monthStaffs.get(i).getAverageSalary());
+                monthSalaries.add(monthSalary);
+            }
+            if (monthSalaries.size() > 0) monthSalaryService.saveBatch(monthSalaries);
+        } else {
+            return "月平均工资计算过程不存在，已经被删除";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String beachCheck(String endSuffix, File uploadFile) throws Exception {
+        // 读取数据
+        List<String[]> list = ExcelUtil.readData(1, 2, endSuffix, uploadFile);
+
+        // 导入名单只有表头没有人员信息
+        if (list.size() == 1) {
+            return "文件导入失败：导入名单中不存在人员信息";
+        }
+
+        // 第一行内容
+        String[] firstRow = {"工号","平均工资","年份"};
+        // 单独把第一行抽取出来
+        String[] firstValues = list.get(0);
+
+        // 模板类型
+        for (int i = 0, z = firstRow.length; i < z; i++) {
+            if (!firstRow[i].trim().equals(firstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + firstValues[i].trim() + "</font>列必须是 " + firstRow[i].trim();
+            }
+        }
+
+        List<MonthSalary> monthSalaries = new ArrayList<MonthSalary>();
+        // 循环遍历存储的Excel值
+        for (int i = 1, z = list.size(); i < z; i++) {
+            // 组装列
+            String[] columns = new String[firstValues.length];
+            String[] values = list.get(i);
+            // 判断是否整行是空行
+            Boolean isEmpty= true;
+            for(int q=0;q<values.length;q++){
+                if (q < firstValues.length) {
+                    columns[q]=values[q].trim();
+                    if (!StringUtils.isBlank(columns[q])) {
+                        isEmpty = false;
+                    }
+                } else continue;
+            }
+
+            // 存在空白行
+            if (isEmpty) {
+                // 文档结束
+                break;
+            }
+            for(int k=values.length;k<firstValues.length;k++){// 补充剩余的列值
+                columns[k]="";
+            }
+
+            // 工号
+            if (StringUtils.isBlank(columns[0])) {
+                throw new Exception("第"+ (i+1) +"行【工号】不能为空");
+            }
+
+            // 平均工资
+            if (StringUtils.isBlank(columns[1])) {
+                throw new Exception("第"+ (i+1) +"行【平均工资】不能为空");
+            } else {
+                try {
+                    Double.valueOf(columns[1]);
+                } catch (Exception e) {
+                    throw new Exception("第"+ (i+1) +"行【平均工资】必须是数字");
+                }
+            }
+
+            // 年份
+            if (StringUtils.isBlank(columns[2])) {
+                throw new Exception("第"+ (i+1) +"行【年份】不能为空");
+            } else {
+                Pattern pattern = Pattern.compile("^[-\\+]?[\\d]*$");
+                if (!pattern.matcher(columns[2].trim()).matches())
+                    throw new Exception("第"+ (i+1) +"行【年份】必须是整数");
+            }
+
+            BasicInformation information = get(BasicInformation.class,
+                    Restrictions.eq("jobNumber", columns[0]),
+                    Restrictions.eq("isDelete", 0));
+            if (information == null) {
+                throw new Exception("该工号"+columns[0]+"对应的员工不存在，已经被删除");
+            }
+            MonthSalary monthSalary = get(MonthSalary.class,
+                    Restrictions.eq("staffId", information.getId()),
+                    Restrictions.eq("effectiveYear", Integer.valueOf(columns[2])),
+                    Restrictions.eq("isDelete", 0));
+            if (monthSalary != null) {
+                monthSalary.setAverageSalary(columns[1]);
+                monthSalaries.add(monthSalary);
+            } else {
+                monthSalary = new MonthSalary();
+                monthSalary.setEffectiveYear(Integer.valueOf(columns[2]));
+                monthSalary.setAverageSalary(columns[1]);
+                monthSalary.setStaffId(information.getId());
+                monthSalary.setIsDelete(0);
+                monthSalaries.add(monthSalary);
+            }
+        }
+        if (monthSalaries.size() > 0) monthSalaryService.saveBatch(monthSalaries);
+
+        return "success";
+    }
+
+}

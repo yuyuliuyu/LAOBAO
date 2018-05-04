@@ -1,0 +1,20 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.hcm.service.salary.SalaryTotalAmountService;
+
+/**
+ * 总量表
+ * @ClassName: SalaryTotalAmountServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:14:40 
+ *
+ */
+@Service("salaryTotalAmountService")
+public class SalaryTotalAmountServiceImpl extends BaseServiceImpl<SalaryTotalAmount, String>
+              implements SalaryTotalAmountService {
+}

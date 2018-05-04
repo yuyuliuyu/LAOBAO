@@ -1,0 +1,44 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryTotalAmountDao;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.hcm.service.salary.SalaryTotalAmountService;
+import com.lingnet.util.Pager;
+
+/**
+ * 总量表
+ * @ClassName: SalaryTotalAmountServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:14:40 
+ *
+ */
+@Service("salaryTotalAmountService")
+public class SalaryTotalAmountServiceImpl extends BaseServiceImpl<SalaryTotalAmount, String>
+              implements SalaryTotalAmountService {
+
+    @Resource(name="salaryTotalAmountDao")
+    private SalaryTotalAmountDao salaryTotalAmountDao;
+
+    @Override
+    public Map<String, Object> getAmountListData(String searchData, Pager pager) {
+        return salaryTotalAmountDao.getAmountListData(searchData, pager);
+    }
+
+    @Override
+    public String saveOrUpdate(String griddata) {
+        return null;
+    }
+
+    @Override
+    public Map<String, Object> getAmountForPeriodListData(String period, Pager pager) {
+        return salaryTotalAmountDao.getAmountForPeriodListData(period, pager);
+    }
+}

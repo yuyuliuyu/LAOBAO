@@ -1,0 +1,519 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.SQLQuery;
+import org.hibernate.criterion.CriteriaSpecification;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryAssignationDao;
+import com.lingnet.hcm.entity.salary.Period;
+import com.lingnet.hcm.entity.salary.Perioddata;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.hcm.service.salary.SalaryAssignationService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationDaoImpl 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月10日 上午9:58:58 
+ *
+ */
+@Repository("salaryAssignationDao")
+public class SalaryAssignationDaoImpl extends BaseDaoImplInit<SalaryAssignation, String> implements SalaryAssignationDao {
+
+    @Resource(name="salaryAssignationService")
+    private SalaryAssignationService salaryAssignationService;
+
+    @Override
+    public Map<String, Object> getSalaryAssignationListData(String companyId, String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                        ");
+        sql.append("   SA.ID, SA.NAME,SG.NAME GROUPNAME,SGW.NAME WAGENAME,PERIODDATA.NAME PAYPERIOD,  ");
+        sql.append("   SA.IS_SP, SA.IS_FAFANG  ");
+        sql.append("   FROM XC_SALARY_ASSIGNATION SA                                                 ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP SG                                                  ");
+        sql.append("   ON SA.SALARY_GROUP_ID = SG.ID                                                 ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                                            ");
+        sql.append("   ON SA.SALARY_WAGE_ID = SGW.ID                                                 ");
+        sql.append("   AND SGW.IS_DELETE = 0                                                         ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PERIODDATA                                            ");
+        sql.append("   ON SA.SALARY_PERIOD = PERIODDATA.ID                                           ");
+        sql.append("   WHERE SA.IS_DELETE = 0                                           ");
+
+        // 公司ID
+        sql.append("   AND SA.COMPANY_ID = '"+companyId+"'                                      ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 工资套名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND SGW.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+            // 已提交状态
+            if (!StringUtils.isBlank(mapData.get("isSp"))) {
+                sql.append("   AND SA.IS_SP = "+mapData.get("isSp").trim()+"                                        ");
+            }
+        }
+        sql.append("   ORDER BY SA.CREATEDATE DESC                                                   ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("groupName", obj[2]);
+            map.put("wageName", obj[3]);
+            map.put("payPeriod", obj[4]);
+            map.put("isSp", obj[5]);
+            map.put("isFafang", obj[6]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT JBI.ID,                                                 ");
+        sql.append("  MIN(JBI.JOB_NUMBER) JOBNUMBER,                                 ");
+        sql.append("  MIN(JBI.NAME) NAME,                                            ");
+        sql.append("  WM_CONCAT(SI.ID) ITEMSID,                                      ");
+        sql.append("  WM_CONCAT(SI.NAME) ITEMSNAME,                                  ");
+        sql.append("  WM_CONCAT(NVL(SF.ID, ' ')) FORMULAID,                          ");
+        sql.append("  WM_CONCAT(NVL(SF.CNT_MATH, 0)) FORMULA,                        ");
+        sql.append("  WM_CONCAT(NVL(SI.NUMBER_ACCURACY, 0)) XS,                      ");
+        sql.append("  WM_CONCAT(NVL(GWAY.SX, 0)) SX                        ");
+        sql.append("  FROM XC_SALARY_GROUP_WAGE SGW                                  ");
+        sql.append("  LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                          ");
+        sql.append("  ON SGW.ID = GWAY.WAGE_ID                                       ");
+        sql.append("  AND GWAY.IS_DELETE = 0                                         ");
+        sql.append("  LEFT JOIN XC_SALARY_PERSONAL SP                                ");
+        sql.append("  ON SGW.SALARY_GROUP_ID = SP.SALARY_GROUP_ID                    ");
+        sql.append("  AND SP.IS_DELETE = 0                                           ");
+        sql.append("  LEFT JOIN JC_BASIC_INFORMATION JBI                             ");
+        sql.append("  ON SP.SALARY_RECORD_ID = JBI.ID                                ");
+        sql.append("  LEFT JOIN XC_SALARY_ITEMS SI                                   ");
+        sql.append("  ON GWAY.ITEM_ID = SI.ID                                        ");
+        sql.append("  LEFT JOIN XC_SALARY_FORMULA SF                                 ");
+        sql.append("  ON GWAY.ID = SF.BIND_ID                                        ");
+        sql.append("  AND SF.IS_DELETE = 0                                        ");
+        sql.append("  AND SF.IS_DEFAULT = 1                                        ");
+        sql.append("  WHERE SGW.SALARY_GROUP_ID = '"+groupId+"' ");
+        sql.append("  AND SGW.ID = '"+wageId+"'                ");
+        sql.append("  AND JBI.ON_JOB IN (0,1,2)                                      ");// 实习期、试岗期、正式工
+        sql.append("  GROUP BY JBI.ID, JBI.CREATEDATE                                ");
+        sql.append("  ORDER BY JBI.CREATEDATE DESC                                   ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("itemsId", obj[3]);
+            map.put("itemsName", obj[4]);
+            map.put("formulaId", obj[5]);
+            map.put("formula", obj[6]);
+            map.put("xs", obj[7]);
+            map.put("sx", obj[8]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getAssignationForStaffData(String id, String ids, String searchData) {
+        String sql = getAssignationForStaffDataSql(id, ids, searchData);
+        List<?> list = findBySql(sql);
+
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("itemsId", obj[4]);
+            map.put("itemsName", obj[5]);
+            map.put("charge", obj[6]);
+            map.put("assId", obj[7]);
+            map.put("isNumber", obj[8]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("summary", getTotalData(id));// 汇总计算
+
+        return map;
+    }
+
+    @Override
+    public String getAssignationForStaffDataSql(String id, String ids, String searchData) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT TT.ID,                                    ");
+        sql.append("     MIN(TT.STAFF_ID) STAFFID,                      ");
+        sql.append("     MIN(TT.JOB_NUMBER) JOBNUMBER,                  ");
+        sql.append("     MIN(TT.STAFF_NAME) NAME,                       ");
+        sql.append("     LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,                  ");
+        sql.append("     LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,              ");
+        sql.append("     LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,       ");
+        sql.append("     LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                     ");
+        sql.append("     LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER              ");
+        sql.append("   FROM                                             ");
+        sql.append("     (SELECT ASTAFF.ID,                             ");
+        sql.append("       ASTAFF.STAFF_ID,                             ");
+        sql.append("       ASTAFF.JOB_NUMBER,                           ");
+        sql.append("       ASTAFF.STAFF_NAME,                           ");
+        sql.append("       ASS.IBF_ID,                                  ");
+        sql.append("       ASS.IBF_NAME,                                ");
+        sql.append("       ASS.ASSIGNATION_CHARGE,                      ");
+        sql.append("       ASS.ID ASSID,                                ");
+        sql.append("       ASTAFF.IS_DELETE,                            ");
+        sql.append("       ASTAFF.CREATEDATE,                           ");
+        sql.append("       ASS.SX,                                      ");
+        sql.append("       SI.IS_NUMBER                                 ");
+        sql.append("     FROM XC_ASSIGNATION_STAFF ASTAFF               ");
+        sql.append("     LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS      ");
+        sql.append("     ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID        ");
+        sql.append("     AND ASS.IS_DELETE = 0                          ");
+        sql.append("     LEFT JOIN XC_SALARY_ITEMS SI      ");
+        sql.append("     ON ASS.IBF_ID = SI.ID        ");
+        sql.append("     WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+id+"'  ");
+        sql.append("     AND ASTAFF.IS_DELETE = 0                       ");
+        sql.append("     ORDER BY                                       ");
+        sql.append("       ASTAFF.CREATEDATE DESC,                      ");
+        sql.append("       ASTAFF.STAFF_ID ASC,                         ");
+        sql.append("       ASS.SX ASC                                   ");
+        sql.append("     ) TT                                           ");
+        sql.append("     WHERE TT.IS_DELETE = 0                         ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 职工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("  AND TT.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                                 ");
+            }
+            // 职工名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("  AND TT.STAFF_NAME LIKE '%"+mapData.get("name").trim()+"%'                                 ");
+            }
+        }
+
+        // 核算数据id
+        if (!StringUtils.isBlank(ids)) {
+            sql.append("  AND TT.ID IN ('"+StringUtils.join(ids.split(","), "','")+"') ");
+        }
+        sql.append("   GROUP BY TT.ID, TT.CREATEDATE                    ");
+        sql.append("   ORDER BY TT.CREATEDATE DESC                      ");
+
+        return sql.toString();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Map<String, Object>> getTotalData(String id) {
+        StringBuilder summarySql = new StringBuilder();
+        summarySql.append("    SELECT                                                          ");
+        summarySql.append("        ASS.IBF_ID IBFID,                                           ");
+        summarySql.append("        SUM(TO_NUMBER(NVL(ASS.ASSIGNATION_CHARGE, 0))) CHARGE,      ");
+        summarySql.append("        MIN(NVL(SI.NUMBER_ACCURACY, 0)) XS                          ");
+        summarySql.append("      FROM XC_ASSIGNATION_STAFF ASTAFF                              ");
+        summarySql.append("      LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                     ");
+        summarySql.append("      ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                       ");
+        summarySql.append("      AND ASS.IS_DELETE = 0                                         ");
+        summarySql.append("      LEFT JOIN XC_SALARY_ITEMS SI                                  ");
+        summarySql.append("      ON SI.ID = ASS.IBF_ID                                         ");
+        summarySql.append("      WHERE ASTAFF.SALARY_ASSIGNATION_ID = '"+id+"'                 ");
+        summarySql.append("      AND ASTAFF.IS_DELETE = 0                                      ");
+        summarySql.append("      AND REGEXP_LIKE(ASS.ASSIGNATION_CHARGE,'(^[+-]?\\d{0,}\\.?\\d{0,}$)') ");// 数字验证
+        summarySql.append("    GROUP BY ASS.IBF_ID,ASS.SX                                      ");
+        summarySql.append("    ORDER BY ASS.SX ASC                                             ");
+        SQLQuery summaryQuery = getSession().createSQLQuery(summarySql.toString());
+        summaryQuery.setResultTransformer(CriteriaSpecification.ALIAS_TO_ENTITY_MAP);
+        List<Map<String, Object>> summaryList = summaryQuery.list();
+
+        return summaryList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSelectedStaffAssignData(String assignStaffId, String assignId, String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                    ");
+        sql.append("   WM_CONCAT(ASS.ID) ID,                                     ");
+        sql.append("   WM_CONCAT(ASS.IBF_ID) ITEMSID,                            ");
+        sql.append("   WM_CONCAT(TO_CHAR(NVL(SF.CNT_MATH, 'result=0'))) FORMULA  ");
+        sql.append("   FROM XC_ASSIGNATION_STAFF ASTAFF                          ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                 ");
+        sql.append("   ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                   ");
+        sql.append("   AND ASS.IS_DELETE = 0                                     ");
+        sql.append("   LEFT JOIN XC_SALARY_ASSIGNATION SA                        ");
+        sql.append("   ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID                   ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                        ");
+        sql.append("   ON SA.SALARY_WAGE_ID = SGW.ID                             ");
+        sql.append("   AND SGW.IS_DELETE = 0                                     ");
+        sql.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                     ");
+        sql.append("   ON SGW.ID = GWAY.WAGE_ID                                  ");
+        sql.append("   AND GWAY.IS_DELETE = 0                                    ");
+        sql.append("   AND GWAY.ITEM_ID = ASS.IBF_ID                             ");
+        sql.append("   LEFT JOIN XC_SALARY_FORMULA SF                            ");
+        sql.append("   ON GWAY.ID = SF.BIND_ID                                   ");
+        sql.append("   AND SF.IS_DELETE = 0                                      ");
+        sql.append("   AND SF.IS_DEFAULT = 1                                     ");
+        sql.append("   WHERE ASTAFF.IS_DELETE = 0                                  ");
+
+        // 如果薪酬分配过程ID存在说明全表操作
+        if (!StringUtils.isBlank(assignStaffId)) {
+            sql.append("   AND SA.ID = '" + assignStaffId + "'");
+        } else {
+            sql.append("   AND ASTAFF.ID IN ('"+StringUtils.join(assignId.split(","), "','")+"') ");
+
+            // 如果薪资项目不存在说明全部的薪资项目参与计算
+            if (!StringUtils.isBlank(id)) {
+                sql.append("   AND ASS.IBF_ID = '" + id + "'");
+            }
+        }
+        sql.append("   GROUP BY ASTAFF.ID                        ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("itemsId", obj[1]);
+            map.put("formula", obj[2]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, String>> getAllGroupWageFinancialList(String assignStaffId, String itemid) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT DISTINCT                                    ");
+        sql.append("   SF.ID, TO_CHAR(SF.CONTENT) CONTENT, TO_CHAR(SF.CNT_MATH) CNTMATH           ");
+        sql.append("   FROM XC_SALARY_FORMULA SF                          ");
+        sql.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY              ");
+        sql.append("   ON GWAY.ID = SF.BIND_ID                            ");
+        sql.append("   AND GWAY.IS_DELETE = 0                             ");
+        sql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW                 ");
+        sql.append("   ON SGW.ID = GWAY.WAGE_ID                           ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS          ");
+        sql.append("   ON GWAY.ITEM_ID = ASS.IBF_ID                       ");
+        sql.append("   LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF              ");
+        sql.append("   ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID            ");
+        sql.append("   AND ASTAFF.IS_DELETE = 0                           ");
+        sql.append("   LEFT JOIN XC_SALARY_ASSIGNATION SA                 ");
+        sql.append("   ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID            ");
+        sql.append("   WHERE SF.IS_DELETE = 0                             ");
+        sql.append("   AND SA.ID = '"+assignStaffId+"'     ");
+        sql.append("   AND ASS.IBF_ID = '"+itemid+"'");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, String> map = new HashMap<String, String>();
+            map.put("id", obj[0]+"");
+            try {
+                map.put("cntMath", obj[2].toString());
+                map.put("content", obj[1].toString());
+            } catch (Exception e) {
+                map.put("cntMath", "");
+                map.put("content", "");
+            }
+            map.put("type", "1");
+            dataList.add(map);
+        }
+        HashMap<String, String> map = new HashMap<String, String>();
+        map.put("id", "0");
+        map.put("content", "简单计算公式");
+        map.put("type", "2");
+        dataList.add(map);
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getNeedCheckStaffData(String id, Pager pager) {
+        // 获取薪酬核算过程中的薪资组ID与工资套ID
+        String selectAssign = "SELECT SALARY_GROUP_ID, SALARY_WAGE_ID FROM XC_SALARY_ASSIGNATION WHERE ID = '"+id+"'";
+        List<?> selectList = findBySql(selectAssign);
+        String groupId = "";
+        String wageId = "";
+        if (selectList.size() > 0) {
+            Object[] obj = (Object[]) selectList.get(0);
+            groupId = obj[0].toString();
+            wageId = obj[1].toString();
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT JBI.ID,                                     ");
+        sql.append("      MIN(JBI.JOB_NUMBER) JOBNUMBER,                   ");
+        sql.append("      MIN(JBI.NAME) NAME,                              ");
+        sql.append("      MIN(BRANCH.FZX) company,                         ");
+        sql.append("      MIN(QD.NAME) deptName,                           ");
+        sql.append("      MIN(JBI.POST) post,                              ");
+        sql.append("      WM_CONCAT(SI.ID) ITEMSID,                        ");
+        sql.append("      WM_CONCAT(SI.NAME) ITEMSNAME,                    ");
+        sql.append("      WM_CONCAT(NVL(GWAY.SX, 0)) SX                     ");
+        sql.append("    FROM XC_SALARY_GROUP_WAGE SGW                      ");
+        sql.append("    LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY              ");
+        sql.append("    ON SGW.ID = GWAY.WAGE_ID                           ");
+        sql.append("    AND GWAY.IS_DELETE = 0                             ");
+        sql.append("    LEFT JOIN XC_SALARY_PERSONAL SP                    ");
+        sql.append("    ON SGW.SALARY_GROUP_ID = SP.SALARY_GROUP_ID        ");
+        sql.append("    AND SP.IS_DELETE       = 0                         ");
+        sql.append("    LEFT JOIN JC_BASIC_INFORMATION JBI                 ");
+        sql.append("    ON SP.SALARY_RECORD_ID    = JBI.ID                 ");
+        sql.append("    LEFT JOIN XC_SALARY_ITEMS SI                       ");
+        sql.append("    ON GWAY.ITEM_ID = SI.ID                            ");
+        sql.append("    LEFT JOIN QX_DEPARTMENT QD                         ");
+        sql.append("    ON QD.ID = JBI.DEPART_ID                           ");
+        sql.append("    LEFT JOIN BRANCH                                   ");
+        sql.append("    ON JBI.FILM_ID = BRANCH.ID                         ");
+        sql.append("    WHERE SGW.SALARY_GROUP_ID = '"+groupId+"'          ");
+        sql.append("    AND SGW.ID = '"+wageId+"'                          ");
+        sql.append("    AND JBI.ON_JOB IN (0,1,2)                          ");
+        sql.append("    AND JBI.IS_DELETE=0                            ");
+        sql.append("    AND JBI.ID NOT IN                                  ");
+        sql.append("      (SELECT ASSTAFF.STAFF_ID                         ");
+        sql.append("      FROM XC_SALARY_ASSIGNATION SA                    ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF ASSTAFF           ");
+        sql.append("      ON SA.ID    = ASSTAFF.SALARY_ASSIGNATION_ID      ");
+        sql.append("      WHERE SA.ID = '"+id+"' ");
+        sql.append("      AND ASSTAFF.IS_DELETE = 0                        ");
+        sql.append("      )                                                ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(pager.getSearchData());
+        if (mapData != null) {
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("   AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                      ");
+            }
+            // 员工姓名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND JBI.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+        }
+        sql.append("    GROUP BY JBI.ID, JBI.CREATEDATE                    ");
+        sql.append("    ORDER BY JBI.CREATEDATE DESC                       ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("company", obj[3]);
+            map.put("deptName", obj[4]);
+            map.put("post", obj[5]);
+            map.put("itemsId", obj[6]);
+            map.put("itemsName", obj[7]);
+            map.put("sx", obj[8]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String getLastMonthSalaryPeriod(String salaryPeriod) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        Perioddata perioddata = salaryAssignationService.get(Perioddata.class, Restrictions.eq("id", salaryPeriod));
+        if (perioddata != null) {
+            Period period = salaryAssignationService.get(Period.class, Restrictions.eq("id", perioddata.getPeriodId()));
+            if (period == null) {
+                map.put("success", 0);
+                map.put("info", perioddata.getName() + "薪酬期间不存在");
+
+                return JsonUtil.Encode(map);
+            } else if (period.getIsDelete() == 1) {
+                map.put("success", 0);
+                map.put("info", period.getYear() + "年度的薪酬期间不存在，已经被删除");
+
+                return JsonUtil.Encode(map);
+            }
+            // 本月开始日期
+            Date curDate = perioddata.getStartDate();
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(curDate);
+            calendar.add(Calendar.MONTH, -1);
+
+            int year = calendar.get(Calendar.YEAR);
+            int month = calendar.get(Calendar.MONTH) + 1;
+
+            // 查找上月
+            Period lastPeriod = salaryAssignationService.get(Period.class,
+                    Restrictions.eq("id", perioddata.getPeriodId()),
+                    Restrictions.eq("year", year),
+                    Restrictions.eq("isDelete", 0));
+            if (lastPeriod == null) {
+                map.put("success", 0);
+                map.put("info", year + "年度的薪酬期间不存在");
+
+                return JsonUtil.Encode(map);
+            }
+
+            StringBuilder sql = new StringBuilder();
+            sql.append("   SELECT PE.ID, PE.START_DATE, PE.END_DATE         ");
+            sql.append("   FROM XC_PERIOD P                                 ");
+            sql.append("   LEFT JOIN XC_PERIODDATA PE                       ");
+            sql.append("   ON P.ID = PE.PERIOD_ID                           ");
+            sql.append("   WHERE P.YEAR = "+year+"                          ");
+            sql.append("   AND P.DEP_ID = '"+lastPeriod.getDepId()+"'       ");
+            sql.append("   AND P.IS_DELETE = 0                              ");
+            sql.append("   AND TO_CHAR(PE.START_DATE, 'yyyy-MM') = '"+year+"-"+String.format("%02d", month)+"'");
+
+            List<?> list = findBySql(sql.toString());
+            if (list.size() > 0) {
+                Object[] obj = (Object[]) list.get(0);
+
+                map.put("success", 1);
+                map.put("info", obj[0].toString());
+
+                return JsonUtil.Encode(map);
+            }
+        }
+
+        map.put("success", 0);
+        map.put("info", perioddata.getName() + "薪酬期间不存在");
+
+        return JsonUtil.Encode(map);
+    }
+
+}

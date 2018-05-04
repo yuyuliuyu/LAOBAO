@@ -1,0 +1,102 @@
+package com.lingnet.hcm.dao.check;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.util.Pager;
+
+/**
+ * 
+ * @ClassName: CheckInfosDao 
+ * @Description: 考勤动态Dao 
+ * @author wangqiang
+ * @date 2017年4月11日 下午4:23:02 
+ *
+ */
+public interface CheckInfosDao extends BaseDao<CkCheckInfo, String>{
+	
+	/**
+	 * 获取考勤动态信息集合
+	 * @Title: getInfoByCond 
+	 * @param pager
+	 * @param searchData
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月11日 V 1.0
+	 */
+	public List<Map<String, Object>> getInfoByCond(Pager pager, String searchData, String depIds);
+	
+	/**
+	 * 根据条件查询原始考勤动态信息集合
+	 * @Title: getOldDataByCond 
+	 * @param monthDate
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月17日 V 1.0
+	 */
+	public List<Object[]> getOldDataByCond(String monthDate);
+	
+	/**
+	 * 根据条件删除原始考勤动态信息集合
+	 * @Title: removeByCond 
+	 * @param monthDate 
+	 * @author wangqiang
+	 * @since 2017年4月18日 V 1.0
+	 */
+	public void removeByCond(String monthDate);
+	
+	/**
+	 * 查询当前考勤月份天数
+	 * @Title: getMonthDays 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月19日 V 1.0
+	 */
+	public Map<String, Object> getMonthDaysAndYearMonth();
+	
+	/**
+	 * 根据员工id集合查询员工考勤动态信息
+	 * @Title: getDataByEmpIds 
+	 * @param pager
+	 * @param empIdLists
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月20日 V 1.0
+	 */
+	public List<Map<String, String>> getDataByEmpIds(Pager pager, List<String> empIdLists);
+	
+	/**
+	 * 根据职工号集合查询员工日考勤信息集合
+	 * @Title: getDayInfoByCond 
+	 * @param pager
+	 * @param day
+	 * @param jobNumbers
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月22日 V 1.0
+	 */
+	public List<Map<String, Object>> getDayInfoByCond(Pager pager, String day, String jobNumbers);
+	
+	/**
+	 * 根据id查询员工考勤信息
+	 * @Title: getInfoById 
+	 * @param id
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月22日 V 1.0
+	 */
+	Map<String, String> getInfoById(String id, String day);
+	
+	/**
+	 * 批量修改员工上报部门
+	 * @Title: updateDepIdByEmpIds 
+	 * @param empIds
+	 * @param depIds 
+	 * @author wangqiang
+	 * @since 2017年4月28日 V 1.0
+	 */
+	public void updateDepIdByJobNumbers(String jobNumbers, String depIds);
+}

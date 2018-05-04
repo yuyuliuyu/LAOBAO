@@ -1,0 +1,284 @@
+package com.lingnet.hcm.entity.salary;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Lob;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 缴费标准表
+ * XcSalaryInsurance entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "XC_SALARY_INSURANCE")
+public class SalaryInsurance extends BaseEntity implements java.io.Serializable {
+
+    private static final long serialVersionUID = 1477537176495928477L;
+    private String companyId;// 公司ID
+    private String name;// 福利项目
+    private String area;// 缴费地域
+    private String staffType;// 员工类型
+    private String biCompany;// 公司缴纳比例
+    private String biPersonal;// 员工缴纳比例
+    private String high;// 缴纳基数上限
+    private String low;// 缴纳基数下限
+    private String numberAccuracy;// 保留小数
+    private Integer year;// 生效年
+    private Integer month;// 生效月
+    private Integer isJs;// 计算单位缴费
+    private Integer isDelete;// 删除标志 0:未删除 1：删除
+    private Integer type;// 状态 0：无效 1 有效
+    private String baseCompany;// 公司缴纳基数
+    private String baseCompanyMath;// 公司缴纳基数解析公式
+    private String basePersonal;// 员工缴纳基数
+    private String basePersonalMath;// 员工缴纳基数解析公式
+    private String companyFormula;// 公司缴纳公式
+    private String companyFormulaMath;// 公司缴纳公式解析公式
+    private String personalFormula;// 员工缴纳公式
+    private String personalFormulaMath;// 员工缴纳公式解析公式
+    private Integer payCarryRule;// 缴费额进位规则 1:四舍五入到精度 2:进位到精度3:舍位到精度4:见分进角再四舍五入到元5:四舍五入到角再进位到元
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public SalaryInsurance() {
+    }
+
+    @Column(name = "COMPANY_ID")
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    @Column(name = "NAME", length = 50)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Column(name = "AREA", length = 32)
+    public String getArea() {
+        return this.area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    @Column(name = "STAFF_TYPE", length = 32)
+    public String getStaffType() {
+        return staffType;
+    }
+
+    public void setStaffType(String staffType) {
+        this.staffType = staffType;
+    }
+
+    @Column(name = "BI_COMPANY", length = 20)
+    public String getBiCompany() {
+        return this.biCompany;
+    }
+
+    public void setBiCompany(String biCompany) {
+        this.biCompany = biCompany;
+    }
+
+    @Column(name = "BI_PERSONAL", length = 20)
+    public String getBiPersonal() {
+        return this.biPersonal;
+    }
+
+    public void setBiPersonal(String biPersonal) {
+        this.biPersonal = biPersonal;
+    }
+
+    @Column(name = "HIGH", length = 20)
+    public String getHigh() {
+        return this.high;
+    }
+
+    public void setHigh(String high) {
+        this.high = high;
+    }
+
+    @Column(name = "LOW", length = 20)
+    public String getLow() {
+        return this.low;
+    }
+
+    public void setLow(String low) {
+        this.low = low;
+    }
+
+    @Column(name = "NUMBER_ACCURACY", length = 20)
+    public String getNumberAccuracy() {
+        return this.numberAccuracy;
+    }
+
+    public void setNumberAccuracy(String numberAccuracy) {
+        this.numberAccuracy = numberAccuracy;
+    }
+
+    @Column(name = "YEAR", precision = 4, scale = 0)
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer year) {
+        this.year = year;
+    }
+
+    @Column(name = "MONTH", precision = 2, scale = 0)
+    public Integer getMonth() {
+        return month;
+    }
+
+    public void setMonth(Integer month) {
+        this.month = month;
+    }
+
+    @Column(name = "IS_JS", precision = 1, scale = 0)
+    public Integer getIsJs() {
+        return this.isJs;
+    }
+
+    public void setIsJs(Integer isJs) {
+        this.isJs = isJs;
+    }
+
+    @Column(name = "IS_DELETE", precision = 1, scale = 0)
+    public Integer getIsDelete() {
+        return this.isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
+    }
+
+    @Column(name = "TYPE", precision = 1, scale = 0)
+    public Integer getType() {
+        return this.type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
+    }
+
+    @Lob
+    @Column(name = "BASE_COMPANY")
+    public String getBaseCompany() {
+        return this.baseCompany;
+    }
+
+    public void setBaseCompany(String baseCompany) {
+        this.baseCompany = baseCompany;
+    }
+
+    @Lob
+    @Column(name = "BASE_PERSONAL")
+    public String getBasePersonal() {
+        return this.basePersonal;
+    }
+
+    public void setBasePersonal(String basePersonal) {
+        this.basePersonal = basePersonal;
+    }
+
+    @Lob
+    @Column(name = "COMPANY_FORMULA")
+    public String getCompanyFormula() {
+        return this.companyFormula;
+    }
+
+    public void setCompanyFormula(String companyFormula) {
+        this.companyFormula = companyFormula;
+    }
+
+    @Lob
+    @Column(name = "PERSONAL_FORMULA")
+    public String getPersonalFormula() {
+        return this.personalFormula;
+    }
+
+    public void setPersonalFormula(String personalFormula) {
+        this.personalFormula = personalFormula;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+    @Column(name = "PAY_CARRY_RULE", precision = 1, scale = 0)
+    public Integer getPayCarryRule() {
+        return payCarryRule;
+    }
+
+    public void setPayCarryRule(Integer payCarryRule) {
+        this.payCarryRule = payCarryRule;
+    }
+
+    @Lob
+    @Column(name = "BASE_COMPANY_MATH")
+    public String getBaseCompanyMath() {
+        return baseCompanyMath;
+    }
+
+    public void setBaseCompanyMath(String baseCompanyMath) {
+        this.baseCompanyMath = baseCompanyMath;
+    }
+
+    @Lob
+    @Column(name = "BASE_PERSONAL_MATH")
+    public String getBasePersonalMath() {
+        return basePersonalMath;
+    }
+
+    public void setBasePersonalMath(String basePersonalMath) {
+        this.basePersonalMath = basePersonalMath;
+    }
+
+    @Lob
+    @Column(name = "COMPANY_FORMULA_MATH")
+    public String getCompanyFormulaMath() {
+        return companyFormulaMath;
+    }
+
+    public void setCompanyFormulaMath(String companyFormulaMath) {
+        this.companyFormulaMath = companyFormulaMath;
+    }
+
+    @Lob
+    @Column(name = "PERSONAL_FORMULA_MATH")
+    public String getPersonalFormulaMath() {
+        return personalFormulaMath;
+    }
+
+    public void setPersonalFormulaMath(String personalFormulaMath) {
+        this.personalFormulaMath = personalFormulaMath;
+    }
+
+}

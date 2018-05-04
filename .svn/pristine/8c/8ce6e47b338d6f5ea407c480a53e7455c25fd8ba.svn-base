@@ -1,0 +1,25 @@
+package com.lingnet.qxgl.service.impl;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.WorkFlowChild;
+import com.lingnet.qxgl.service.WorkFlowService;
+
+@Service("workflowservice")
+public class WorkFlowServiceImpl extends BaseServiceImpl<String, WorkFlowChild> implements WorkFlowService{
+
+    @Override
+    public WorkFlowChild findnextbyid(String id) { 
+        WorkFlowChild childid=new WorkFlowChild();
+        childid=this.get(WorkFlowChild.class,Restrictions.eq("id", id));
+        int sort=(childid.getSort()+1);
+        WorkFlowChild returnchildid=new WorkFlowChild();
+        returnchildid=this.get(WorkFlowChild.class
+                , Restrictions.eq("pid", childid.getPid())
+                , Restrictions.eq("sort",sort)); 
+        return returnchildid;
+    }
+
+}

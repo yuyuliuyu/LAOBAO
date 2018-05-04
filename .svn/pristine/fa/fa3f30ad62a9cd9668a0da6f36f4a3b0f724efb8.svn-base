@@ -1,0 +1,201 @@
+package com.lingnet.hcm.service.impl.personnel;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.personnel.PtJobDao;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.LingnetService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.hcm.service.personnel.PtJobService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+/**
+ * 人员岗位兼职service实现类
+ */
+@Service("ptJobService")
+public class PtJobServiceImpl extends BaseServiceImpl<PtJob, String> implements PtJobService{
+	
+	@Resource(name = "ptJobDao")
+	private PtJobDao ptJobDao;
+	
+	@Resource(name="personnelService")
+    private PersonnelService personnelService;
+	
+	@Resource(name = "toolUtil")
+    public ToolUtil toolUtil;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+
+    @Resource(name="lingnetService")
+    private LingnetService lingnetservice;
+    
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public Map<String, Object> getDataByCond(Pager pager, String searchData) {
+		//获得当前用户的所有权限部门集合    String depIds = getAllDepIdStrs(); 
+        Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+        String depIds = "";
+        depIds=this.getAllDepIdStrs();
+//        if(dataMap==null){
+//             depIds =  lingnetservice.getdeptbypid(null, LingUtil.userinfo().getId(),false);
+//        }else{
+//            String dpid=dataMap.get("depId");
+//            depIds =  lingnetservice.getdeptbypid(dpid, LingUtil.userinfo().getId(),false);
+//        }
+//        if("&".equals(depIds)){
+//            HashMap result = new HashMap();
+//            result.put("data", "");
+//            result.put("total",0);
+//            return result;
+//        }
+		List<Map<String, Object>> datas = ptJobDao.getInfoByCond(pager, searchData, depIds);
+        HashMap result = new HashMap();
+        result.put("data", datas);
+        result.put("total", pager.getTotalCount());
+		return result;
+	}
+
+	@Override
+	public Map<String, String> getPersonInfoById(String id) {
+		return ptJobDao.getPersonInfoById(id);
+	}
+	
+	@Override
+	public HSSFWorkbook exportInfoByDepIds(List<String> depIdList) {
+		String[] cellname={
+				"序号",
+                "职工号",
+                "姓名",
+                "所属单位",
+                "所属部门",
+                "考勤单位",
+                "班组名称",
+                "标准岗位",
+                "具体岗位",
+                "是否班长",
+                "是否特殊工时",
+                "工资形式",
+                "考勤编号"};
+        HSSFWorkbook hwb = new HSSFWorkbook();
+        HSSFSheet sheet = hwb.createSheet("人员考勤档案基本信息");
+        HSSFRow row = sheet.createRow(0);
+        HSSFCell cell;
+        HSSFCellStyle stycle = hwb.createCellStyle();
+        stycle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        for (int i = 0; i < cellname.length; i++) {
+            cell = row.createCell(i);
+            cell.setCellValue(cellname[i]);
+            cell.setCellStyle(stycle);
+            sheet.setColumnWidth((short) i, cellname[i].getBytes().length * 600);
+        }
+        //获得当前用户的所有权限部门集合
+        String depIds = getAllDepIdStrs();
+        //查询人员考勤信息
+        List<Map<String, String>> list = ptJobDao.getCheckInfosByDepIds(depIdList, depIds);
+        if (list != null) {
+            for (int i = 0; i < list.size(); i++) {
+            	Map<String, String> info = list.get(i);
+                row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(i+1+"");
+                if(info.get("jobNumber") != null && !"null".equals(info.get("jobNumber"))){ 
+                	row.createCell(1).setCellValue(info.get("jobNumber")); 
+                }
+                if(info.get("name") != null && !"null".equals(info.get("name"))){ 
+                	row.createCell(2).setCellValue(info.get("name")); 
+                }
+                if(info.get("branchName") != null && !"null".equals(info.get("branchName"))){ 
+                	row.createCell(3).setCellValue(info.get("branchName")); 
+                }
+                if(info.get("depName") != null && !"null".equals(info.get("depName"))){ 
+                	row.createCell(4).setCellValue(info.get("depName")); 
+                }
+                if(info.get("checkUnit") != null && !"null".equals(info.get("checkUnit"))){ 
+                	row.createCell(5).setCellValue(info.get("checkUnit")); 
+                }
+                if(info.get("className") != null && !"null".equals(info.get("className"))){ 
+                	row.createCell(6).setCellValue(info.get("className")); 
+                }
+                if(info.get("standardPost") != null && !"null".equals(info.get("standardPost"))){ 
+                	row.createCell(7).setCellValue(info.get("standardPost")); 
+                }
+                if(info.get("spePost") != null && !"null".equals(info.get("spePost"))){ 
+                	row.createCell(8).setCellValue(info.get("spePost")); 
+                }
+                if(info.get("isMonitor") != null && !"null".equals(info.get("isMonitor"))){ 
+                	row.createCell(9).setCellValue(info.get("isMonitor")); 
+                }
+                if(info.get("isSpecialHour") != null && !"null".equals(info.get("isSpecialHour"))){ 
+                	row.createCell(10).setCellValue(info.get("isSpecialHour")); 
+                }
+                if(info.get("wageForm") != null && !"null".equals(info.get("wageForm"))){ 
+                	row.createCell(11).setCellValue(info.get("wageForm")); 
+                }
+                if(info.get("checkNo") != null && !"null".equals(info.get("checkNo"))){ 
+                	row.createCell(12).setCellValue(info.get("checkNo")); 
+                }
+            }
+        }
+        return hwb;
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+		String depIds = "";
+  		String userId = toolUtil.getUserId();
+  		List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+  				+ "INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+  				+ "WHERE B.IS_DELETE = 0 ");
+  		if (data!=null&&data.size()>0){
+  			for (int i=0;i<data.size();i++){
+  				Object b = (Object)data.get(i);
+  				depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+  				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+               		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+               		"WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    String parent=dep[0]==null?"":dep[0].toString();
+            	    if ("ROOT".equals(parent)){
+            	    	depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+            	    }else{
+            	    	depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+            	    }
+  				}
+  			}
+  		}
+  		if (!"".equals(depIds)){
+  			depIds = depIds.substring(0,depIds.length()-2);
+  		}
+  		return depIds;
+	}
+	
+	@Override
+	public HashMap getListData(Pager pager, String searchData) {
+		String depIds = personnelService.getAllDepIdStrs();
+	    return ptJobDao.getListData(pager, searchData,depIds);
+	}
+}

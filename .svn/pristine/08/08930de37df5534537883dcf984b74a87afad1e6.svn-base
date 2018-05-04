@@ -1,0 +1,296 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>基础信息列表</title>
+<style type="text/css">
+</style>
+<script src="../template/miniui/boot.js" type="text/javascript"></script>
+<!--引入皮肤样式-->
+<link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+<script src="${base}/template/plugin/public/treeList.js" type="text/javascript"></script>
+<style type="text/css">
+body {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+</style>
+</head>
+
+<body>
+	<div class="mini-fit">
+		<div class="mini-splitter" style="width:100%;height:100%;" handlerSize="9">
+			
+            <!-- 分中心树 start -->
+            <div size="260" showCollapseButton="true">
+                <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+                    <span style="padding-left:5px;">组织机构：</span>
+                </div>
+                <div class="mini-fit">
+                    <ul id="tree1" class="mini-tree" url="../basis/branch!treeList.action" style="width:100%;" onNodeclick="onNodeclick"
+                        showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true">
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 分中心树  end -->
+            <div showCollapseButton="false">
+            	
+	            <div class="mini-toolbar" style="padding:0px;border-top:0;">
+	       			 <table style="width:100%;">
+	           			 <tr>
+			                <td style="width:100%;">
+			                    <a class="mini-menubutton"  menu="#compMenu">公司变更</a>
+			                    <ul id="compMenu" class="mini-menu" style="display:none;">
+								    <li iconCls="icon-add" onclick="comChange(0)">申请设立</li>
+								    <li iconCls="icon-edit" onclick="comChange(1)">申请调整</li>
+								    <li iconCls="icon-reload" onclick="comChange(2)">申请转移</li>
+								    <li iconCls="icon-undo" onclick="comChange(3)">申请撤销</li>
+							    </ul>
+			                    <a class="mini-menubutton"  menu="#deptMenu">部门变更</a>
+			                    <ul id="deptMenu" class="mini-menu" style="display:none;">
+								    <li iconCls="icon-add" onclick="deptChange(0)">申请设立</li>
+								    <li iconCls="icon-edit" onclick="deptChange(1)">申请调整</li>
+								    <li iconCls="icon-reload" onclick="deptChange(2)">申请转移</li>
+								    <li iconCls="icon-undo" onclick="deptChange(3)">申请撤销</li>
+								    <li iconCls="icon-node" onclick="deptChange(4)">申请合并</li>
+							    </ul>
+							    <a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a>
+							    <a class="mini-button" iconCls="icon-search" onclick="look()">查看</a>
+							    <a class="mini-button" iconCls="icon-remove" onclick="remove()">删除</a>
+			                    <a class="mini-button" iconCls="icon-upload" onclick="changeSubmit()">提交</a>
+			                </td>
+	            		 </tr>
+	        		</table>
+	    		</div>
+	    		<div class="mini-fit">
+					<div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+						url="../branch/com_change!listdata.action" idField="id" multiSelect="false" 
+						 allowAlternating="true" pageSize="20" >
+						 
+						<div property="columns">
+	                    
+	                         <div type="checkcolumn">选择</div>
+	                        <div type="indexcolumn" headerAlign="center">序列</div>
+	                        <div field="id" id="id" width="80" name="id" headerAlign="center" align="center" class="mini-hidden">id</div>
+	                        <div field="changeId" id ="changeId" name = "changeId" width="100" headerAlign="center" align="center" >变更机构</div>
+	                        <div field="changeName" id ="changeName" name = "changeName" width="100" headerAlign="center" align="center" >变更机构</div>
+	                        <div type="comboboxcolumn" field="changeType" width="100" headerAlign="center" align="center">变更类型
+								<input property="editor" class="mini-combobox" url="${base}/template/changeType.txt"/>
+							</div>
+	                        <div field="applyComp" id ="applyComp" name = "applyComp" width="100" headerAlign="center" align="center" >申请单位</div>
+	                        <div field="applyCompName" id ="applyCompName" name = "applyCompName" width="100" headerAlign="center" align="center" >申请单位</div>
+	                        <div field="effectiveDate" id ="effectiveDate" name = "effectiveDate" width="100" headerAlign="center" align="center" dateFormat="yyyy-MM-dd HH:mm:ss">生效日期</div>
+	                        <div type="comboboxcolumn" field="flg" width="100" headerAlign="center" align="center">状态
+									<input property="editor" class="mini-combobox" data="[{id:'1', text:'审批中'},{id:0, text:'未提交'},{id:2, text:'已审批'},{id:3, text:'已驳回'}]"/>
+								</div>
+	                    </div>
+					</div>
+       		 	</div>
+            </div>
+        </div>
+	</div>
+
+    <script type="text/javascript">
+        mini.parse();
+        
+        var grid = mini.get("grid");
+        grid.hideColumn("id");
+        grid.hideColumn("changeId");
+        grid.hideColumn("applyComp");
+        grid.load();
+        var tree = mini.get("tree1");
+        
+        //////////////////////////////////////////////
+        function deptChange(type) {
+        	var node = tree.getSelectedNode();
+        	
+        	var cid = "";
+        	if(node){
+        		cid = node.id;
+        		var flg = node.flg;
+        		if(flg!=1&&type!=0&&type!="0"){
+        			mini.alert("请先选择部门节点!");
+        			return;
+        		}
+    			 
+        	}else{
+        		if(type!=0&&type!="0"){
+	       			mini.alert("请先选择部门节点!");
+	       			return;
+	       		}
+        	}
+        	mini.open({
+                url : "../branch/dept_change!add.action?cid="+cid+"&changeType="+type,
+                title : "部门变更",
+                width : 1000,
+    	        height : 600,
+                /* allowResize : false, */
+                onload : function() {
+                },
+                ondestroy : function(action) {
+                    grid.reload();
+                }
+            });
+           
+        }
+        function comChange(type) {
+        	var node = tree.getSelectedNode();
+        	
+       		var cid = "";
+        	if(node){
+        		cid = node.id;
+        		var flg = node.flg;
+        		if(flg!=0&&type!=0&&type!="0"){
+        			mini.alert("请先选择公司节点!");
+        			return;
+        		}
+        	}else{
+        		if(type!=0&&type!="0"){
+	       			mini.alert("请先选择公司节点!");
+	       			return;
+	       		}
+        	}
+        	
+        	mini.open({
+    	                url : "../branch/com_change!add.action?cid="+cid+"&changeType="+type,
+    	                title : "公司变更",
+    	                width : 1000,
+    	                height : 600,
+    	                /* allowResize : false, */
+    	                onload : function() {
+    	                },
+    	                ondestroy : function(action) {
+    	                    grid.reload();
+    	                }
+    	            });
+           
+        }
+        //////////////////////////////////////////////
+        function edit() {
+            var row = grid.getSelected();
+            if (row) {
+            	var url = "../branch/com_change!edit.action?id="+row.id+"&changeType="+row.changeType;
+            	if(row.type==1||row.type=="1"){
+            		url = "../branch/dept_change!edit.action?id="+row.id+"&changeType="+row.changeType;
+            	}
+                mini.open({
+                    url : url,
+                    title : "编辑组织变更",
+                    width : 1000,
+    	            height : 600,
+                    /* allowResize : false, */
+                    onload : function() {
+                    },
+                    ondestroy : function(action) {
+                        grid.reload();
+                    }
+                });
+            } else {
+                mini.alert("请选中一条记录！");
+            }
+        }
+        ////////////////////////////////////////////////
+        function look() {
+            var row = grid.getSelected();
+            
+            if (row) {
+	            
+            	var url = "../branch/com_change!look.action?id="+row.id+"&changeType="+row.changeType+"&flg=false";
+            	if(row.type==1||row.type=="1"){
+            		url = "../branch/dept_change!look.action?id="+row.id+"&changeType="+row.changeType+"&flg=false";
+            	}
+                mini.open({
+                    url : url,
+                    title : "编辑组织变更",
+                    width : 1000,
+    	            height : 600,
+                    /* allowResize : false, */
+                    onload : function() {
+                    },
+                    ondestroy : function(action) {
+                        grid.reload();
+                    }
+                });
+            } else {
+                mini.alert("请选中一条记录！");
+            }
+        }
+        //////////////////////////////////////////////
+        function remove() {
+            var row = grid.getSelected();
+            
+            if (row) {
+                mini.confirm("您确定要删除该信息吗？","提醒",function(action){
+                if(action=="ok"){
+                    $.ajax({
+                        url : "../branch/com_change!delete.action?id=" + row.id,
+                        type:'post',
+                        success: function (text) {
+                            if(text=="success"){
+                                grid.reload();
+                                mini.alert("删除成功！");
+                            }else{
+                                mini.alert(text);
+                            }
+                        }
+                    });
+                }
+            });
+            } else {
+                 mini.alert("请选中一条记录！");
+            }
+        }
+        
+        
+
+        
+        
+        
+    	function onNodeclick(e) {
+	    	var node = tree.getSelectedNode();
+		  	var nodeId = node.id;
+    		grid.setUrl("../branch/com_change!listdata.action?id="+node.id);
+            grid.load();
+     }
+     
+     	function changeSubmit(){
+     		var row = grid.getSelected();
+            if (row) {
+                mini.confirm("您确定要提交该信息吗？","提醒",function(action){
+                if(action=="ok"){
+                    $.ajax({
+                        url : "../branch/com_change!changeSubmit.action?id=" + row.id,
+                        type:'post',
+                        success: function (text) {
+                            if(text=="success"){
+                                grid.reload();
+                                mini.alert("删除成功！");
+                            }else{
+                                mini.alert(text);
+                            }
+                        }
+                    });
+                }
+            });
+            } else {
+                 mini.alert("请选中一条记录！");
+            }
+     	}
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+package com.lingnet.hcm.dao.empdata;
+
+import java.util.HashMap;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Punish;
+import com.lingnet.util.Pager;
+/**
+ *	处罚Dao
+ */
+public interface PunishDao extends BaseDao<Punish, String>{
+	public HashMap<String, Object> getListData(Pager pager, String searchData);
+}

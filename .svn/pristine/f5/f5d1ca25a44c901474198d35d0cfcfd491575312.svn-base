@@ -1,0 +1,58 @@
+package com.lingnet.hcm.entity;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+@Entity
+@Table(name = "JC_WORK_FLOW")
+public class WorkFlowPrent  extends BaseEntity implements java.io.Serializable  { 
+    private static final long serialVersionUID = 1L;
+    private String name;//流程名称
+    private String type;//流程类别
+    private Integer state;//流程开启状态  0关闭  1 开启
+    private String creatman;//流程创建人
+    private String memo;//流程创建人
+    public WorkFlowPrent() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+    @Column(name = "WORK_FLOW_NAME")
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    @Column(name = "WORK_FLOW_TYPE")
+    public String getType() {
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;
+    }
+    @Column(name = "WORK_FLOW_STATE")
+    public Integer getState() {
+        return state;
+    }
+    public void setState(Integer state) {
+        this.state = state;
+    }
+    @Column(name = "WORK_FLOW_CREATMAN")
+    public String getCreatman() {
+        return creatman;
+    }
+    public void setCreatman(String creatman) {
+        this.creatman = creatman;
+    }
+    @Column(name = "WORK_FLOW_MEMO")
+    public String getMemo() {
+        return memo;
+    }
+    public void setMemo(String memo) {
+        this.memo = memo;
+    }
+    
+}

@@ -1,0 +1,294 @@
+@charset "utf-8";
+/* CSS Document */
+/* 全局样式 */
+*{ padding:0px; margin:0px; font-size:12px; color:#333333; }
+ul,ol{ padding:0px; margin:0px; list-style:none;}
+body,ul,ol,dl,li,p,h1,h2,h3,h4,h5,h6,form,fieldset,table,td,img,div{margin:0;padding:0;border:0;}
+.clear{ clear:both;}
+a{ color:#333; text-decoration:none }
+a:hover{  text-decoration:none;}
+
+body{background: #379BE9;}
+
+.wrap
+{
+	min-width: 1250px;
+}
+
+.main
+{
+	width: 1002px;
+	margin:0 auto;
+}
+
+.header
+{
+	width: 100%;
+	min-width: 1250px;
+	height: 95px;
+}
+
+.mainleft
+{
+	float: left;
+	width: 570px;
+	height: 425px;
+	/*margin-left: 175px;*/
+	_display:inline;
+	position:relative;
+
+}
+
+.mainlogin
+{
+	width: 305px;
+	min-height: 290px;
+	float: right;
+	/*margin-right: 135px;*/
+	margin-top: 45px;
+	_display: inline;
+}
+
+.logtop
+{
+	width: 307px;
+	height: 15px;
+	background: url(../images/logtop.png) left bottom;
+}
+
+.logmid
+{
+	width: 307px;
+	min-height:255px;
+	background: url(../images/logmid.png) repeat-y;
+}
+
+.logbtm
+{
+	width: 307px;
+	height: 15px;
+	background: url(../images/logbtm.png) left top;
+}
+
+.logtit
+{
+	width:280px;
+	height:18px;
+	line-height: 18px;
+	font-size:16px;
+	color:#67B3EE;
+	margin-left: 20px;
+	font-weight:bold;
+	letter-spacing:1px;
+} 
+
+.user, .paw
+{
+	width: 265px;
+	height: 32px;
+	margin-left: 20px;
+	margin-top: 15px;
+	background: white;
+	overflow:hidden;
+	border:1px solid #D1D1D1;
+}
+
+.user span, .paw span, .check span
+{
+	display:block;
+	float: left;
+	_display:inline-block;
+}
+
+.userspan, .pawspan
+{
+	height: 32px;
+	line-height: 32px;
+	margin-left: 10px;
+	letter-spacing:2px;
+	width: 50px;
+	text-align: right;
+	_display:inline;
+	color:#6F6F6F;
+	
+}
+
+.user input, .paw input
+{
+	height: 30px;
+	border:0;
+	width: 115px;
+	color:#6F6F6F;
+	margin-left: 5px;
+	line-height: 30px;
+}
+
+.check
+{
+	margin-left: 20px;
+	margin-top: 15px;
+	width: 265px;
+	height: 32px;
+}
+
+.check input
+{
+	width: 100px;
+	height: 32px;
+	line-height: 32px;
+	color:#6F6F6F;
+	border:1px solid #D1D1D1;
+}
+
+.checkcode
+{
+	margin-left:16px;
+	width: 88px;
+	height: 32px;
+	border:1px solid #D1D1D1;
+}
+
+.checktip
+{
+	width: 45px;
+	height: 32px;
+	text-align: right;
+	margin-left: 10px;
+}
+
+.checktip a
+{
+	color:#3E72BA;
+	font-size:12px;
+	line-height:17px;
+	text-decoration:underline;
+}
+
+.logbut
+{
+	margin-top: 35px;
+	margin-left: 20px;
+}
+
+.log_butt:hover{cursor:pointer;}
+.log_butt
+{
+	width: 86px;
+	height: 34px;
+	border:0;
+	color:white;
+	letter-spacing:5px;
+	margin-right: 10px;
+	vertical-align: middle;
+	background: url(../images/logbut.png) left top no-repeat;
+}
+
+.logbut a{color:#266CCD;}
+
+.jizhu
+{
+	vertical-align: -2px;
+}
+
+.yunbg
+{
+	height: 123px;
+	width: 100%;
+	background: url(../images/cloudbg.png) left top;
+	position:fixed;
+	bottom:0 ; 
+	z-index:9999;
+}
+
+.reme
+{
+	*margin-top:-10px !important;
+}
+
+.jz{ color:#266CCD; }
+.jz:hover{ cursor:pointer; }
+
+
+
+.img-content {
+	float:left;
+	overflow:hidden;
+	height:417px;
+	margin-right:28px
+}
+.img-content a {
+	cursor:default
+}
+.img-content img {
+	display:none
+}
+.img-content img.current {
+	display:block
+}
+.img-content .index-slide-img {
+	border:0 none
+}
+
+.focus-content {
+	bottom:50px;
+	position:absolute;
+	left:433px;
+	/* margin-left: 433px;
+	margin-top: 20px; */
+}
+.focus-content .focus-content-item {
+	float:left;
+	padding:0 7px
+}
+.focus-content .focus-content-item .focus-anchor {
+   /*  background:url("http://s1.pan.bdstatic.com/static/images/new/login-all.gif?r=201307312958") -911px -67px no-repeat;
+	 */display:block;
+	height:12px;
+	outline:medium none;
+	overflow:hidden;
+	width:12px
+}
+
+.focus-content .focus-content-item .focus-anchor:hover,.focus-content .focus-content-item .current {
+	/* background:url("http://s1.pan.bdstatic.com/static/images/new/login-all.gif?r=201307312958") -937px -67px no-repeat
+ */}
+
+
+.errorText
+{
+	float:left;
+	height: 30px;
+	line-height: 30px;
+	color:rgb(204, 46, 46);
+	text-align:right;
+	width:79px;
+}
+
+.mini-textbox-border {
+	background: white;
+	border: 0;
+	width: auto;
+	height: 32px;
+	display: block;
+	position: relative;
+	overflow: hidden;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.mini-textbox .mini-textbox-border
+{
+	background:white;
+}
+
+.mini-textbox {
+	width: 115px;
+	height: 32px;
+	display: inline-block;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	vertical-align: middle;
+	position: relative;
+}
+

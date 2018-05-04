@@ -1,0 +1,32 @@
+package com.lingnet.hcm.service.impl.empdata;
+
+import java.util.HashMap;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.empdata.JobTitleDao;
+import com.lingnet.hcm.dao.empdata.RelationDao;
+import com.lingnet.hcm.entity.person.JobTitle;
+import com.lingnet.hcm.entity.person.Relation;
+import com.lingnet.hcm.service.empdata.JobTitleService;
+import com.lingnet.hcm.service.empdata.RelationService;
+import com.lingnet.util.Pager;
+
+/**
+ * 职称聘任
+ * service实现类
+ */
+@Service("jobTitleService")
+public class JobTitleServiceImpl extends BaseServiceImpl<JobTitle, String> implements JobTitleService{
+	
+	@Resource(name = "jobTitleDao")
+	private JobTitleDao jobTitleDao;
+	
+	@Override
+	public HashMap getListData(Pager pager, String searchData) {
+		return jobTitleDao.getListData(pager,searchData);
+	}
+}

@@ -1,0 +1,344 @@
+package com.lingnet.qxgl.action.system; 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList; 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map; 
+
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;  
+
+import com.lingnet.common.action.BaseAction; 
+import com.lingnet.hcm.entity.WorkFlowChild;
+import com.lingnet.hcm.entity.WorkFlowPrent;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxUser; 
+import com.lingnet.util.JsonUtil;
+@SuppressWarnings("serial")
+public class WorkFlowAction extends BaseAction{
+     private String pid;
+     private String id;
+     private WorkFlowPrent workflowp;
+     private WorkFlowChild workflowc;
+     private String jsondate;
+     private String type;
+
+     /**
+      * 
+      * @Title: list 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String list(){
+         return "list";
+     }
+     @SuppressWarnings({ "unchecked", "rawtypes" })
+    public String getworkflow(){ 
+    	 List<WorkFlowPrent> parentlist = this.getBeanListByCriteria(WorkFlowPrent.class, Restrictions.eq("type",type), Restrictions.eq("state", 1));
+//        try {
+//             pager.setPageNumber(1000);
+//             pager = this.findPagerBySql(pager, sql);
+////            pager=this.findPager(WorkFlowPrent.class, pager, Restrictions.eq("type",type), Restrictions.eq("state", 1));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+         Map result = new HashMap();
+         List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+//         List<WorkFlowPrent> parentlist=(List<WorkFlowPrent>) pager.getResult();
+         if(parentlist!=null && parentlist.size()>0){
+             for (int i = 0; i < parentlist.size(); i++) {
+                 workflowp=parentlist.get(i);
+                 Map<String, String> map = new HashMap<String, String>(); 
+                 map.put("id",workflowp.getId()); 
+                 map.put("text", workflowp.getMemo());
+                 list.add(map);
+            }
+         }
+         result.put("data", list);
+         result.put("total", pager.getTotalCount());
+         String json = JsonUtil.Encode(result);
+         return ajax(Status.success,json);
+     }
+     /**
+      * 
+      * @Title: jsonlist 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public String jsonlist(){
+         try {
+            pager=this.findPager(WorkFlowPrent.class, pager, Restrictions.eq("state", 1));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+         Map result = new HashMap();
+         List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+         List<WorkFlowPrent> parentlist=(List<WorkFlowPrent>) pager.getResult();
+         if(parentlist!=null&&parentlist.size()>0){
+             for (int i = 0; i < parentlist.size(); i++) { 
+                 workflowp=parentlist.get(i);
+                 Map<String, String> map = new HashMap<String, String>();
+                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                 map.put("id",workflowp.getId());
+                 map.put("name",workflowp.getName());
+                 map.put("type", workflowp.getType());
+                 map.put("createDate", sdf.format(workflowp.getCreateDate()));
+                 map.put("usingState", workflowp.getState()+"");
+                 map.put("processDes", workflowp.getMemo()); 
+                 list.add(map);
+            }
+         }
+         result.put("data", list);
+         result.put("total", pager.getTotalCount());
+         String json = JsonUtil.Encode(result);
+         return ajax(Status.success,json);
+     }
+     /**
+      * 获取工作流子节点信息
+      * @Title: getDataByParentId 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月10日 V 1.0
+      */
+     @SuppressWarnings({ "rawtypes", "unchecked" })
+     public String getDataByParentId(){
+         if(id==null||"".equals(id.trim())){ 
+                     return ajax(Status.success, "");
+         }else{
+             try {
+                pager=this.findPager(WorkFlowChild.class, pager, Restrictions.eq("pid",id));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+         }
+         Map result = new HashMap();
+         List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+         List<WorkFlowChild> childlist=(List<WorkFlowChild>) pager.getResult(); 
+         for (int i = 0; i < childlist.size(); i++) { 
+             workflowc=childlist.get(i);
+             Map<String, String> map = new HashMap<String, String>();
+             map.put("sort", workflowc.getSort()+"");
+             map.put("appman", workflowc.getAppman());
+             map.put("appdeptname", workflowc.getAppdeptname());
+             map.put("id",workflowc.getId());
+             list.add(map);
+        }
+         result.put("data", list);
+         result.put("total", pager.getTotalCount());
+         String json = JsonUtil.Encode(result);
+         return ajax(Status.success, json);
+     }
+
+     /**
+      * 获取工作流子节点信息
+      * @Title: getDataByParentId 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月10日 V 1.0
+      */
+     @SuppressWarnings({ "rawtypes", "unchecked" })
+     public String getDataByPId(){
+         if(pid==null||"".equals(pid.trim())){ 
+             return ajax(Status.success, "数据错误");
+         }else{
+             try {
+                //pager=this.findPager(WorkFlowChild.class, pager, Restrictions.eq("pid",pid));
+                pager=this.findPagerByOrder(WorkFlowChild.class, pager, Order.asc("sort"), Restrictions.eq("pid",pid));            
+             } catch (Exception e) {
+                e.printStackTrace();
+            }
+         }
+         Map result = new HashMap();
+         List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+         List<WorkFlowChild> childlist=(List<WorkFlowChild>) pager.getResult(); 
+         for (int i = 0; i < childlist.size(); i++) { 
+             workflowc=childlist.get(i);
+             Map<String, String> map = new HashMap<String, String>(); 
+             map.put("text", workflowc.getSort() + " " +workflowc.getAppman()); 
+             //map.put("id",workflowc.getAppid());
+             map.put("id", workflowc.getId());
+             list.add(map);
+        }
+         result.put("data", list);
+         result.put("total", pager.getTotalCount());
+         String json = JsonUtil.Encode(result);
+         return ajax(Status.success, json);
+     }
+     /**
+      * 
+      * @Title: add_prent 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String add_prent(){
+         return "add";
+     }
+     /**
+      * 
+      * @Title: add_child 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String add_child(){
+         workflowc=new WorkFlowChild();
+         if(id==null||"".equals(id.trim())){ 
+             workflowc.setPid(pid);
+         }else{
+             workflowc=this.getBeanById(WorkFlowChild.class, id);
+         }
+         return "subadd";
+     }
+     /**
+      * 
+      * @Title: saveorupdate_p 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String saveorupdate_p(){
+         if(jsondate!=null||"".equals(jsondate.trim())){
+             workflowp=JsonUtil.toObject(jsondate, WorkFlowPrent.class);
+             if(workflowp!=null&&(workflowp.getId()!=null||(!"".equals(workflowp.getId().trim())))){
+                 this.save(workflowp);
+             }else{
+                 this.update(workflowp);
+             }
+         }
+         return ajax(Status.success,"success");
+     }
+     /**
+      * 
+      * @Title: saveorupdate_c 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String saveorupdate_c(){
+         if(jsondate!=null||"".equals(jsondate.trim())){
+             workflowc=JsonUtil.toObject(jsondate, WorkFlowChild.class);
+             if(workflowc==null||workflowc.getPid()==null||"".equals(workflowc.getPid().trim())){ 
+                 return ajax(Status.success,"未找到上级流程节点。不能添加");
+             }
+             /*查用户表，放入用户userid */
+             QxUser userinfo=new QxUser();
+             if(workflowc.getAppid()==null||"".equals(workflowc.getAppid().trim())){
+                 return ajax(Status.success,"未找到上级流程节点。不能添加");
+             }else{ 
+                 userinfo=this.getBeanByCriteria(QxUser.class, Restrictions.eq("username", workflowc.getAppid())); 
+                 if(userinfo!=null){
+                     workflowc.setAppman(userinfo.getName());
+                     workflowc.setAppdeptid(userinfo.getDepId());
+                     if(userinfo.getDepId()==null||"".equals(userinfo.getDepId().trim())){
+                         workflowc.setAppdeptname("");
+                     }else{ 
+                         workflowc.setAppdeptname(this.getBeanById(QxDepartment.class,  userinfo.getDepId() ).getName());
+                     }
+                 }
+             }
+             if(workflowc.getId()==null||("".equals(workflowc.getId().trim()))){
+                 this.save(workflowc);
+             }else{
+                 this.update(workflowc);
+             }
+         }
+         return ajax(Status.success,"success");
+     }
+     /**展示选择上级提报用户的页面
+      * @Title: showuser 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月11日 V 1.0
+      */
+     public String showuser(){ 
+         return "user";
+     }
+     /**
+      * 删除一个主表，并循环删除相关子表信息
+      * @Title: remove_p 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String remove_p(){
+         if(id==null||"".equals(id.trim())){
+             return ajax(Status.success,"操作失败，请重新操作");
+         }else{
+             List<WorkFlowChild> flowclist=this.getBeanListByCriteria(WorkFlowChild.class,
+                     Restrictions.eq("pid", id));
+             for (int i = 0; i < flowclist.size(); i++) { 
+                 this.deleteByCriteria(WorkFlowChild.class, Restrictions.eq("id", flowclist.get(i).getId()));
+            }
+             this.deleteByCriteria(WorkFlowPrent.class, Restrictions.eq("id", id));
+         }
+         return ajax(Status.success,"success");
+     }
+     /**
+      * 删除一个子表
+      * @Title: remove_c 
+      * @return 
+      * String 
+      * @author 马晓鹏
+      * @since 2017年4月15日 V 1.0
+      */
+     public String remove_c(){
+         if(id==null||"".equals(id.trim())){
+             return ajax(Status.success,"操作失败，请重新操作");
+         }else{
+             this.deleteByCriteria(WorkFlowChild.class, Restrictions.eq("id", id));
+         }
+         return ajax(Status.success,"success");
+     }
+      
+     /*-*-*-*--------------------------------------------------------------------------------------------------------*/
+    public String getPid() {
+        return pid;
+    }
+    public void setPid(String pid) {
+        this.pid = pid;
+    }
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public WorkFlowPrent getWorkflowp() {
+        return workflowp;
+    }
+    public void setWorkflowp(WorkFlowPrent workflowp) {
+        this.workflowp = workflowp;
+    }
+    public WorkFlowChild getWorkflowc() {
+        return workflowc;
+    }
+    public void setWorkflowc(WorkFlowChild workflowc) {
+        this.workflowc = workflowc;
+    }
+    public String getJsondate() {
+        return jsondate;
+    }
+    public void setJsondate(String jsondate) {
+        this.jsondate = jsondate;
+    }
+    public String getType() {
+        return type;
+    }
+    public void setType(String type) {
+        this.type = type;
+    }
+}

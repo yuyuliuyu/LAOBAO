@@ -1,0 +1,335 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>工资套增加、编辑</title>
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+        .link {text-decoration: none;}
+    </style>
+</head>
+
+<body>
+    <div id="form1">
+        <table style="width:100%;" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="list_left_box1" valign="top">公司：</td>
+                <td class="list_right_box">
+                    <input class="mini-hidden" id="id" name="id" value="${salaryWage.id}"/>
+                    <input class="mini-combobox asLabel" readOnly="true" id="companyId" name="companyId" textField="fzx" url="../salary/salary_manage!getBranches.action"
+                        value="${companyId}" style="width:90%"/>
+                </td>
+                <td class="list_left_box1" valign="top">工资套名称：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox" style="width:90%" name="name" value="${salaryWage.name}" maxLength="100" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">工资套类型：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" style="width:90%" value="${salaryWage.sign}"name="sign" 
+                        data="[{id:1, text:'薪酬期间工资'},{id:2, text:'绩效奖励'},{id:3, text:'提成工资'},{id:4, text:'离职结算'}]" required="true"/>
+                </td>
+                <td class="list_left_box1" valign="top">生效日期：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker" style="width:90%" id="effectDate" name="effectDate" value="${salaryWage.effectDate}" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">状态：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" style="width:90%" name="type" value="${salaryWage.type == null? 1 : salaryWage.type}"
+                        data="[{id:0,text:'无效'},{id:1,text:'有效'}]" required="true"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">描述：</td>
+                <td class="list_right_box" colspan="3">
+                    <input class="mini-textarea" value="${salaryWage.note}" name="note" style="width: 90%;height:60px" maxLength="1000"/>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-toolbar" style="padding:0px;border-top:0;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:100%;">
+                    <a class="mini-button" name= "flgStatus" iconCls="icon-add" onclick="chooseItems()">选择薪资项目</a>
+                    <a class="mini-button" name= "flgStatus" iconCls="icon-remove" onclick="removeRow()">删除</a>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-fit">
+        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" url="../salary/salary_items!getWageSalaryListData.action?id=${salaryWage.id}" pageSize="20"
+            allowAlternating="true" idField="id" allowResize="false" showPager="false"multiSelect="true"
+            allowCellEdit="true" allowCellSelect="true" oncellvalidation="onItemsCellValidation">
+            <div property="columns">
+                <div type="checkcolumn" width="20"></div>
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center"  width="30">序列</div>
+                <div field="gs" width="36" headerAlign="center" align="center">公式</div>
+                <div field="itemId" id = "itemId" name="itemId" width="100" headerAlign="center" align="center">薪资项目ID</div>
+                <div field="name" width="100" headerAlign="center" align="center">项目名称</div>
+                <div type="comboboxcolumn" field="itemType" readOnly="true" width="100" headerAlign="center" align="center">项目类型
+                    <input property="editor" class="mini-combobox" style="width:100%;" data="itemType" />
+                </div>
+                <div field="sx" width="40" headerAlign="center" align="center" vtype="required;">显示顺序
+                    <input property="editor" class="mini-spinner" style="width:100%;"minValue="0" maxValue="999999"/>
+                </div>
+                <div type="comboboxcolumn" field="isDisplay" width="60" headerAlign="center" align="center" vtype="required;">默认显示
+                    <input property="editor" class="mini-combobox" style="width:100%;" data="[{id:0,text:'不显示'},{id:1,text:'显示'}]" />
+                </div>
+                <div type="comboboxcolumn" field="type" width="40" headerAlign="center" align="center" vtype="required;">状态
+                    <input property="editor" class="mini-combobox" style="width:100%;" data="[{id:0,text:'无效'},{id:1,text:'有效'}]" />
+                </div>
+                <div field="high" width="60" headerAlign="center" align="center">上限
+                    <input property="editor" class="mini-textbox" vtype="float" style="width:100%;" minValue="-9999.99" maxValue="999999.9"/>
+                </div>
+                <div field="low" width="60" headerAlign="center" align="center">下限
+                    <input property="editor" class="mini-textbox" vtype="float" style="width:100%;"  minValue="-9999.99" maxValue="999999.9"/>
+                </div>
+                <div type="comboboxcolumn" field="isEr" width="60" headerAlign="center" align="center" vtype="required;">是否二次分配
+                    <input property="editor" class="mini-combobox" style="width:100%;" data="[{id:0,text:'否'},{id:1,text:'是'}]" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;" borderStyle="border:0;">
+        <a class="mini-button" name= "flgStatus" onclick="onOk" style="width:60px;margin-right:20px;" iconCls="icon-save">保存</a>
+        <a class="mini-button" onclick="onCancel" style="width:60px;" iconCls="icon-close">取消</a>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var itemType = [{id:1,text:'普通薪资项目'},{id:2,text:'应纳税所得额'},{id:3,text:'应缴税金'},{id:4,text:'实发工资'},{id:5,text:'应发合计'}];
+        var grid = mini.get("grid");
+        grid.hideColumn("id");
+        grid.hideColumn("itemId");
+        grid.load();
+
+        $(function() {
+            var id = '${salaryWage.id}';
+            if (id == "") {
+                var effectDate = mini.get("effectDate");
+                effectDate.setValue(new Date());
+            }
+            if ('${flg}' !="" && '${flg}' != "success") {
+                mini.alert('${flg}');
+                var flgStatus = mini.getsbyName("flgStatus");
+                for(var i=0; i < flgStatus.length; i++){
+                    var link = flgStatus[i];
+                    link.disable();
+                }
+            }
+        });
+
+        function chooseItems() {
+            mini.open({
+                url : "../salary/salary_items!choose.action?companyId=${depId}",
+                title : "选择薪资项目",
+                width : 840,
+                height : 540,
+                onload : function() {
+                },
+                ondestroy : function(action) {
+                    if (action == "ok") {
+                        var iframe = this.getIFrameEl();
+                        var data = iframe.contentWindow.GetData();
+                        data = mini.clone(data);
+                        if (data.length > 0) {
+                            var eLen = grid.getData().length;
+                            var r = [];
+                            for(var i=0,l=data.length;i<l;i++){
+                                var newRow = {itemId: data[i].id,name: data[i].name,itemType: data[i].itemType, sx: i+1+eLen,isDisplay : 1,type: 1,isEr: 0 };
+                                r.push(newRow);
+                            }
+                            grid.addRows(r);
+                        }
+                    }
+                }
+            });
+        }
+
+        grid.on("drawcell", function(e) {
+            // 公式
+            if (e.field=="gs") {
+                var row = e.row;
+                var rowId = e.row.id;
+                var html = "公式";
+                if (rowId != "" && rowId != null) {
+                    if (row.isNumber == 0) {
+                        html = '<a href="javascript:void(0);" class="link" onclick="tips()">公式</a>';
+                    } else {
+                        var cell = "";
+                        if (row.formulaCount > 0) {
+                            cell = "color:red";
+                        }
+                        html = '<a href="javascript:void(0);" class="link" style="'+cell+'" onclick="gs(\''+rowId+'\',\''+row.itemId+'\', \'${depId}\')">公式</a>';
+                    }
+                }
+                e.cellHtml=html;
+            }
+        });
+
+        function tips() {
+            mini.alert("不是数值，不能添加公式");
+        }
+
+        function gs(id, itemId, authCom) {
+            mini.open({
+                url : "../salary/salary_formula!list.action?id="+id+"&wageId=${salaryWage.id}&itemId=" + itemId+"&type=1&readOnly=0&depId=${depId}",
+                title : "公式列表",
+                width : 680,
+                height : 540,
+                onload : function() {
+                },
+                ondestroy : function(action) {
+                    grid.reload();
+                }
+            });
+        }
+
+        function onItemsCellValidation(e) {
+            var field = e.field, record = e.record;
+            // 上限
+            if (field == "high") {
+                if (record < 0 || record > 99999.99) {
+                    e.errorText = "输入的值不合法";
+                    e.isValid = false;
+                }
+            }
+        }
+
+        function onOk() {
+            // 表单部分
+            var form = new mini.Form("#form1");
+            var formjson="";
+            if(form){
+                form.validate();
+                if (form.isValid() == false)return;
+                // 提交表单数据
+                var formdata = form.getData();
+                formjson = mini.encode(formdata); 
+            }
+            // 表格部分
+            var grid=mini.get("grid");
+            var gridjson="";
+            if(grid){
+                // 验证
+                grid.validate();
+                if (grid.isValid() == false) {
+                    gridError(grid);
+                    return;
+                }
+                var data = grid.getData();
+                if(data.length<1){// 空行也算length
+                    mini.alert("详细信息为空，保存失败！");
+                    return;
+                }
+                // 判断grid是否存在相同的薪资项目
+                var hash = {};
+                for ( var i = 0, l = data.length; i < l; i++) {
+                    var row = data[i];
+                    if(row.id == ""||typeof(row.id)== "undefined"){
+                        row._state="added";
+                        grid.updateRow(row,row);
+                    }else{
+                        row._state="modified";
+                        grid.updateRow(row,row);
+                    }
+                    if(row.itemId != undefined && hash[row.itemId]) {
+                        mini.alert("存在相同的薪资项目：<font color='red'>"+row.name +"</font>");
+                        return;
+                    }
+                    if (row.changeItem != 1) {
+                        hash[row.itemId] = true;
+                    }
+                }
+                var griddata = grid.getChanges();
+                gridjson= mini.encode(griddata);
+            }
+            window.parent.loading();
+            $.ajax({
+                url : "../salary/salary_items!saveOrUpdateToWage.action",
+                type : "post",
+                data : {
+                    formdata : formjson,
+                    griddata : gridjson
+                },
+                success : function(text) {
+                    window.parent.unmask();
+                    if (text == "success") {
+                        mini.showMessageBox({
+                            title: "提醒",
+                            width: 250,
+                            iconCls: "mini-messagebox-warning",
+                            buttons: ["ok"],
+                            message: "保存成功",
+                            callback: function (action) {
+                                CloseWindow("ok");
+                            }
+                        });
+                    } else {
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                }
+            });
+        }
+
+        function gridError(grid){
+            var error = grid.getCellErrors()[0];
+            var head = error.column.header.replace(/[\r\n]/g,"").replace(/[ ]/g,"");
+            var errorText = error.errorText;
+            mini.showMessageBox({
+                 title: "提醒",
+                 iconCls: "mini-messagebox-warning",
+                 buttons: ["ok"],
+                 message: head+":"+errorText+",请修改后重新操作!",
+                 callback: function (action) {
+                      grid.setSelected(error.record);
+                      grid.beginEditCell(error.record, error.column);
+                      return;
+                   }
+                 });
+        }
+
+        /** 关闭按钮点击事件 */
+        function onCancel() {
+            CloseWindow("cancel");
+        }
+
+        /** 关闭窗口 */
+        function CloseWindow(action) {
+            if (window.CloseOwnerWindow)
+                return window.CloseOwnerWindow(action);
+            else
+                window.close();
+        }
+        function removeRow() {
+            var rows = grid.getSelecteds();
+            if (rows.length > 0) {
+                grid.removeRows(rows, false);
+            }else{
+                mini.alert("请选择需要删除的记录!");
+            }
+        }
+    </script>
+</body>
+</html>

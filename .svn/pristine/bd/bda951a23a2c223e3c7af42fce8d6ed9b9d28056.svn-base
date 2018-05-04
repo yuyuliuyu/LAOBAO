@@ -1,0 +1,257 @@
+package com.lingnet.hcm.dao.personnel;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: PersonnelDao 
+ * @Description: 人员信息Dao
+ * @author zrl
+ * @date 2017年3月20日 上午11:58:58 
+ *
+ */
+public interface PersonnelDao extends BaseDao<BasicInformation, String>{
+	
+	/**
+	 * 人员list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getPersonByDepId(Pager pager, String searchData,String depIds);
+	/**
+	 * 试岗期list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getSgqPerson(Pager pager,String searchData,String depIds)throws Exception;
+	/**
+	 * 正式工list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getZsgPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 实习生list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getSxsPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 劳务外包list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getLwwbPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 业务外包list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getYwwbPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 退休人员list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getTxPerson(Pager pager,String searchData);
+	/**
+	 * 离职人员list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getLzPerson(Pager pager,String searchData);
+	/**
+	 * 返聘人员list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getFpPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 复员军人list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getFyjrPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 非在岗list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getFzgPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 技术工人list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getJsgrPerson(Pager pager,String searchData,String depIds);
+	/**
+	 * 专业技术人员list页面
+	 * @Title: getInfosByDepId 
+	 * @param depId
+	 * @return 
+	 * @author zrl
+	 * @since 2017年3月21日 V 1.0
+	 */
+	public HashMap<String, Object> getZyjsryPerson(Pager pager,String searchData,String depIds);
+	
+	
+	/**
+	 * 根据职工号查询人员信息
+	 * @Title: getByJobNumber 
+	 * @param jobNumber
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月23日 V 1.0
+	 */
+	public BasicInformation getByJobNumber(String jobNumber);
+	
+	/**
+	 * 获得所有职工号集合
+	 * @Title: getAllJobNumbers 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月24日 V 1.0
+	 */
+	public List<Object> getAllJobNumbers();
+	
+	/**
+	 * 获得所有职工号集合
+	 * @Title: getAllCheckNumbers 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月24日 V 1.0
+	 */
+	public List<Object> getAllCheckNumbers();
+	
+	/**
+	 * 批量更换人员班组
+	 * @Title: updateBatchClass 
+	 * @param empIds
+	 * @param depIds 
+	 * @author wangqiang
+	 * @since 2017年4月6日 V 1.0
+	 */
+	public void updateBatchClass(String empIds, String depIds, String classNo);
+	
+	/**
+	 * 根据部门id集合获取员工月度考勤信息
+	 * @Title: getCheckInfosByDepIds 
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月17日 V 1.0
+	 */
+	public List<Object[]> getCheckInfosByDepIds(String depIds);
+	
+	/**
+	 * 根据部门id查询部门下员工ID集合
+	 * @Title: getEmpIdsByDepIds 
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月20日 V 1.0
+	 */
+	public String getEmpIdsByDepIds(String depIds);
+	
+	/**
+	 * 根据员工ID集合查询员工信息集合
+	 * @Title: getDataByEmpIds 
+	 * @param pager
+	 * @param empIdArrs
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月20日 V 1.0
+	 */
+	List<Map<String, String>> getDataByEmpIds(Pager pager, List<String> empIdArrs);
+	
+	/**
+	 * 根据部门id集合获得员工号字符串集合
+	 * @Title: getJobNumbersByDepIds 
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月21日 V 1.0
+	 */
+	public String getJobNumbersByDepIds(String depIds);
+	
+	/**
+	 * 根据职工号查询职工所属考勤单位Id
+	 * @Title: getCheckUnitIdByJobNumber 
+	 * @param jobNumber
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月22日 V 1.0
+	 */
+	public String getCheckUnitIdByJobNumber(String jobNumber);
+	
+	/**
+	 * 根据条件获得年假信息
+	 * @Title: getAnnualLeaveData 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月24日 V 1.0
+	 */
+	public List<Map<String, String>> getAnnualLeaveData(Pager pager, String searchData, String depIds);
+	
+	/**
+	 * 根据员工id查询员工所属考勤单位ID
+	 * @Title: getCheckUnitIdById 
+	 * @param id
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月25日 V 1.0
+	 */
+	public String getCheckUnitIdById(String id);
+	
+	/**
+	 * 获得员工基本信息
+	 * @Title: getAnnualDataList 
+	 * @param year
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月27日 V 1.0
+	 */
+	public List<Map<String, String>> getAnnualDataList(String searchData, String depIds);
+}

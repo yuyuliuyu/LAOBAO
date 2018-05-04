@@ -1,0 +1,173 @@
+package com.lingnet.hcm.dao.impl.branch;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.branch.PerformanceAppraisalDao;
+import com.lingnet.hcm.entity.basic.PerformanceAppraisal;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 绩效考核
+ * @ClassName: PerformanceAppraisalDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年7月12日 下午6:26:19 
+ *
+ */
+@Repository("performanceAppraisalDao")
+public class PerformanceAppraisalDaoImpl extends BaseDaoImplInit<PerformanceAppraisal, String>
+            implements PerformanceAppraisalDao {
+
+    @Override
+    public Map<String, Object> getCurComStaffDatas(String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                             ");
+        sql.append("   JBI.ID, JBI.NAME, NVL(B2.FZX, B.FZX) COMPANYNAME, NVL(QD2.NAME, QD.NAME) DEPTNAME,  ");
+        sql.append("   NVL(B2.ID, B.FZX) COMPANYID, NVL(QD2.ID, QD.ID) DEPTID, JBI.JOB_NUMBER   ");
+        sql.append("   FROM JC_BASIC_INFORMATION JBI                                                      ");
+        sql.append("   LEFT JOIN XC_SALARY_RECORD SR                                                      ");
+        sql.append("   ON JBI.ID = SR.FILM_NAME                                                           ");
+        sql.append("   LEFT JOIN BRANCH B                                                                 ");
+        sql.append("   ON JBI.FILM_ID = B.ID                                                              ");
+        sql.append("   LEFT JOIN BRANCH B2                                                                ");
+        sql.append("   ON SR.FILM_NAME = B2.ID                                                            ");
+        sql.append("   LEFT JOIN QX_DEPARTMENT QD                                                         ");
+        sql.append("   ON JBI.DEPART_ID = QD.ID                                                           ");
+        sql.append("   LEFT JOIN QX_DEPARTMENT QD2                                                        ");
+        sql.append("   ON SR.DEPTNAME = QD2.ID                                                            ");
+        sql.append("   WHERE JBI.IS_DELETE = 0                                                            ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 用户名
+            if (!StringUtils.isBlank(mapData.get("userName"))) {
+                sql.append("   AND JBI.NAME LIKE '%"+mapData.get("userName").trim()+"%'                     ");
+            }
+        }
+        sql.append("   ORDER BY JBI.CREATEDATE ASC                                                        ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("companyName", obj[2]);
+            map.put("deptName", obj[3]);
+            map.put("companyID", obj[4]);
+            map.put("deptID", obj[5]);
+            map.put("jobNumber", obj[6]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getCurAndDeptDatas(String userId, String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                           ");
+        sql.append("   JPA.ID,JPA.DEPTID,JPA.DEPT_NAME,JPA.USERID,JPA.USER_NAME,JPA.PERFOR_DEPT_ID,     ");
+        sql.append("   JPA.PERFOR_DEPT_NAME,JPA.PERFOR_STYLE,JPA.PERFOR_THING,JPA.PERFOR_DATE,           ");
+        sql.append("   JPA.PERFOR_APPR,JPA.PERFOR_STATE,JPA.PERFOR_REWARD_SCROE,JPA.PERFOR_REWARD_MONEY, ");
+        sql.append("   JPA.PERFOR_PUNISH_SCROE,JPA.PERFOR_PUNISH_MONEY,JPA.CTR_ID                        ");
+        sql.append("   FROM JC_PERFORMANCE_APPRAISAL JPA                                                 ");
+        sql.append("   LEFT JOIN JC_BASIC_INFORMATION JBI                                                ");
+        sql.append("   ON JPA.USERID = JBI.ID                                                            ");
+        sql.append("   WHERE JPA.IS_DELETE = 0                                                           ");
+
+        // 获取部门所在领导用户名
+        String curDept = LingUtil.userinfo().getDepId();
+        String userName = LingUtil.userinfo().getUsername();
+        StringBuilder checkSql = new StringBuilder();
+        checkSql.append("    SELECT                                                                  ");
+        checkSql.append("    JOB_NUMBER,DEPART_ID                                                    ");
+        checkSql.append("    FROM (                                                                  ");
+        checkSql.append("      SELECT JBI2.JOB_NUMBER,NVL(SR.DEPTNAME, JBI2.DEPART_ID) DEPART_ID,    ");
+        checkSql.append("               NVL(JTGW2.POSITION_CODE, JTGW1.POSITION_CODE) BM             ");
+        checkSql.append("        FROM JC_BASIC_INFORMATION JBI2                                      ");
+        checkSql.append("        LEFT JOIN XC_SALARY_RECORD SR                                       ");
+        checkSql.append("        ON JBI2.ID = SR.STAFF_ID                                            ");
+        checkSql.append("        LEFT JOIN DEPT_POSITION JTGW1                                       ");
+        checkSql.append("        ON JTGW1.ID = JBI2.SPECIFIC_POST_ID                                 ");
+        checkSql.append("        LEFT JOIN DEPT_POSITION JTGW2                                       ");
+        checkSql.append("        ON JTGW2.ID = SR.SPECIFIC_POST                                      ");
+        checkSql.append("        WHERE JBI2.IS_DELETE = 0                                            ");
+        checkSql.append("    ) DATAS                                                                 ");
+        checkSql.append("    WHERE ROWNUM = 1                                                        ");
+        checkSql.append("      AND DEPART_ID = '"+curDept+"'                                         ");
+        checkSql.append("    ORDER BY BM ASC                                                         ");
+        List<?> checkList = findBySql(checkSql.toString());
+        String jobNumber = "";
+        String deptId = "";
+        if (checkList.size() > 0) {
+            Object[] obj = (Object[]) checkList.get(0);
+            jobNumber = obj[0].toString();
+            deptId = obj[1].toString();
+        }
+
+        // 当前登录人是领导
+        if (userName.equals(jobNumber)) {
+            sql.append("   AND (JBI.JOB_NUMBER = '"+userId+"' OR JPA.DEPTID = '"+deptId+"')        ");
+        } else {
+            sql.append("   AND JBI.JOB_NUMBER = '"+userId+"'                                                 ");
+        }
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 用户名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND JPA.USER_NAME LIKE '%"+mapData.get("name").trim()+"%'                     ");
+            }
+        }
+        sql.append("   ORDER BY JPA.CREATEDATE DESC                                                     ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("deptid", obj[1]);
+            map.put("deptName", obj[2]);
+            map.put("userid", obj[3]);
+            map.put("userName", obj[4]);
+            map.put("perforDeptId", obj[5]);
+            map.put("perforDeptName", obj[6]);
+            map.put("perforStyle", obj[7]);
+            map.put("perforThing", obj[8]);
+            map.put("perforDate", obj[9]);
+            map.put("perforAppr", obj[10]);
+            map.put("perforState", obj[11]);
+            map.put("perforRewardScroe", obj[12]);
+            map.put("perforRewardMoney", obj[13]);
+            map.put("perforPunishScroe", obj[14]);
+            map.put("perforPunishMoney", obj[15]);
+            map.put("ctrId", obj[16]);
+            map.put("curJobNumber", userName);
+            map.put("leaderJobNumber", jobNumber);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+}

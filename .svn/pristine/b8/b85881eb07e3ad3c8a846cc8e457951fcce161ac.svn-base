@@ -1,0 +1,276 @@
+package com.lingnet.hcm.action.personnel;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.hcm.service.personnel.PersonnelUploadService;
+import com.lingnet.hcm.service.train.TableColumService;
+
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import freemarker.template.TemplateExceptionHandler;
+
+
+
+/**
+ * 
+ * @ClassName: DepartureAction 
+ * @Description: 兼职人员管理Action 
+ * @author zhangruiling 
+ * @date 2017年3月10日 上午10:56:46 
+ *
+ */
+@Controller
+public class PersonnelUploadAction extends BaseAction{
+
+	private static final long serialVersionUID = -1612996567615205324L;
+	private String flag;//标志位
+    private String formdata;
+    private BasicInformation info;
+    private String jobNumber;
+    private String personId;
+    private File uploadFile;// 导入的文件
+    
+    @Resource(name="personnelUploadService")
+    private PersonnelUploadService personnelUploadService;
+    
+    @Resource(name="personnelService")
+    private PersonnelService personnelService;
+    
+    @Resource(name = "tablecolumservice")
+    private TableColumService tableService;
+    
+    /**
+     * 上传页面
+     */
+    public String importInfos(){
+        return "importInfos";
+    }
+    /**
+     * 导入人员基本信息
+     * @Title: importSave 
+     * @return 
+     * @author zhangruiling 
+     * @since 2017年3月24日 V 1.0
+     */
+    public String importSave() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        // 获取上传文件的名字
+        String[] fileName = wrapper.getFileNames("uploadFile");
+        if (fileName.length == 0) {
+            return ajax(Status.success, "请选择上传文件！");
+        }
+        // 文件后缀
+        String endSuffix= fileName[0].substring(fileName[0].lastIndexOf("."), fileName[0].length());
+        if (!endSuffix.toLowerCase().endsWith("xls")
+                && !endSuffix.toLowerCase().endsWith("xlsx")) {
+                return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
+        }
+        try {
+            String message = personnelUploadService.saveImportInfos(endSuffix, uploadFile);
+            String msg = "";
+            if (message.indexOf("@") == 0) {
+                msg = message.substring(1, message.length());
+            }
+            ServletActionContext.getRequest().getSession().setAttribute("_repeatItem", msg);
+            return ajax(Status.success, message);
+        } catch (Exception e) {
+            String message = e.getMessage();
+            if (message.indexOf("@") == 0) {
+                message = message.substring(1, message.length());
+            }
+            ServletActionContext.getRequest().getSession().setAttribute("_repeatItem", message);
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+    
+    /**
+     * 下载模板
+     * @Title: download 
+     * @return 
+     * @author wangqiang
+     * @since 2017年3月24日 V 1.0
+     */
+    public String download(){
+		HttpServletResponse response = getResponse();
+		HttpServletRequest request = getRequest();
+        FileInputStream fis;
+		try {
+			//String real = ToolUtil.getPropert("doc_config.properties","real_path");
+			// 下载的文件的服务器路径 + 类型相关物理路径＋文件名
+			String fielName = "jbxx.xls";
+			String name = "人员基本信息模板.xls";
+            String bath = request.getSession().getServletContext().getRealPath("");
+            String separator = File.separator;//获取当前操作系统的分隔符
+            String fileDownloadName = bath + separator + "data"+ separator +"template" + separator + fielName;  //文件路径
+			fis = new FileInputStream(fileDownloadName);
+			BufferedInputStream bis = new BufferedInputStream(fis);
+            
+            response.setContentType("application/x-msdownload");
+            // 解决中文文件名乱码问题  
+            if (request.getHeader("User-Agent").toLowerCase()  
+                    .indexOf("firefox") > 0) {  
+            	name = new String(name.getBytes("UTF-8"), "ISO8859-1"); // firefox浏览器  
+            } else if (request.getHeader("User-Agent").toUpperCase()  
+                    .indexOf("MSIE") > 0) {  
+            	name = URLEncoder.encode(name, "UTF-8");// IE浏览器  
+            }else if (request.getHeader("User-Agent").toUpperCase()  
+                    .indexOf("CHROME") > 0) {  
+            	name = new String(name.getBytes("UTF-8"), "ISO8859-1");// 谷歌  
+            } else {
+            	name = URLEncoder.encode(name, "UTF-8");
+            }
+            response.setHeader("Content-Disposition", "attachment;filename="+name);
+            // 输出文件流
+            ServletOutputStream out;
+            out = response.getOutputStream();
+            int len = -1;
+            while ((len = bis.read()) != -1) {
+                out.write(len);
+            }
+            bis.close();
+	        out.close();
+            return null;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	    return null;    
+	}
+    
+    /**
+     * 根据Doc模板生成word文件
+     * @param dataMap 需要填入模板的数据
+     * @param downloadType 文件名称
+     * @param savePath 保存路径
+     */
+    public String createDoc(){
+    	Configuration configure=new Configuration();
+    	configure.setDefaultEncoding("utf-8");
+    	Map<String,Object> dataMap=new HashMap();
+        try {
+            //加载需要装填的模板
+            Template template=null;
+            //设置模板装置方法和路径，FreeMarker支持多种模板装载方法。可以重servlet，classpath,数据库装载。
+            //加载模板文件，放在testDoc下
+            //configure.setClassForTemplateLoading(this.getClass(), "/hcm/WebContent/template");
+            configure.setDirectoryForTemplateLoading(new File(this.getRequest().getSession().getServletContext().getRealPath("/")+"template"));
+            //设置对象包装器
+            configure.setObjectWrapper(new DefaultObjectWrapper());
+            //设置异常处理器
+            configure.setTemplateExceptionHandler(TemplateExceptionHandler.IGNORE_HANDLER);
+            //定义Template对象，注意模板类型名字与downloadType要一致
+            //template=configure.getTemplate(downloadType+".xml");
+            template=configure.getTemplate("干部基本信息表"+".ftl");
+            File outFile=new File("D:\\干部基本信息表.doc");
+            Writer out=null;
+            out=new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "utf-8"));
+            dataMap=personnelUploadService.getExportInfo(personId);
+            
+            template.process(dataMap, out);
+            out.close();
+            return ajax(Status.success, "success");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ajax(Status.success, "error");
+        } catch (TemplateException e) {
+            e.printStackTrace();
+            return ajax(Status.success, "error");
+        }
+    }
+    /**
+     * 动态表头的导出
+     * @param dataMap 需要填入模板的数据
+     * @param downloadType 文件名称
+     * @param savePath 保存路径
+     */
+    public String exporttest(){
+    	
+        List<Map> objlist=personnelService.getExceptPerson(searchData);
+        /*固定写法，将service生成的excell实体类流化输出*/
+        HttpServletResponse resp = getResponse(); 
+        try {
+            HSSFWorkbook hwb = tableService.excellmap(objlist,"人事导出",new Integer[]{4,2,3});  
+            resp.setContentType("application/x-msdownload");
+            resp.setHeader("Content-Disposition", "attachment;filename="
+                    + URLEncoder.encode("人事资料", "UTF-8") + ".xls");
+            OutputStream out = resp.getOutputStream();
+            hwb.write(out);
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } 
+          return ajax(Status.success,"导出成功");
+      } 
+      
+
+   //**********************set/get**********************//
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public String getFormdata() {
+		return formdata;
+	}
+	public void setFormdata(String formdata) {
+		this.formdata = formdata;
+	}
+	public BasicInformation getInfo() {
+		return info;
+	}
+	public void setInfo(BasicInformation info) {
+		this.info = info;
+	}
+
+	public String getJobNumber() {
+		return jobNumber;
+	}
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+	public String getPersonId() {
+		return personId;
+	}
+	public void setPersonId(String personId) {
+		this.personId = personId;
+	}
+
+	public File getUploadFile() {
+		return uploadFile;
+	}
+
+	public void setUploadFile(File uploadFile) {
+		this.uploadFile = uploadFile;
+	}
+    
+
+}

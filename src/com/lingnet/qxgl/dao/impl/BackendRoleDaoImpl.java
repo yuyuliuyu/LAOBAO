@@ -1,0 +1,62 @@
+package com.lingnet.qxgl.dao.impl;
+
+import java.util.List;
+
+import org.hibernate.Hibernate;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.qxgl.dao.BackendRoleDao;
+import com.lingnet.qxgl.entity.QxRoles;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.util.Pager;
+
+@Repository("backendRoleDao")
+public class BackendRoleDaoImpl  extends  BaseDaoImplInit<QxRoles, String> implements BackendRoleDao{
+
+    
+    public List<QxRoles> findRole(String name,int start,int end){
+       
+        //String HQL = "from QxRoles qx where qx.name  like '%"+name+"%' and rownum>"+start+" and rownum<="+end;
+        String HQL = "from QxRoles qx where qx.name  like '%"+name+"%'";
+        return find(HQL);
+       /* String HQL = "Select * from Qx_Roles qx where qx.name=?";
+        return getJdbcTemplate().query(HQL, new Object[] {name}, new RowMapper<QxRoles>() {
+            public QxRoles mapRow(ResultSet resultSet,
+                    int rowNum) throws SQLException {
+                QxRoles resource = new QxRoles();
+                resource.setId(resultSet.getString(1));
+                resource.setName(resultSet.getString(2));
+                resource.setCreateDate(resultSet.getDate(3));
+                resource.setModifyDate(resultSet.getDate(4));
+                resource.setDescription(resultSet.getString(5));
+                resource.setIsSystem(resultSet.getBoolean(6));
+ 
+                return resource;
+            }
+        });*/
+    }
+    
+    @SuppressWarnings({ "rawtypes" })
+    public List getUsersByRoleId(Pager pager,String roleId){
+        String sql = "select ID, USERNAME, NAME, email, TO_CHAR(createDate, 'yyyy-MM-dd hh:mi:ss') ddate from QX_USERS qu where qu.IS_DELETE = 0 AND qu.id in(select user_id from qx_user_role where role_id = '"+roleId+"')";
+    
+//        pager = findPager(pager, getSession().createCriteria(QxUsers.class).add(Restrictions.sqlRestriction("id in(select user_id from qx_user_role where role_id = ?)",roleId,Hibernate.STRING)));
+        pager = findPagerBySql(pager, sql);
+        
+        return pager.getResult();
+        
+    }
+    
+    public QxRoles findRoleByName(String username) {
+        String HQL = "FROM QxRoles qxusers WHERE qxusers.name = ?";
+        return uniqueResult(HQL, username);
+    }
+    
+    
+    public List<QxRoles> findRolseByResource(String resourceUrl){
+        String HQL = "from QxRoles qx where qx.id in (select rr.qxRolesByRoleId from QxRoleResource rr,QxResource re where rr.qxResource = re.id and re.id in (select id from QxResource c where c.resourceurl='"+resourceUrl+"' ))";
+        return find(HQL);
+    }
+}

@@ -1,0 +1,691 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.SQLQuery;
+import org.hibernate.criterion.CriteriaSpecification;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.dao.salary.SalaryInsuranceDao;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.qxgl.dao.BranchDao;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 缴费标准表
+ * @ClassName: SalaryInsuranceDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年4月19日 下午4:26:24 
+ *
+ */
+@Repository("salaryInsuranceDao")
+public class SalaryInsuranceDaoImpl extends BaseDaoImplInit<SalaryInsurance, String> implements SalaryInsuranceDao {
+
+    @Resource(name="salaryInsuranceService")
+    private SalaryInsuranceService salaryInsuranceService;
+    @Resource(name="personnelDao")
+    private PersonnelDao personnelDao;
+    @Resource(name="branchDao")
+    private BranchDao branchDao;
+
+    @Override
+    public Map<String, Object> getNoInsuranceOfStaffListData(String depId, String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("     SELECT JBI.ID,                            ");
+        sql.append("       MIN(JBI.JOB_NUMBER) JOBNUMBER,          ");
+        sql.append("       MIN(JBI.NAME) NAME,                     ");
+        sql.append("       MIN(BRANCH.FZX) FZX,                    ");
+        sql.append("       MIN(JBI.SEX) SEX,                       ");
+        sql.append("       MIN(JBI.AGE) AGE,                       ");
+        sql.append("       MIN(JBI.PHONE) PHONE,                   ");
+        sql.append("       MIN(QD.NAME) DEPTNAME,                  ");
+        sql.append("       MIN(JBI.POST_ID) POSTID,                ");
+        sql.append("       MIN(JBI.POST) POST,                      ");
+        sql.append("       MIN(JBI.ON_JOB) onJob                        ");
+        sql.append("     FROM JC_BASIC_INFORMATION JBI             ");
+        sql.append("     LEFT JOIN QX_DEPARTMENT QD                ");
+        sql.append("     ON QD.ID = JBI.DEPART_ID                  ");
+        sql.append("     LEFT JOIN BRANCH                          ");
+        sql.append("     ON JBI.FILM_ID = BRANCH.ID                ");
+        sql.append("     LEFT JOIN XC_INSURANCE_MIDDLE IM           ");
+        sql.append("     ON IM.STAFF_ID = JBI.ID                   ");
+        sql.append("       AND IM.IS_DELETE = 0               ");
+        sql.append("     WHERE IM.ID IS NULL                       ");
+        sql.append("       AND JBI.IS_DELETE = 0               ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 部门ID
+            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] deptArray = mapData.get("depId").split(",");
+                sql.append("  AND JBI.DEPART_ID IN ('"+StringUtils.join(deptArray, "','")+"') ");
+            }
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("   AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                      ");
+            }
+            // 员工姓名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND JBI.NAME LIKE '%"+mapData.get("name")+"%'                                        ");
+            }
+        }
+        sql.append("     GROUP BY JBI.ID,JBI.CREATEDATE            ");
+        sql.append("     ORDER BY JBI.CREATEDATE DESC              ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("companyId", obj[3]);
+            map.put("detpName", obj[7]);
+            map.put("sex", obj[4]);
+            map.put("age", obj[5]);
+            map.put("phone", obj[6]);
+            map.put("post", obj[9]);
+            map.put("onJob", obj[10]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getNoChoseStaffListData(String ids) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("     SELECT JBI.ID,                            ");
+        sql.append("       MIN(JBI.JOB_NUMBER) JOBNUMBER,          ");
+        sql.append("       MIN(JBI.NAME) NAME,                     ");
+        sql.append("       MIN(BRANCH.FZX) FZX,                    ");
+        sql.append("       MIN(JBI.SEX) SEX,                       ");
+        sql.append("       MIN(JBI.AGE) AGE,                       ");
+        sql.append("       MIN(JBI.PHONE) PHONE,                   ");
+        sql.append("       MIN(QD.NAME) DEPTNAME,                  ");
+        sql.append("       MIN(JBI.POST_ID) POSTID,                ");
+        sql.append("       MIN(JBI.POST) POST,                      ");
+        sql.append("       MIN(JBI.ON_JOB) onJob                        ");
+        sql.append("     FROM JC_BASIC_INFORMATION JBI             ");
+        sql.append("     LEFT JOIN QX_DEPARTMENT QD                ");
+        sql.append("     ON QD.ID = JBI.DEPART_ID                  ");
+        sql.append("     LEFT JOIN BRANCH                          ");
+        sql.append("     ON JBI.FILM_ID = BRANCH.ID                ");
+        sql.append("     LEFT JOIN XC_INSURANCE_MIDDLE IM           ");
+        sql.append("     ON IM.STAFF_ID = JBI.ID                   ");
+        sql.append("       AND IM.IS_DELETE = 0               ");
+        sql.append("     WHERE IM.ID IS NULL                       ");
+        sql.append("       AND JBI.IS_DELETE = 0               ");
+
+        String[] deptArray = ids.split(",");
+        sql.append("  AND JBI.ID IN ('"+StringUtils.join(deptArray, "','")+"') ");
+
+        sql.append("     GROUP BY JBI.ID,JBI.CREATEDATE            ");
+        sql.append("     ORDER BY JBI.CREATEDATE DESC              ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("companyId", obj[3]);
+            map.put("detpName", obj[7]);
+            map.put("sex", obj[4]);
+            map.put("age", obj[5]);
+            map.put("phone", obj[6]);
+            map.put("post", obj[9]);
+            map.put("onJob", obj[10]);
+            map.put("isDaiJiao", 0);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Map<String, Object> getInsuranceItemsListData(String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT MIN(SR.STAFF_ID) ID,                              ");
+        sql.append("      MIN(JBI.JOB_NUMBER) JOBNUMBER,            ");
+        sql.append("      MIN(JBI.NAME) NAME,                       ");
+        sql.append("      MIN(BRANCH.FZX) FZX,                      ");
+        sql.append("      MIN(JBI.SEX) SEX,                         ");
+        sql.append("      MIN(JBI.AGE) AGE,                         ");
+        sql.append("      MIN(JBI.PHONE) PHONE,                     ");
+        sql.append("      MIN(QD.NAME) DEPTNAME,                    ");
+        sql.append("      MIN(JBI.POST_ID) POSTID,                  ");
+        sql.append("      MIN(JBI.POST) POST,                       ");
+        sql.append("      MIN(JBI.ON_JOB) ONJOB,                    ");
+        sql.append("      MIN(IM.IS_DAIJIAO) ISDAIJIAO,             ");
+        sql.append("      WM_CONCAT(JIB.ID) FULIID,                 ");
+        sql.append("      WM_CONCAT(JIB.INSUR_NAME) FULINAME,        ");
+        sql.append("      WM_CONCAT(JA.NAME) AREA,        ");
+        sql.append("      WM_CONCAT(JF.FZX) JFCOMPANY,        ");
+        sql.append("      WM_CONCAT(II.BASE_COMPANY) baseCompany,        ");
+        sql.append("      WM_CONCAT(II.BASE_PERSONAL) basePersonal,      ");
+        sql.append("      WM_CONCAT(II.PAYMENT_COMPANY) PAYMENT_COMPANY,           ");
+        sql.append("      WM_CONCAT(II.PAYMENT_PERSONAL) PAYMENT_PERSONAL           ");
+        sql.append("    FROM XC_INSURANCE_MIDDLE IM                     ");
+        sql.append("    LEFT JOIN XC_INSURANCE_ITEMS II                 ");
+        sql.append("    ON IM.ID = II.INSURANCE_MIDDLE_ID               ");
+        sql.append("    AND II.IS_DELETE = 0                            ");
+        sql.append("    LEFT JOIN JC_INSURANCE_BENEFITS JIB             ");
+        sql.append("    ON II.IBF_ID = JIB.ID                           ");
+        sql.append("    left join JC_PAY_AREAS JPA                      ");
+        sql.append("    ON II.AREA = JPA.ID                             ");
+        sql.append("    LEFT JOIN JC_AREAS JA                           ");
+        sql.append("    ON JPA.AREA_CITY = JA.ID                        ");
+        sql.append("    LEFT JOIN XC_SALARY_RECORD SR                   ");
+        sql.append("    ON IM.STAFF_ID    = SR.STAFF_ID                 ");
+        sql.append("    LEFT JOIN JC_BASIC_INFORMATION JBI              ");
+        sql.append("    ON SR.STAFF_ID = JBI.ID                         ");
+        sql.append("    LEFT JOIN QX_DEPARTMENT QD                      ");
+        sql.append("    ON QD.ID = SR.DEPTNAME                        ");
+        sql.append("    LEFT JOIN BRANCH                                ");
+        sql.append("    ON SR.FILM_NAME = BRANCH.ID                      ");
+        sql.append("    LEFT JOIN BRANCH jf                             ");
+        sql.append("    ON II.JF_COMPANY = jf.ID                        ");
+        sql.append("    LEFT JOIN XC_SALARY_INSURANCE SI                ");
+        sql.append("    ON II.IBF_ID = SI.NAME                          ");
+        sql.append("    WHERE  IM.IS_DELETE  = 0                        ");
+        sql.append("    AND JBI.IS_DELETE = 0                           ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 部门ID
+            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] deptArray = mapData.get("depId").split(",");
+                sql.append("  AND SR.DEPTNAME IN ('"+StringUtils.join(deptArray, "','")+"') ");
+            }
+            // 工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                sql.append("   AND JBI.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                      ");
+            }
+            // 员工姓名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                sql.append("   AND JBI.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+            // 是否代缴
+            if (!StringUtils.isBlank(mapData.get("isDaiJiao"))) {
+                sql.append("   AND IM.IS_DAIJIAO = "+mapData.get("isDaiJiao")+"                                        ");
+            }
+        }
+        sql.append("    GROUP BY SR.ID, SR.CREATEDATE             ");
+        sql.append("    ORDER BY SR.CREATEDATE DESC                ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+
+        // 查找福利项目
+        SQLQuery query = getSession().createSQLQuery("SELECT ID, INSUR_NAME FROM JC_INSURANCE_BENEFITS ORDER BY CREATEDATE ASC");
+        query.setResultTransformer(CriteriaSpecification.ALIAS_TO_ENTITY_MAP);
+        List<Map<String, Object>> allFls = query.list();
+
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("company", obj[3]);
+            map.put("detpName", obj[7]);
+            map.put("sex", obj[4]);
+            map.put("age", obj[5]);
+            map.put("phone", obj[6]);
+            map.put("post", obj[9]);
+            map.put("onJob", obj[10]);
+            map.put("isDaiJiao", obj[11]);
+            map.put("flId", obj[12]);
+            map.put("flName", obj[13]);
+            map.put("jfArea", obj[14]);
+            map.put("jfCompany", obj[15]);
+            map.put("baseCompany", obj[16]);
+            map.put("basePersonal", obj[17]);
+            map.put("sCompany", obj[18]);
+            map.put("sPersonal", obj[19]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        map.put("fulis", allFls);
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getChoseStaffInsurances(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                   ");
+        sql.append("    ITEMS.ID, JIB.INSUR_NAME,                ");
+        sql.append("    SI.BI_COMPANY, SI.BI_PERSONAL, ITEMS.BASE_COMPANY, ITEMS.BASE_PERSONAL   ");
+        sql.append("    FROM XC_INSURANCE_MIDDLE IM              ");
+        sql.append("    LEFT JOIN XC_INSURANCE_ITEMS ITEMS       ");
+        sql.append("    ON IM.ID = ITEMS.INSURANCE_MIDDLE_ID     ");
+        sql.append("    LEFT JOIN JC_INSURANCE_BENEFITS JIB      ");
+        sql.append("    ON ITEMS.IBF_ID = JIB.ID                 ");
+        sql.append("    LEFT JOIN XC_SALARY_INSURANCE SI      ");
+        sql.append("    ON ITEMS.IBF_ID = SI.NAME                 ");
+        sql.append("    WHERE IM.STAFF_ID = '"+id+"'                   ");
+        sql.append("    AND IM.IS_DELETE = 0                     ");
+        sql.append("    AND ITEMS.IS_DELETE = 0                  ");
+        sql.append("    ORDER BY ITEMS.CREATEDATE DESC                ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        Calendar cal= Calendar.getInstance();
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH) + 1;
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("endYear", year);
+            map.put("endMonth", month);
+            map.put("biCompany", obj[2]);
+            map.put("biPersonal", obj[3]);
+            map.put("baseCompany", obj[4]);
+            map.put("basePersonal", obj[5]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public Map<String, Object> getEmployeeBaseInfo(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT                                                                    ");
+        sql.append("  JBI.ID, JBI.JOB_NUMBER, JBI.NAME, NVL(b2.FZX,BRANCH.FZX) FZX, JBI.SEX, JBI.AGE, JBI.PHONE,");
+        sql.append("  NVL(QD2.NAME,QD.NAME) DEPTNAME,JBI.POST_ID,JBI.POST,JBI.JOB_LEVEL,BRANCH.ID bId          ");
+        sql.append("  FROM JC_BASIC_INFORMATION JBI                                              ");
+        sql.append("  LEFT JOIN XC_SALARY_RECORD SR                                                  ");
+        sql.append("  ON JBI.ID = SR.STAFF_ID                                                    ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD                                                  ");
+        sql.append("  ON QD.ID = JBI.DEPART_ID                                                    ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD2                                                  ");
+        sql.append("  ON QD2.ID = SR.DEPTNAME                                                    ");
+        sql.append("  LEFT JOIN BRANCH                                                           ");
+        sql.append("  ON JBI.FILM_ID = BRANCH.ID                                                 ");
+        sql.append("  LEFT JOIN BRANCH b2                                                        ");
+        sql.append("  ON SR.FILM_NAME = b2.ID                                                 ");
+        sql.append("  WHERE JBI.IS_DELETE = 0                                       ");
+        sql.append("    AND JBI.ID = '"+id+"'                                       ");
+
+        List list = findBySql(sql.toString());
+        List<Object[]> listObj = list;
+        Map<String, Object> map = new HashMap<String, Object>();
+        Object[] obj = (Object[]) listObj.get(0);
+        map.put("id", obj[0]);
+        map.put("jobNumber", obj[1]);
+        map.put("name", obj[2]);
+        map.put("company", obj[3]);
+        map.put("detpName", obj[7]);
+        map.put("sex", obj[4]);
+        map.put("age", obj[5]);
+        map.put("phone", obj[6]);
+        map.put("post", obj[9]);
+        map.put("jobLevel", obj[10]);
+        map.put("companyId", obj[11]);
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getStaffCanBaoInfo(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                                                                           ");
+        sql.append("    II.ID,II.IBF_ID, II.AREA,BRANCH.FZX,II.JF_ACCOUNT,II.BASE_COMPANY,II.BASE_PERSONAL,II.YEAR,II.MONTH ");
+        sql.append("    FROM XC_INSURANCE_MIDDLE IM                                                                      ");
+        sql.append("    LEFT JOIN XC_INSURANCE_ITEMS II                                                                  ");
+        sql.append("    ON IM.ID = II.INSURANCE_MIDDLE_ID                                                                ");
+        sql.append("    LEFT JOIN BRANCH                                                                  ");
+        sql.append("    ON II.JF_COMPANY = BRANCH.ID                                                                ");
+        sql.append("    WHERE                                                                                            ");
+        sql.append("        IM.STAFF_ID ='"+id+"'                                                                        ");
+        sql.append("      AND II.IS_DELETE = 0                                                                           ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("ibfId", obj[1]);
+            map.put("area", obj[2]);
+            map.put("jfCompany", obj[3]);
+            map.put("jfAccount", obj[4]);
+            map.put("baseCompany", obj[5]);
+            map.put("basePersonal", obj[6]);
+            map.put("year", obj[7]);
+            map.put("month", obj[8]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedJoinInsuranceItemsData(String ids) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                 ");
+        sql.append("    JBI.ID,JBI.INSUR_NAME,SI.BI_COMPANY,SI.BI_PERSONAL,                  ");
+        sql.append("    SI.HIGH,SI.LOW,SI.NUMBER_ACCURACY, SI.PAY_CARRY_RULE                  ");
+        sql.append("    FROM XC_SALARY_INSURANCE SI            ");
+        sql.append("    LEFT JOIN JC_INSURANCE_BENEFITS JBI    ");
+        sql.append("    ON SI.NAME = JBI.ID                    ");
+        sql.append("    WHERE SI.IS_DELETE = 0                 ");
+
+        Calendar cal = Calendar.getInstance();
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH)+1;
+        sql.append("      AND TO_DATE(SI.YEAR || '-' || SI.MONTH || '-1', 'yyyy-MM-dd') <=   ");
+        sql.append("        TO_DATE("+year+" || '-' || "+month+" || '-1', 'yyyy-MM-dd')     ");
+        sql.append("    ORDER BY SI.CREATEDATE ASC             ");
+
+        List<?> list = findBySql(sql.toString());
+        String[] idsArray = ids.split(",");
+        BasicInformation info = personnelDao.get(Restrictions.eq("id", idsArray[0]));
+        Branch branch = branchDao.get(Restrictions.eq("id", info.getFilmId()));
+        String companyName = branch == null? "" : branch.getFzx();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("ibfId", obj[0]);
+            map.put("name", obj[1]);
+            map.put("jfCompany", info.getFilmId());
+            map.put("jfCompanyName", companyName);
+            map.put("year", year);
+            map.put("month", month);
+            map.put("biCompany", obj[2]);
+            map.put("biPersonal", obj[3]);
+            map.put("high", obj[4]);
+            map.put("low", obj[5]);
+            map.put("xs", obj[6]);
+            map.put("payCarryRule", obj[7]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getSlaryReportListData(String searchData, Pager pager) {
+        pager  = findPagerBySql(pager, getSlaryReportSql(searchData));
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("itemsId", obj[4]);
+            map.put("itemsName", obj[5]);
+            map.put("charge", obj[6]);
+            map.put("assId", obj[7]);
+            map.put("isNumber", obj[8]);
+            map.put("companyName", obj[9]);
+            map.put("deptName", obj[10]);
+            map.put("payPeriod", obj[11]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String getSlaryReportSql(String searchData) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT TT.ID,                                                               ");
+        sql.append("      MIN(TT.STAFF_ID) STAFFID,                                                 ");
+        sql.append("      MIN(TT.JOB_NUMBER) JOBNUMBER,                                             ");
+        sql.append("      MIN(TT.STAFF_NAME) NAME,                                                  ");
+        sql.append("      LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,             ");
+        sql.append("      LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,         ");
+        sql.append("      LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,  ");
+        sql.append("      LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                ");
+        sql.append("      LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER,        ");
+        sql.append("      MIN(TT.FZX) FILM_NAME,                                              ");
+        sql.append("      MIN(TT.DEPTNAME) DEPART_ID,                                               ");
+        sql.append("      MIN(TT.NAME) PERIOD                                                       ");
+        sql.append("    FROM (                                                                      ");
+        sql.append("      SELECT ASTAFF.ID,                                                         ");
+        sql.append("        ASTAFF.STAFF_ID,                                                        ");
+        sql.append("        ASTAFF.JOB_NUMBER,                                                      ");
+        sql.append("        ASTAFF.STAFF_NAME,                                                      ");
+        sql.append("        ASS.IBF_ID,                                                             ");
+        sql.append("        ASS.IBF_NAME,                                                           ");
+        sql.append("        ASS.ASSIGNATION_CHARGE,                                                 ");
+        sql.append("        ASS.ID ASSID,                                                           ");
+        sql.append("        ASTAFF.IS_DELETE,                                                       ");
+        sql.append("        ASTAFF.CREATEDATE,                                                      ");
+        sql.append("        ASS.SX,                                                                 ");
+        sql.append("        SI.IS_NUMBER,                                                           ");
+        sql.append("        B.FZX,                                                           ");
+        sql.append("        QD.NAME DEPTNAME,                                                            ");
+        sql.append("        QD.ID DEPTID,                                                            ");
+        sql.append("        XP.NAME                                                                 ");
+        sql.append("      FROM XC_SALARY_ASSIGNATION SA                                             ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF                                     ");
+        sql.append("      ON ASTAFF.SALARY_ASSIGNATION_ID = SA.ID                                   ");
+        sql.append("      AND ASTAFF.IS_DELETE = 0                                                  ");
+        sql.append("      LEFT JOIN XC_SALARY_RECORD SR                                             ");
+        sql.append("      ON SR.STAFF_ID = ASTAFF.STAFF_ID                                          ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                                 ");
+        sql.append("      ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                                   ");
+        sql.append("      AND ASS.IS_DELETE = 0                                                     ");
+
+        StringBuilder searchSql = new StringBuilder();
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 部门ID
+            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] deptArray = mapData.get("depId").split(",");
+                searchSql.append("  AND TT.DEPTID IN ('"+StringUtils.join(deptArray, "','")+"') ");
+            }
+            // 职工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                searchSql.append("  AND TT.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                                 ");
+            }
+            // 职工名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                searchSql.append("  AND TT.STAFF_NAME LIKE '%"+mapData.get("name").trim()+"%'                                 ");
+            }
+            // 薪酬期间
+            if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                searchSql.append("  AND TT.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'                                 ");
+            }
+            // 薪资项目
+            if (!StringUtils.isBlank(mapData.get("salaryItem"))) {
+                String[] itemArray = mapData.get("salaryItem").split(",");
+                sql.append("  AND ASS.IBF_ID IN ('"+StringUtils.join(itemArray, "','")+"') ");
+            }
+        }
+        sql.append("      LEFT JOIN XC_SALARY_ITEMS SI                                              ");
+        sql.append("      ON ASS.IBF_ID = SI.ID                                                     ");
+        sql.append("      LEFT JOIN XC_PERIODDATA XP                                                ");
+        sql.append("      ON SA.SALARY_PERIOD = XP.ID                                               ");
+        sql.append("      LEFT JOIN BRANCH B                                                ");
+        sql.append("      ON SR.FILM_NAME = B.ID                                               ");
+        sql.append("      LEFT JOIN QX_DEPARTMENT QD                                                ");
+        sql.append("      ON SR.DEPTNAME = QD.ID                                               ");
+        sql.append("      WHERE SA.IS_DELETE = 0                                                    ");
+        sql.append("      ORDER BY SA.ID ASC, ASTAFF.STAFF_ID ASC, ASS.SX ASC                       ");
+        sql.append("    ) TT                                                                        ");
+        sql.append("    WHERE TT.IS_DELETE = 0                                                      ");
+        sql.append(searchSql);
+        sql.append("    GROUP BY TT.ID,TT.CREATEDATE                                                ");
+        sql.append("    ORDER BY TT.CREATEDATE DESC                                                 ");
+
+        return sql.toString();
+    }
+
+    @Override
+    public Map<String, Object> getOffBankListData(String searchData, Pager pager) {
+        pager  = findPagerBySql(pager, getOffBankSql(searchData));
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("staffId", obj[1]);
+            map.put("jobNumber", obj[2]);
+            map.put("name", obj[3]);
+            map.put("itemsId", obj[4]);
+            map.put("itemsName", obj[5]);
+            map.put("charge", obj[6]);
+            map.put("assId", obj[7]);
+            map.put("isNumber", obj[8]);
+            map.put("companyName", obj[9]);
+            map.put("deptName", obj[10]);
+            map.put("payPeriod", obj[11]);
+            map.put("idCard", obj[12]);
+            map.put("accountBank", obj[13]);
+            map.put("dicName", obj[14]);
+            map.put("account", obj[15]);
+            map.put("userName", obj[16]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+
+    @Override
+    public String getOffBankSql(String searchData) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT TT.ID,                                                               ");
+        sql.append("      MIN(TT.STAFF_ID) STAFFID,                                                 ");
+        sql.append("      MIN(TT.JOB_NUMBER) JOBNUMBER,                                             ");
+        sql.append("      MIN(TT.STAFF_NAME) NAME,                                                  ");
+        sql.append("      LISTAGG(TT.IBF_ID, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSID,             ");
+        sql.append("      LISTAGG(TT.IBF_NAME, ',') WITHIN GROUP(ORDER BY TT.SX) ITEMSNAME,         ");
+        sql.append("      LISTAGG(TT.ASSIGNATION_CHARGE, ',') WITHIN GROUP(ORDER BY TT.SX) CHARGE,  ");
+        sql.append("      LISTAGG(TT.ASSID, ',') WITHIN GROUP(ORDER BY TT.SX) ASSID,                ");
+        sql.append("      LISTAGG(TT.IS_NUMBER, ',') WITHIN GROUP(ORDER BY TT.SX) IS_NUMBER,        ");
+        sql.append("      MIN(TT.FZX) FILM_NAME,                                              ");
+        sql.append("      MIN(TT.DEPTNAME) DEPART_ID,                                               ");
+        sql.append("      MIN(TT.NAME) PERIOD,                                                       ");
+        sql.append("      MIN(TT.IDCARD) IDCARD, MIN(TT.ACCOUNT_BANK) ACCOUNT_BANK,                  ");
+        sql.append("      MIN(TT.DIC_NAME) DIC_NAME, MIN(TT.ACCOUNT) ACCOUNT,                  ");
+        sql.append("      MIN(TT.USER_NAME) USER_NAME                   ");
+        sql.append("    FROM (                                                                      ");
+        sql.append("      SELECT ASTAFF.ID,                                                         ");
+        sql.append("        ASTAFF.STAFF_ID,                                                        ");
+        sql.append("        ASTAFF.JOB_NUMBER,                                                      ");
+        sql.append("        ASTAFF.STAFF_NAME,                                                      ");
+        sql.append("        ASS.IBF_ID,                                                             ");
+        sql.append("        ASS.IBF_NAME,                                                           ");
+        sql.append("        ASS.ASSIGNATION_CHARGE,                                                 ");
+        sql.append("        ASS.ID ASSID,                                                           ");
+        sql.append("        ASTAFF.IS_DELETE,                                                       ");
+        sql.append("        ASTAFF.CREATEDATE,                                                      ");
+        sql.append("        ASS.SX,                                                                 ");
+        sql.append("        SI.IS_NUMBER,                                                           ");
+        sql.append("        B.FZX,                                                           ");
+        sql.append("        QD.NAME DEPTNAME,                                                       ");
+        sql.append("        QD.ID DEPTID,                                                           ");
+        sql.append("        XP.NAME,                                                                ");
+        sql.append("        JBI.ID_NUMBER IDCARD,SAC.ACCOUNT_BANK,                                   ");
+        sql.append("        JQD.DIC_NAME,SAC.ACCOUNT,SAC.USER_NAME                                    ");
+        sql.append("      FROM XC_SALARY_ASSIGNATION SA                                             ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF                                     ");
+        sql.append("      ON ASTAFF.SALARY_ASSIGNATION_ID = SA.ID                                   ");
+        sql.append("      AND ASTAFF.IS_DELETE = 0                                                  ");
+        sql.append("      LEFT JOIN XC_SALARY_RECORD SR                                             ");
+        sql.append("      ON SR.STAFF_ID = ASTAFF.STAFF_ID                                          ");
+        sql.append("      LEFT JOIN JC_BASIC_INFORMATION JBI                      ");
+        sql.append("      ON SR.STAFF_ID = JBI.ID                               ");
+        sql.append("      LEFT JOIN XC_SALARY_ACCOUNT SAC                          ");
+        sql.append("      ON SR.STAFF_ID = SAC.STAFF_ID                            ");
+        sql.append("      AND SAC.IS_DELETE = 0                                    ");
+        sql.append("      LEFT JOIN JC_QX_DECTIONARY JQD                          ");
+        sql.append("      ON JQD.DIC_VALUE = SAC.ACCOUNT_BANK                    ");
+        sql.append("      AND JQD.PID = '402881945bd6397b015bd66c787e0009'       ");
+        sql.append("      LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                                 ");
+        sql.append("      ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID                                   ");
+        sql.append("      AND ASS.IS_DELETE = 0                                                     ");
+
+        StringBuilder searchSql = new StringBuilder();
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 部门ID
+            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] deptArray = mapData.get("depId").split(",");
+                searchSql.append("  AND TT.DEPTID IN ('"+StringUtils.join(deptArray, "','")+"') ");
+            }
+            // 职工号
+            if (!StringUtils.isBlank(mapData.get("jobNumber"))) {
+                searchSql.append("  AND TT.JOB_NUMBER LIKE '%"+mapData.get("jobNumber").trim()+"%'                                 ");
+            }
+            // 职工名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                searchSql.append("  AND TT.STAFF_NAME LIKE '%"+mapData.get("name").trim()+"%'                                 ");
+            }
+            // 薪酬期间
+            if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                searchSql.append("  AND TT.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'                                 ");
+            }
+            // 薪资项目
+            if (!StringUtils.isBlank(mapData.get("salaryItem"))) {
+                String[] itemArray = mapData.get("salaryItem").split(",");
+                sql.append("  AND ASS.IBF_ID IN ('"+StringUtils.join(itemArray, "','")+"') ");
+            }
+        }
+        sql.append("      LEFT JOIN XC_SALARY_ITEMS SI                                              ");
+        sql.append("      ON ASS.IBF_ID = SI.ID                                                     ");
+        sql.append("      LEFT JOIN XC_PERIODDATA XP                                                ");
+        sql.append("      ON SA.SALARY_PERIOD = XP.ID                                               ");
+        sql.append("      LEFT JOIN BRANCH B                                                ");
+        sql.append("      ON SR.FILM_NAME = B.ID                                               ");
+        sql.append("      LEFT JOIN QX_DEPARTMENT QD                                                ");
+        sql.append("      ON SR.DEPTNAME = QD.ID                                               ");
+        sql.append("      WHERE SA.IS_DELETE = 0                                                    ");
+        sql.append("      ORDER BY SA.ID ASC, ASTAFF.STAFF_ID ASC, ASS.SX ASC                       ");
+        sql.append("    ) TT                                                                        ");
+        sql.append("    WHERE TT.IS_DELETE = 0                                                      ");
+        sql.append(searchSql);
+        sql.append("    GROUP BY TT.ID,TT.CREATEDATE                                                ");
+        sql.append("    ORDER BY TT.CREATEDATE DESC                                                 ");
+
+        return sql.toString();
+    }
+
+}

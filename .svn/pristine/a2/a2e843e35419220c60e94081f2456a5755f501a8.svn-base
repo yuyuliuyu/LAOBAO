@@ -1,0 +1,292 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryItemsDao;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪资项目
+ * @ClassName: SalaryItemsDao 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年3月23日 下午5:12:18 
+ *
+ */
+@Repository("salaryItemsDao")
+public class SalaryItemsDaoImpl extends BaseDaoImplInit<SalaryItems, String> implements SalaryItemsDao {
+
+    @Override
+    public String getItemsTypeListData(String depId) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                   ");
+        builder.append("   TYPES.ID, TYPES.DEP_ID, TYPES.NAME, TYPES.NOTE, TYPES.PID,     ");
+        builder.append("   BRANCH.FZX     ");
+        builder.append("   FROM XC_SALRY_ITEM_TYPE TYPES            ");
+        builder.append("   LEFT JOIN XC_SALARY_ITEM_AND_TYPE SIAT   ");
+        builder.append("   ON TYPES.ID = SIAT.TYPE_ID               ");
+        builder.append("   LEFT JOIN BRANCH                         ");
+        builder.append("   ON TYPES.DEP_ID = BRANCH.ID              ");
+        builder.append("   WHERE SIAT.IS_DELETE = 0                 ");
+
+        // 公司
+        if (!StringUtils.isBlank(depId)) {
+            builder.append("   AND TYPES.DEP_ID = '"+depId+"'                 ");
+        }
+        builder.append("   ORDER BY TYPES.CREATEDATE ASC            ");
+
+        List<?> list = this.findBySql(builder.toString());
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("depId", obj[1]);
+            map.put("name", obj[5]+"_"+obj[2]);
+            map.put("note", obj[3]);
+            map.put("pid", obj[4]);
+            map.put("fzx", obj[5]);
+            dataList.add(map);
+        }
+
+        return JsonUtil.Encode(dataList);
+    }
+
+    @Override
+    public List<HashMap<String, Object>> getSalaryItemAndTypeListData(String id) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                   ");
+        builder.append("   SIAT.ID, ITEMS.DEP_ID, TYPES.NAME,SIAT.TYPE_ID     ");
+        builder.append("   FROM XC_SALARY_ITEMS ITEMS            ");
+        builder.append("   LEFT JOIN XC_SALARY_ITEM_AND_TYPE SIAT   ");
+        builder.append("   ON ITEMS.ID = SIAT.ITEM_ID               ");
+        builder.append("   LEFT JOIN XC_SALRY_ITEM_TYPE TYPES            ");
+        builder.append("   ON TYPES.ID = SIAT.TYPE_ID               ");
+        builder.append("   WHERE SIAT.IS_DELETE = 0                 ");
+
+        if (!StringUtils.isBlank(id)) {
+            builder.append("   AND ITEMS.ID = '"+id+"'                 ");
+        }
+        builder.append("   ORDER BY SIAT.CREATEDATE ASC            ");
+
+        List<?> list = this.findBySql(builder.toString());
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("typeId", obj[3]);
+            map.put("name", obj[2]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryItemListData(String depId, String id,
+            String searchData, Pager pager) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                       ");
+        builder.append("   ITEMS.ID,ITEMS.NAME,ITEMS.NUMBER_ACCURACY,ITEMS.TYPE  ");
+        builder.append("   FROM XC_SALRY_ITEM_TYPE TYPES                ");
+        builder.append("   LEFT JOIN XC_SALARY_ITEM_AND_TYPE SIAT       ");
+        builder.append("    ON TYPES.ID = SIAT.TYPE_ID                   ");
+        builder.append("   LEFT JOIN XC_SALARY_ITEMS ITEMS              ");
+        builder.append("    ON ITEMS.ID = SIAT.ITEM_ID                   ");
+        builder.append("   WHERE SIAT.IS_DELETE = 0                     ");
+        builder.append("    AND TYPES.IS_DELETE = 0                      ");
+        builder.append("    AND ITEMS.IS_DELETE = 0                      ");
+        builder.append("    AND TYPES.ID = '"+id+"'                 ");
+        builder.append("   ORDER BY SIAT.CREATEDATE ASC            ");
+
+        pager = findPagerBySql(pager, builder.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("numberAccuracy", obj[2]);
+            map.put("type", obj[3]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getPersonalToAllocationListData(String ids) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT             ");
+        sql.append("       JBI.ID, MIN(JBI.JOB_NUMBER) JOBNUMBER, MIN(JBI.NAME) NAME, MIN(BRANCH.FZX) COMPANYNAME, MIN(QD.NAME) DEPTNAME,   ");
+        sql.append("       MIN(JBI.POST) POST, WM_CONCAT(SG.NAME) SALARYGROUP, MIN(JBI.ON_JOB) ONJOB, MIN(JBI.ON_POST) ONPOST               ");
+        sql.append("  FROM JC_BASIC_INFORMATION JBI                                             ");
+        sql.append("  LEFT JOIN XC_SALARY_PERSONAL SP                                           ");
+        sql.append("  ON JBI.ID = SP.SALARY_RECORD_ID                                           ");
+        sql.append("  AND SP.IS_DELETE = 0                                           ");
+        sql.append("  LEFT JOIN XC_SALARY_GROUP SG                                           ");
+        sql.append("  ON SP.SALARY_GROUP_ID = SG.ID                                           ");
+        sql.append("  LEFT JOIN QX_DEPARTMENT QD                                                ");
+        sql.append("  ON QD.ID = JBI.DEPART_ID                                                  ");
+        sql.append("  LEFT JOIN BRANCH                                                          ");
+        sql.append("  ON JBI.FILM_ID = BRANCH.ID                                                ");
+
+        String[] idsArray = ids.split(",");
+        sql.append("  WHERE JBI.ID IN ('"+StringUtils.join(idsArray, "','")+"')                  ");
+        sql.append("  GROUP BY JBI.ID                  ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("jobNumber", obj[1]);
+            map.put("name", obj[2]);
+            map.put("companyName", obj[3]);
+            map.put("deptName", obj[4]);
+            map.put("post", obj[5]);
+            map.put("salaryGroup", obj[6]);
+            map.put("onJob", obj[7]);
+            map.put("onPost", obj[8]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public String getPersonalGroupListData(String ids) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                 ");
+        sql.append("    SP.ID, SG.NAME,SP.OFF_DATE,SP.IS_OFF,SP.START_DATE,SP.SALARY_COM_ID,             ");
+        sql.append("    SP.COST_COM_ID,SP.COST_DEPT_ID,SP.COST_SCALE,SP.IS_SALARY,SP.IS_PEI,SP.SALARY_GROUP_ID             ");
+        sql.append("    FROM XC_SALARY_PERSONAL SP             ");
+        sql.append("    LEFT JOIN XC_SALARY_GROUP SG           ");
+        sql.append("    ON SP.SALARY_GROUP_ID = SG.ID          ");
+
+        String[] idsArray = ids.split(",");
+        sql.append("  WHERE SP.SALARY_RECORD_ID IN ('"+StringUtils.join(idsArray, "','")+"')                  ");
+        sql.append("    AND SP.IS_DELETE = 0                 ");
+        sql.append("    ORDER BY SP.CREATEDATE DESC            ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("isOff", obj[3] == null? 0:obj[3]);
+            map.put("offDate", obj[2]);
+            map.put("startDate", obj[4]);
+            map.put("salaryComId", obj[5]);
+            map.put("groupName", obj[1]);
+            map.put("salaryGroupId", obj[11]);
+            map.put("costComId", obj[6]);
+            map.put("costDeptId", obj[7]);
+            map.put("costScale", obj[8]);
+            map.put("isSalary", obj[9]);
+            map.put("isPei", obj[10]==null? 0 : obj[10]);
+            dataList.add(map);
+        }
+
+        return JsonUtil.Encode(dataList);
+    }
+
+    @Override
+    public List<Map<String, Object>> getGuDingItems(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                          ");
+        sql.append("      ITEMS.ID, MIN(ITEMS.NAME) ITEMNAME, MIN(SP.SALARY_GROUP_ID) groupId,            ");
+        sql.append("      Min(ITEMS.NUMBER_ACCURACY) xs            ");
+        sql.append("    FROM XC_SALARY_ITEMS ITEMS                      ");
+        sql.append("    LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAT           ");
+        sql.append("    ON ITEMS.ID = GWAT.ITEM_ID                      ");
+        sql.append("    AND ITEMS.IS_DELETE = 0                         ");
+        sql.append("    LEFT JOIN XC_SALARY_GROUP_WAGE SGW              ");
+        sql.append("    ON GWAT.WAGE_ID  = SGW.ID                       ");
+        sql.append("    AND SGW.IS_DELETE=0                             ");
+        sql.append("    LEFT JOIN XC_SALARY_PERSONAL SP                 ");
+        sql.append("    ON SGW.SALARY_GROUP_ID = SP.SALARY_GROUP_ID     ");
+        sql.append("    AND SP.IS_DELETE =0                             ");
+        sql.append("    AND SP.IS_OFF =0                                ");
+        sql.append("    LEFT JOIN JC_BASIC_INFORMATION JBI              ");
+        sql.append("    ON SP.SALARY_RECORD_ID = JBI.ID                 ");
+        sql.append("    WHERE JBI.ID = '"+id+"'                         ");
+        sql.append("      AND ITEMS.FIXED = 1                         ");
+        sql.append("    GROUP BY ITEMS.ID                               ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("groupId", obj[2]);
+            map.put("xs", obj[3]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryGroupItems(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("    SELECT                                          ");
+        sql.append("      ITEMS.ID, MIN(ITEMS.NAME) ITEMNAME, MIN(SG.ID) groupId, MIN(SG.NAME) groupName,            ");
+        sql.append("      Min(ITEMS.NUMBER_ACCURACY) xs            ");
+        sql.append("    FROM XC_SALARY_ITEMS ITEMS                      ");
+        sql.append("    LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAT           ");
+        sql.append("    ON ITEMS.ID = GWAT.ITEM_ID                      ");
+        sql.append("    AND ITEMS.IS_DELETE = 0                         ");
+        sql.append("    LEFT JOIN XC_SALARY_GROUP_WAGE SGW              ");
+        sql.append("    ON GWAT.WAGE_ID  = SGW.ID                       ");
+        sql.append("    AND SGW.IS_DELETE=0                             ");
+        sql.append("    LEFT JOIN XC_SALARY_GROUP SG                 ");
+        sql.append("    ON SGW.SALARY_GROUP_ID = SG.ID     ");
+        sql.append("    AND SG.IS_DELETE =0                             ");
+        sql.append("    WHERE SG.ID = '"+id+"'                         ");
+        sql.append("      AND ITEMS.FIXED = 1                         ");
+        sql.append("    GROUP BY ITEMS.ID                               ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        DecimalFormat df = new DecimalFormat();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("groupId", obj[2]);
+            map.put("groupName", obj[3]);
+            if (Integer.valueOf(obj[4].toString()) == 0) {
+                df.applyPattern("0");
+            } else {
+                df.applyPattern("0."+String.format("%0"+obj[4]+"d%n", 0));
+            }
+            map.put("xs", df.format(0));
+            dataList.add(map);
+        }
+        
+        return dataList;
+    }
+
+}

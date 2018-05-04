@@ -1,0 +1,73 @@
+package com.lingnet.hcm.action.salary;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 分配总量
+ * @ClassName: SalaryAmountAction 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:27:54 
+ *
+ */
+public class SalaryAmountAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        return "add";
+    }
+
+    /**
+     * @Title: 分配总量保存更新
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        return ajax(Status.success, "");
+    }
+
+    /**
+     * @Title: 获取分配总量
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getFullFormulaListData() {
+        return ajax(Status.success, JsonUtil.Encode(""));
+    }
+
+}

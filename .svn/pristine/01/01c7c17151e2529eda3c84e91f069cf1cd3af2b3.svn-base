@@ -1,0 +1,438 @@
+package com.lingnet.hcm.action.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.basic.AreasInfo;
+import com.lingnet.hcm.entity.basic.PayAreas;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 保险管理
+ * @ClassName: SalaryInsuranceAction 
+ * @Description: 保险管理 
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryInsuranceAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private SalaryInsurance salaryInsurance;
+    private String area;// 缴费地区
+    private Map<String, Object> mapInfo;
+
+    @Resource(name="salaryInsuranceService")
+    private SalaryInsuranceService salaryInsuranceService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 修改页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        return "edit";
+    }
+
+    /**
+     * @Title: 保险类型
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String type() {
+        return "type";
+    }
+
+    /**
+     * @Title: 保险类型编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeAdd() {
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 保险类型编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeEdit() {
+        salaryInsurance = salaryInsuranceService.get(SalaryInsurance.class, Restrictions.eq("id", id));
+        if (salaryInsurance != null) {
+            depId = salaryInsurance.getCompanyId();
+            PayAreas payAreas = salaryInsuranceService.get(PayAreas.class, Restrictions.eq("id", salaryInsurance.getArea()));
+            if (payAreas != null) {
+                AreasInfo areasInfo = salaryInsuranceService.get(AreasInfo.class, Restrictions.eq("id", payAreas.getCity()));
+                area = areasInfo.getName();
+            }
+        }
+
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 缴费地区展示页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String area() {
+        return "area";
+    }
+
+    /**
+     * @Title: 办理社保
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String socialsecurity() {
+        return "socialsecurity";
+    }
+
+    /**
+     * @Title: 停保处理页面
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String stop() {
+        return "stop";
+    }
+
+    /**
+     * @Title: 计算月平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String month() {
+        return "month";
+    }
+
+    /**
+     * @Title: 计算月平均工资增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String monthAdd() {
+        return "monthadd";
+    }
+
+    /**
+     * @Title: 社保缴费
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String payment() {
+        return "payment";
+    }
+
+    /**
+     * @Title: 缴费历史
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String histroy() {
+        return "histroy";
+    }
+
+    /**
+     * @Title: 每月缴费核对列表页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String check() {
+        return "check";
+    }
+
+    /**
+     * @Title: 每月PDF缴费单据上传页面
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String doc() {
+        return "doc";
+    }
+
+    /**
+     * @Title: 参保员工展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoList() {
+        return "canbaolist";
+    }
+
+    /**
+     * @Title: 参保员工增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoAdd() {
+        return "canbaoadd";
+    }
+
+    /**
+     * @Title: 参保员工编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoEdit() {
+        mapInfo = salaryInsuranceService.getEmployeeBaseInfo(id);
+        return "canbaoedit";
+    }
+
+    /**
+     * @Title: 参保员工编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String joinList() {
+        return "joinlist";
+    }
+
+    /**
+     * @Title: 获取缴纳标准列表数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getPaymentInsuranceListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getPaymentInsuranceListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 缴纳标准保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        return ajax(Status.success, salaryInsuranceService.saveOrUpdate(formdata));
+    }
+
+    /**
+     * @Title: 删除缴纳标准
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryInsuranceService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取已参保人员信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getInsuranceItemsListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getInsuranceItemsListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 参保人员信息绑定保险信息
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdateToInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.saveOrUpdateToInsurance(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 查询无参保人员 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getNoInsuranceOfStaffListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNoInsuranceOfStaffListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 查询已选择的无参保人员 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getNoChoseStaffListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNoChoseStaffListData(ids)));
+    }
+
+    /**
+     * @Title: 获取参保项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月20日 V 1.0
+     */
+    public String getNeedJoinInsuranceItemsData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNeedJoinInsuranceItemsData(ids)));
+    }
+
+    /**
+     * @Title: 获取选中的员工 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String getChoseStaff() {
+        String[] idsArray = ids.split(",");
+        List<BasicInformation> basicInformations = getBeanListByCriteria(BasicInformation.class, Restrictions.in("id", idsArray));
+
+        return ajax(Status.success, JsonUtil.Encode(basicInformations));
+    }
+
+    /**
+     * @Title: 获取选中的员工的福利项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String getChoseStaffInsurances() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getChoseStaffInsurances(id)));
+    }
+
+    /**
+     * @Title: 停保处理 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String updateStopInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateStopInsurance(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取员工保险信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String getStaffCanBaoInfo() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getStaffCanBaoInfo(id)));
+    }
+
+    /**
+     * @Title: 更新缴费基数
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String updateToJfJs() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateToJfJs(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    public SalaryInsurance getSalaryInsurance() {
+        return salaryInsurance;
+    }
+
+    public void setSalaryInsurance(SalaryInsurance salaryInsurance) {
+        this.salaryInsurance = salaryInsurance;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public Map<String, Object> getMapInfo() {
+        return mapInfo;
+    }
+
+    public void setMapInfo(Map<String, Object> mapInfo) {
+        this.mapInfo = mapInfo;
+    }
+
+}

@@ -1,0 +1,264 @@
+package com.lingnet.hcm.action.personnel;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.common.action.BaseAction.Status;
+import com.lingnet.hcm.entity.person.Award;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.PracticeAuthenticate;
+import com.lingnet.hcm.entity.person.PracticeCheck;
+import com.lingnet.hcm.service.personnel.AuthenticateService;
+import com.lingnet.hcm.service.personnel.CheckService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxCenDep;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BranchService;
+import com.lingnet.qxgl.service.QxcendepService;
+import com.lingnet.util.JsonUtil;
+/**
+ * 实习action
+ * @ClassName: BranchAction 
+ * @Description: TODO 
+ * @author zrl
+ * @date 2016-8-3 下午1:50:42 
+ *
+ */
+@Controller
+public class PracticeAction extends BaseAction{
+
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+    
+    @Resource(name="personnelService")
+    private PersonnelService personnelService;
+    
+    @Resource(name="checkService")
+    private CheckService checkService;//考核信息service
+    
+    @Resource(name="authenticateService")
+    private AuthenticateService authenticateService;//鉴定结果service
+    
+    private BasicInformation information;
+    
+    private PracticeCheck check;
+    private PracticeAuthenticate pau;
+    
+    private String formdata;
+    private String flag;//标志位
+    private String departId;//部门ID
+    private String branchId;//单位ID
+    private String empid;//实习生id
+
+    
+    public String list(){
+        return "list";
+    }
+    //添加页
+    public String add(){
+        return "add";
+    }
+    
+    //人事资料保存
+    public String saveOrUpdate() {
+    	if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	information=JsonUtil.toObject(formdata, BasicInformation.class);
+        } 
+        try { 
+            if(information.getId()==null||"".equals(information.getId().trim())){
+            	information.setIsDelete(0);
+            	information.setIsPractice(1);//实习标志位
+            	information.setOnJob(0);//实习期
+            	information.setCheckUnitId(information.getDepartId());
+                this.save(information);
+            }else{
+            	BasicInformation oldInfo=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", information.getId()));
+            	if (oldInfo == null) {
+                    throw new Exception("该条记录不存在");
+                }
+            	oldInfo.copyFrom(information);
+                this.update(oldInfo);
+            }
+        } catch (Exception e) {
+            return ajax(Status.success,"保存/修改失败");
+        }
+        return ajax(Status.success,"success");
+    }
+    
+
+    //总页面
+    public String all(){
+        return "all";
+    }
+   
+    //考核信息
+    public String checklist(){
+        return "checklist";
+    }
+    //获取数据--考核信息
+    public String getKhData() {
+    	List<PracticeCheck> pcheck=checkService.getList(Restrictions.eq("empId", empid));
+        return ajax(Status.success, JsonUtil.Encode(pcheck));
+    }
+    //添加页面--考核信息
+    public String checkadd(){
+    	check=this.getBeanByCriteria(PracticeCheck.class, Restrictions.eq("id", id));
+        return "checkadd";
+    }
+    // 考核信息--数据保存
+    public String saveOrUpdateKhxx(){
+        if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	check=JsonUtil.toObject(formdata, PracticeCheck.class);
+        } 
+        try { 
+            if(check.getId()==null||"".equals(check.getId().trim())){
+                this.save(check);
+            }else{
+            	PracticeCheck oldInfo=this.getBeanByCriteria(PracticeCheck.class, Restrictions.eq("id", check.getId()));
+            	if (oldInfo == null) {
+                    throw new Exception("该条记录不存在");
+                }
+            	oldInfo.copyFrom(check);
+                this.update(oldInfo);
+            }
+        } catch (Exception e) {
+            return ajax(Status.success,"保存/修改失败");
+        }
+        return ajax(Status.success,"success");
+    }
+    // 考核信息--删除
+    public String remove() {
+    	if (ids != null && !"".equals(ids)){
+    		String[] idArrs = ids.split(",");
+    		try {
+    			checkService.delete(PracticeCheck.class, idArrs);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    	}
+        return ajax(Status.success, "success");
+    }
+    //鉴定结果
+    public String resultlist(){
+    	pau=this.getBeanByCriteria(PracticeAuthenticate.class, Restrictions.eq("empId", empid));
+        return "resultlist";
+    }
+    // 鉴定结果--数据保存
+    public String saveOrUpdateJdjg(){
+        if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	pau=JsonUtil.toObject(formdata, PracticeAuthenticate.class);
+        } 
+        try { 
+            if(pau.getId()==null||"".equals(pau.getId().trim())){
+                this.save(pau);
+            }else{
+            	PracticeAuthenticate oldInfo=this.getBeanByCriteria(PracticeAuthenticate.class, Restrictions.eq("id", pau.getId()));
+            	if (oldInfo == null) {
+                    throw new Exception("该条记录不存在");
+                }
+            	oldInfo.copyFrom(pau);
+                this.update(oldInfo);
+            }
+        } catch (Exception e) {
+            return ajax(Status.success,"保存/修改失败");
+        }
+        return ajax(Status.success,"success");
+    }
+    //实习结束
+    public String finish(){
+        return "finish";
+    }
+    //实习结束，修改人员基本资料
+    public String finishInfo() {
+        try { 
+	    	BasicInformation oldInfo=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", information.getId()));
+	    	if (oldInfo == null) {
+	            throw new Exception("该条记录不存在");
+	        }
+	    	oldInfo.copyFrom(information);
+	        this.update(oldInfo);
+        } catch (Exception e) {
+            return ajax(Status.success,"保操作失败！");
+        }
+        return ajax(Status.success,"success");
+    }
+    
+    
+    
+    //教育经历
+    public String edulist(){
+        return "edulist";
+    }
+    public String eduadd(){
+        return "eduadd";
+    }
+    
+    
+//////////////////////////////////////////////////////////////////////////
+    
+    public String getFormdata() {
+        return formdata;
+    }
+    public void setFormdata(String formdata) {
+        this.formdata = formdata;
+    }
+	public BasicInformation getInformation() {
+		return information;
+	}
+	public void setInformation(BasicInformation information) {
+		this.information = information;
+	}
+	public String getFlag() {
+		return flag;
+	}
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public String getDepartId() {
+		return departId;
+	}
+	public void setDepartId(String departId) {
+		this.departId = departId;
+	}
+	public String getBranchId() {
+		return branchId;
+	}
+	public void setBranchId(String branchId) {
+		this.branchId = branchId;
+	}
+	public PracticeCheck getCheck() {
+		return check;
+	}
+	public void setCheck(PracticeCheck check) {
+		this.check = check;
+	}
+	public PracticeAuthenticate getPau() {
+		return pau;
+	}
+	public void setPau(PracticeAuthenticate pau) {
+		this.pau = pau;
+	}
+	public String getEmpid() {
+		return empid;
+	}
+	public void setEmpid(String empid) {
+		this.empid = empid;
+	}
+  
+}

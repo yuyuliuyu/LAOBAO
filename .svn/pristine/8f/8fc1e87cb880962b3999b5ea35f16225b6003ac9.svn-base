@@ -1,0 +1,14 @@
+package com.lingnet.hcm.dao.empdata;
+
+import java.util.HashMap;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Health;
+import com.lingnet.util.Pager;
+/**
+ *	健康档案Dao
+ */
+public interface HealthDao extends BaseDao<Health, String>{
+	public HashMap<String, Object> getListData(Pager pager, String searchData);
+}

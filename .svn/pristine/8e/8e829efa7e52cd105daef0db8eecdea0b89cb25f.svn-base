@@ -1,0 +1,407 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationService 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月9日 下午5:01:51 
+ *
+ */
+public interface SalaryAssignationService extends BaseService<SalaryAssignation, String> {
+
+    /**
+     * @Title: 保存或者更新分配过程
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月10日 V 1.0
+     */
+    public String saveOrUpdate(String formdata) throws Exception;
+
+    /**
+     * @Title: 获取分配过程
+     * @param companyId
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationListData(String companyId,
+            String searchData, Pager pager);
+
+    /**
+     * @Title: 删除分配过程
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月10日 V 1.0
+     */
+    public String remove(String ids) throws Exception;
+
+    /**
+     * @Title: 获取指定薪资组工资套下的人员和薪资项目信息
+     * @param groupId 薪资组
+     * @param wageId 工资套
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId);
+
+    /**
+     * @Title: 获取已经分配的员工薪资项目数据
+     * @param id
+     * @param ids 核算数据id集合
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public Map<String, Object> getAssignationForStaffData(String id, String ids, String searchData);
+
+    /**
+     * @Title: 重新初始化员工发放数据
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月10日 V 1.0
+     */
+    public String updateAssignationForStaffData(String id) throws Exception;
+
+    /**
+     * @Title: 删除分配核算数据
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月10日 V 1.0
+     */
+    public String removeForAssign(String ids) throws Exception;
+
+    /**
+     * @Title: 根据默认公式计算薪资项目的值
+     * @param assignStaffId 薪酬核算数据主表
+     * @param assignId 薪酬核算数据薪资中间表ID
+     * @param id 薪资项目ID
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月11日 V 1.0
+     */
+    public String updateReCalculateStaffsItem(String assignStaffId, String assignId, String id);
+
+    /**
+     * @Title: 更新已经选中的员工薪资项目值
+     * @param griddata
+     * @param columns
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月11日 V 1.0
+     */
+    public String updateSelectStaffSalaryData(String griddata, String columns) throws Exception;
+
+    /**
+     * @Title: 获取薪资组工资套中薪资项目关联的公式
+     * @param assignStaffId
+     * @param itemid
+     * @return 
+     * List<Map<String,String>> 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    public List<Map<String, String>> getAllGroupWageFinancialList(String assignStaffId, String itemid);
+
+    /**
+     * @Title: 根据默认公式计算薪资项目的值
+     * @param ids 主表ID集合
+     * @param itemID 薪资ID
+     * @param formula 公式
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    public String updateSelectReCalculateStaffsItem(String ids, String itemID, String formula);
+
+    /**
+     * @Title: 提交审批
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    public String commitCheck(String id);
+
+    /**
+     * @Title: 导出表格
+     * @param id 
+     * @param searchData 
+     * void 
+     * @author zhanghj
+     * @since 2017年5月13日 V 1.0
+     */
+    public void export(String id, String searchData);
+
+    /**
+     * @Title: 获取需要核算的员工数据
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月13日 V 1.0
+     */
+    public Map<String, Object> getNeedCheckStaffData(String id, Pager pager);
+
+    /**
+     * @Title: 保存选择的员工到核算过程
+     * @param assignId
+     * @param selectData
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月13日 V 1.0
+     */
+    public String saveSelectStaffData(String assignId, String selectData) throws Exception;
+
+    /**
+     * @Title: 发放数据
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月15日 V 1.0
+     */
+    public String updateReleaseData(String ids);
+
+    /**
+     * @Title: 取消发放数据
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月15日 V 1.0
+     */
+    public String updateNoReleaseData(String ids);
+
+    /**
+     * @Title: 批量提交审批
+     * @param ids
+     * @param isIgnore 是否忽略未提交或者未通过的二次分配项目 0:忽略 1：不忽略
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    public String batchCommitCheck(String ids, int isIgnore, String formData);
+
+    /**
+     * @Title: 根据权限获取不同的审核数据
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationForAuthListData(String userName, String searchData, Pager pager);
+
+    /**
+     * @Title: 根据权限获取不同的审核数据
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationForAuthListData2(String userName, String searchData, Pager pager);
+
+    /**
+     * @Title: 获取审核流程数据
+     * @param id
+     * @param pager
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月26日 V 1.0
+     */
+    public Map<String, Object> getCheckListData(String id, Pager pager);
+
+    /**
+     * @Title: 判断选择的维护过程是否有权限操作
+     * @param ids
+     * @param userName
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月26日 V 1.0
+     */
+    public String isCheckAUth(String ids, String userName);
+
+    /**
+     * @Title: 判断选择的维护过程是否有权限操作
+     * @param ids
+     * @param userName
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月26日 V 1.0
+     */
+    public String isCheckAUth2(String ids, String userName);
+
+    /**
+     * @Title: 审核通过
+     * @param ids
+     * @param userName
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月1日 V 1.0
+     */
+    public String updateCheckPassed(String ids, String userName, String formdata);
+
+    /**
+     * @Title: 审核通过
+     * @param ids
+     * @param userName
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月1日 V 1.0
+     */
+    public String updateCheckPassed2(String ids, String userName, String formdata);
+
+    /**
+     * @Title: 报盘生成
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月3日 V 1.0
+     */
+    public String createBankFile(String ids);
+
+    /**
+     * @Title: 发布工资条
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年6月11日 V 1.0
+     */
+    public String updateSendSalaryRecord(String ids) throws Exception;
+
+    /**
+     * @Title: 取消发布工资条
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年6月11日 V 1.0
+     */
+    public String updateNoSendSalaryRecord(String ids) throws Exception;
+
+    /**
+     * @Title: 公式计算
+     * @param cntMath
+     * @param map
+     * @return 
+     * Object 
+     * @author zhanghj
+     * @since 2017年6月20日 V 1.0
+     */
+    public Object formula(String cntMath, Map<String, Object> map);
+
+    /**
+     * @Title: 获取已经分配的员工薪资项目对比数据
+     * @param id
+     * @param ids
+     * @param searchData
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月28日 V 1.0
+     */
+    public Map<String, Object> getCompareAssignationForStaffData(String id, String ids,
+            String searchData, String conditionData);
+
+    /**
+     * @Title: 与多个薪酬区间核对
+     * @param id
+     * @param conditionData
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月28日 V 1.0
+     */
+    public String checkPeriodData(String id, String conditionData, String periods);
+
+    /**
+     * @Title: 将维护过程数据分配到二次分配对应的薪资项目总量
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年7月1日 V 1.0
+     */
+    public String updateAllot(String id);
+
+    /**
+     * @Title: 导出审批数据
+     * @param id
+     * @param searchData
+     * @param conditionData 
+     * void 
+     * @author zhanghj
+     * @since 2017年7月13日 V 1.0
+     */
+    public void exportCheckData(String id, String searchData, String conditionData);
+
+    /**
+     * @Title: 获取当前公司下部门
+     * @param companyId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年7月13日 V 1.0
+     */
+    public List<Map<String, Object>> getCurComDepts(String companyId);
+
+    /**
+     * @Title: 允许薪酬期间保险缴费修改
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年7月14日 V 1.0
+     */
+    public String allowIbfEdit(String id);
+
+}

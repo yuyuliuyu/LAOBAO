@@ -1,0 +1,67 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.util.Pager;
+
+/**
+ * 总量表
+ * @ClassName: SalaryTotalAmountService 
+ * @Description: 总量表 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:13:28 
+ *
+ */
+public interface SalaryTotalAmountService extends BaseService<SalaryTotalAmount, String> {
+
+    /**
+     * @Title: 获取总量数据
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月19日 V 1.0
+     */
+    public Map<String, Object> getAmountListData(String companyId, String searchData, Pager pager);
+
+    /**
+     * @Title: 分配总量保存更新
+     * @param period
+     * @param fpqx
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月19日 V 1.0
+     */
+    public String saveOrUpdate(String period, String fpqx, String griddata) throws Exception;
+
+    /**
+     * @Title:  获取薪酬期间总量数据
+     * @param period
+     * @param companyId
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月19日 V 1.0
+     */
+    public Map<String, Object> getAmountForPeriodListData(String period, String companyId, Pager pager);
+
+    /**
+     * @Title: 二次分配总量不通过
+     * @param period
+     * @param companyId
+     * @param fpqx
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月3日 V 1.0
+     */
+    public String updateUnCheck(String period, String companyId);
+
+}

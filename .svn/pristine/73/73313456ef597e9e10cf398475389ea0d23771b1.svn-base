@@ -1,0 +1,357 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * JcEmpChange entity.
+ *  @author MyEclipse Persistence Tools
+ *  员工异动表
+ */
+@Entity
+@Table(name = "JC_EMP_CHANGE")
+public class Change extends BaseEntity implements java.io.Serializable {
+
+    // Fields
+	private static final long serialVersionUID = -8889169954328661192L;
+    private String jobNumber;//工号
+    private Integer changeType;//异动类型----数据字典
+    private Date changedate;//异动时间
+    private Date chBeginDate;//开始时间
+    private Date chEndDate;//结束时间
+    private Integer changeCause;//变动原因----数据字典
+    private Date depbeginDate;//部门开始时间
+    private Date postbeginDate;//岗位开始时间
+    
+    private String film;//原公司
+    private String dep;//原部门
+    private String spanPost;//原岗位
+    private String spPost;//原具体岗位
+    private String jobLevel;//原职务级别
+	private String jgbz;//原机关编制
+	
+	private Integer empType;//原员工类型
+    private Integer onJob;//原在职状态
+    private Integer onPost;//原在岗状态
+    
+    private String film2;//异动后公司ID
+    private String dep2;//异动后部门ID
+    private String spanPost2;//异动后标准岗位ID
+    private String spPost2;//异动后具体岗位ID
+    private String jobLevel2;//异动后职务级别
+	private String jgbz2;//异动后机关编制
+	
+	private String filmName2;//异动后公司
+	private String depName2;//异动后部门
+	private String spanPostName2;//异动后标准岗位
+	private String spPostName2;//异动后具体岗位
+	
+	private Integer empType2;//异动后员工类型
+    private Integer onJob2;//异动后在职状态
+    private Integer onPost2;//异动后在岗状态
+    private String personId;//人员id
+    
+    
+    
+    private String remark;//备注
+
+    // Constructors
+    @Column(name = "JOB_NUMBER")
+    public String getJobNumber() {
+        return this.jobNumber;
+    }
+
+    public void setJobNumber(String jobNumber) {
+        this.jobNumber = jobNumber;
+    }
+
+    @Column(name = "CHANGE_TYPE", precision = 2, scale = 0)
+    public Integer getChangeType() {
+        return this.changeType;
+    }
+
+    public void setChangeType(Integer changeType) {
+        this.changeType = changeType;
+    }
+
+    @Column(name = "FILM")
+    public String getFilm() {
+        return this.film;
+    }
+
+    public void setFilm(String film) {
+        this.film = film;
+    }
+
+    @Column(name = "DEP")
+    public String getDep() {
+        return this.dep;
+    }
+
+    public void setDep(String dep) {
+        this.dep = dep;
+    }
+
+    @Column(name = "SPAN_POST")
+    public String getSpanPost() {
+		return spanPost;
+	}
+
+	public void setSpanPost(String spanPost) {
+		this.spanPost = spanPost;
+	}
+
+    @Column(name = "SP_POST")
+    public String getSpPost() {
+        return this.spPost;
+    }
+
+    public void setSpPost(String spPost) {
+        this.spPost = spPost;
+    }
+
+    @Temporal(TemporalType.DATE)
+    @Column(name = "CHANGEDATE", length = 7)
+    public Date getChangedate() {
+        return this.changedate;
+    }
+
+    public void setChangedate(Date changedate) {
+        this.changedate = changedate;
+    }
+
+    @Column(name = "EMP_TYPE", precision = 2, scale = 0)
+    public Integer getEmpType() {
+        return this.empType;
+    }
+
+    public void setEmpType(Integer empType) {
+        this.empType = empType;
+    }
+
+    @Column(name = "ON_JOB", precision = 2, scale = 0)
+    public Integer getOnJob() {
+        return this.onJob;
+    }
+
+    public void setOnJob(Integer onJob) {
+        this.onJob = onJob;
+    }
+
+    @Column(name = "ON_POST", precision = 2, scale = 0)
+    public Integer getOnPost() {
+        return this.onPost;
+    }
+
+    public void setOnPost(Integer onPost) {
+        this.onPost = onPost;
+    }
+
+    @Column(name = "REMARK", length = 50)
+    public String getRemark() {
+        return this.remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    @Column(name = "DEPBEGIN_DATE")
+	public Date getDepbeginDate() {
+		return depbeginDate;
+	}
+
+	public void setDepbeginDate(Date depbeginDate) {
+		this.depbeginDate = depbeginDate;
+	}
+
+	@Column(name = "POSTBEGIN_DATE")
+	public Date getPostbeginDate() {
+		return postbeginDate;
+	}
+
+	public void setPostbeginDate(Date postbeginDate) {
+		this.postbeginDate = postbeginDate;
+	}
+
+	@Column(name = "JOB_LEVEL")
+	public String getJobLevel() {
+		return jobLevel;
+	}
+
+	public void setJobLevel(String jobLevel) {
+		this.jobLevel = jobLevel;
+	}
+
+	@Column(name = "JGBZ")
+	public String getJgbz() {
+		return jgbz;
+	}
+
+	public void setJgbz(String jgbz) {
+		this.jgbz = jgbz;
+	}
+
+	@Column(name = "FILM2")
+	public String getFilm2() {
+		return film2;
+	}
+
+	public void setFilm2(String film2) {
+		this.film2 = film2;
+	}
+
+	@Column(name = "DEP2")
+	public String getDep2() {
+		return dep2;
+	}
+
+	public void setDep2(String dep2) {
+		this.dep2 = dep2;
+	}
+
+	@Column(name = "SPAN_POST2")
+	public String getSpanPost2() {
+		return spanPost2;
+	}
+
+	public void setSpanPost2(String spanPost2) {
+		this.spanPost2 = spanPost2;
+	}
+
+	@Column(name = "SP_POST2")
+	public String getSpPost2() {
+		return spPost2;
+	}
+
+	public void setSpPost2(String spPost2) {
+		this.spPost2 = spPost2;
+	}
+
+	@Column(name = "JOB_LEVEL2")
+	public String getJobLevel2() {
+		return jobLevel2;
+	}
+
+	public void setJobLevel2(String jobLevel2) {
+		this.jobLevel2 = jobLevel2;
+	}
+
+	@Column(name = "JGBZ2")
+	public String getJgbz2() {
+		return jgbz2;
+	}
+
+	public void setJgbz2(String jgbz2) {
+		this.jgbz2 = jgbz2;
+	}
+
+	@Column(name = "ON_JOB2")
+	public Integer getOnJob2() {
+		return onJob2;
+	}
+
+	public void setOnJob2(Integer onJob2) {
+		this.onJob2 = onJob2;
+	}
+
+	@Column(name = "ON_POST2")
+	public Integer getOnPost2() {
+		return onPost2;
+	}
+
+	public void setOnPost2(Integer onPost2) {
+		this.onPost2 = onPost2;
+	}
+
+	@Column(name = "EMP_TYPE2")
+	public Integer getEmpType2() {
+		return empType2;
+	}
+	public void setEmpType2(Integer empType2) {
+		this.empType2 = empType2;
+	}
+
+	@Column(name = "BEGIN_DATE")
+	public Date getChBeginDate() {
+		return chBeginDate;
+	}
+
+	public void setChBeginDate(Date chBeginDate) {
+		this.chBeginDate = chBeginDate;
+	}
+
+	@Column(name = "END_DATE")
+	public Date getChEndDate() {
+		return chEndDate;
+	}
+
+	public void setChEndDate(Date chEndDate) {
+		this.chEndDate = chEndDate;
+	}
+
+	@Column(name = "CHANGE_CAUSE")
+	public Integer getChangeCause() {
+		return changeCause;
+	}
+
+	public void setChangeCause(Integer changeCause) {
+		this.changeCause = changeCause;
+	}
+
+	@Column(name = "FILM_NAME2")
+	public String getFilmName2() {
+		return filmName2;
+	}
+
+	public void setFilmName2(String filmName2) {
+		this.filmName2 = filmName2;
+	}
+
+	@Column(name = "DEP_NAME2")
+	public String getDepName2() {
+		return depName2;
+	}
+
+	public void setDepName2(String depName2) {
+		this.depName2 = depName2;
+	}
+
+	@Column(name = "SPAN_POST_NAME2")
+	public String getSpanPostName2() {
+		return spanPostName2;
+	}
+
+	public void setSpanPostName2(String spanPostName2) {
+		this.spanPostName2 = spanPostName2;
+	}
+
+	@Column(name = "SP_POST_NAME2")
+	public String getSpPostName2() {
+		return spPostName2;
+	}
+
+	public void setSpPostName2(String spPostName2) {
+		this.spPostName2 = spPostName2;
+	}
+
+	@Column(name = "PERSON_ID")
+	public String getPersonId() {
+		return personId;
+	}
+
+	public void setPersonId(String personId) {
+		this.personId = personId;
+	}
+
+	
+
+
+}

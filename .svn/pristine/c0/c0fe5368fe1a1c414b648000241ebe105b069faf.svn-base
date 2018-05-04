@@ -1,0 +1,182 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>考勤内容维护</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="../template/system/css/base.css" type="text/css"></link>
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+    body {
+        margin: 0;sqcdh
+        padding: 0;
+        border: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    .myrow {
+        background: #fceee2;
+    }
+    </style>
+</head>
+<body>
+    <div class="mini-toolbar" style="border-left:0;padding:0px;">
+		<table style="width:100%;">
+			<tr>
+				<td>
+					<a class="mini-button" iconCls="icon-add" onclick="add()">新增</a>
+					<a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a>
+					<a class="mini-button" iconCls="icon-remove" onclick="remove()">删除</a>
+					<a class="mini-button" iconCls="icon-upload" onclick="exportContentInfo()">导出</a>
+				</td>
+			</tr>
+		</table>
+	</div>
+    <div class="mini-fit">
+        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+             url="../check/content!getData.action" idField="id" multiSelect="true" 
+             allowAlternating="true" pageSize="20" >
+            <div property="columns">
+            	<div type="checkcolumn"></div>
+                <div type="indexcolumn" width="50" headerAlign="center">序列</div>
+                <div field="id" id="id" name="id" width="120" headerAlign="center" allowSort="true">id</div>
+                <div field="content" id="content" name="content" width="50" headerAlign="center" align="center" >内容</div>
+                <div field="contentType" id="contentType" name="contentType" width="40" headerAlign="center" align="center" >类别</div>
+                <div field="outWork" id="outWork" name="outWork" width="40" headerAlign="center" align="center" >出工</div>
+                <div field="post" id="post" name="post" width="40" headerAlign="center" align="center" >岗位</div>
+                <div field="outDuty" id="outDuty" name="outDuty" width="40" headerAlign="center" align="center" >出勤</div>
+                <div field="centre" id="centre" name="centre" width="40" headerAlign="center" align="center" >中</div>
+                <div field="night" id="night" name="night" width="40" headerAlign="center" align="center" >夜</div>
+                <div field="year" id="year" name="year" width="40" headerAlign="center" align="center" >年</div>
+                <div field="thing" id="thing" name="thing" width="40" headerAlign="center" align="center" >事</div>
+                <div field="disease" id="disease" name="disease" width="40" headerAlign="center" align="center" >病</div>
+                <div field="free" id="free" name="free" width="40" headerAlign="center" align="center" >旷</div>
+                <div field="stay" id="stay" name="stay" width="40" headerAlign="center" align="center" >待</div>
+                <div field="injury" id="injury" name="injury" width="40" headerAlign="center" align="center" >伤</div>
+                <div field="marry" id="marry" name="marry" width="40" headerAlign="center" align="center" >婚</div>
+                <div field="lost" id="lost" name="lost" width="40" headerAlign="center" align="center" >丧</div>
+                <div field="explore" id="explore" name="explore" width="40" headerAlign="center" align="center" >探</div>
+                <div field="give" id="give" name="give" width="40" headerAlign="center" align="center" >产</div>
+                <div field="flip" id="flip" name="flip" width="40" headerAlign="center" align="center" >弹</div>
+                <div field="bigClass" id="bigClass" name="bigClass" width="40" headerAlign="center" align="center" >大班</div>
+                <div field="smallClass" id="smallClass" name="smallClass" width="40" headerAlign="center" align="center" >小班</div>
+                <div field="bigNight" id="bigNight" name="bigNight" width="40" headerAlign="center" align="center" >大夜</div>
+                <div field="smallNight" id="smallNight" name="smallNight" width="40" headerAlign="center" align="center" >小夜</div>
+                <div field="overseas" id="overseas" name="overseas" width="40" headerAlign="center" align="center" >驻外</div>
+                <div field="other" id="other" name="other" width="40" headerAlign="center" align="center" >其他</div>
+                <div field="piece" id="piece" name="piece" width="40" headerAlign="center" align="center" >计件</div>
+                <div field="overtimeLimit" id="overtimeLimit" name="overtimeLimit" width="60" headerAlign="center" align="center" >加班上限</div>
+                <div field="overtimeModulus" id="overtimeModulus" name="overtimeModulus" width="60" headerAlign="center" align="center" >加班系数</div>
+                <div field="vacationModulus" id="vacationModulus" name="vacationModulus" width="60" headerAlign="center" align="center" >节加系数</div>
+                <div field="delayedModulus" id="delayedModulus" name="delayedModulus" width="60" headerAlign="center" align="center" >延时系数</div>
+                <div field="startTimeb1" id="startTimeb1" name="startTimeb1" width="100" headerAlign="center" align="center" >上班时间段1起</div>
+                <div field="startTimef1" id="startTimef1" name="startTimef1" width="100" headerAlign="center" align="center" >上班时间段1止</div>
+                <div field="endTimeb1" id="endTimeb1" name="endTimeb1" width="100" headerAlign="center" align="center" >下班时间段1起</div>
+                <div field="endTimef1" id="endTimef1" name="endTimef1" width="100" headerAlign="center" align="center" >下班时间段1止</div>
+                <div field="startTimeb2" id="startTimeb2" name="startTimeb2" width="100" headerAlign="center" align="center" >上班时间段2起</div>
+                <div field="startTimef2" id="startTimef2" name="startTimef2" width="100" headerAlign="center" align="center" >上班时间段2止</div>
+                <div field="endTimeb2" id="endTimeb2" name="endTimeb2" width="100" headerAlign="center" align="center" >下班时间段2起</div>
+                <div field="endTimef2" id="endTimef2" name="endTimef2" width="100" headerAlign="center" align="center" >下班时间段2止</div>
+                 <div field="startTimeb3" id="startTimeb3" name="startTimeb3" width="100" headerAlign="center" align="center" >上班时间段3起</div>
+                <div field="startTimef3" id="startTimef3" name="startTimef3" width="100" headerAlign="center" align="center" >上班时间段3止</div>
+                <div field="endTimeb3" id="endTimeb3" name="endTimeb3" width="100" headerAlign="center" align="center" >下班时间段3起</div>
+                <div field="endTimef3" id="endTimef3" name="endTimef3" width="100" headerAlign="center" align="center" >下班时间段3止</div>
+                <div field="outHour" id="outHour" name="outHour" width="60" headerAlign="center" align="center" >出勤小时数</div>
+                <div field="discription" id="discription" name="discription" width="200" headerAlign="center" align="center" >说明</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        mini.parse();
+        
+        var grid=mini.get("grid");
+        grid.hideColumn("id");
+        grid.load();
+        
+        //新增
+		function add() {
+			mini.open({
+				url : "../check/content!add.action",
+				title : "新增考勤内容信息",
+				width : 900,
+				height : 500,
+				allowResize : false,
+				onload : function() {
+					//var iframe = this.getIFrameEl(); 
+				},
+				ondestroy : function(action) {
+					//刷新页面
+					window.location.reload();
+				}
+			});
+		}
+		//编辑
+		function edit() {
+			var rows = grid.getSelecteds();
+			var row = grid.getSelected();
+			if (rows.length <= 0){
+				mini.alert("请选择一条记录！");
+			} else if (rows.length > 1){
+				mini.alert("只能选择一条记录！");
+			} else {
+				mini.open({
+					url : "../check/content!edit.action?id=" + row.id,
+					title : "修改考勤内容信息",
+					width : 900,
+					height : 500,
+					/* allowResize:false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+			}
+		}
+		//删除
+		function remove() {
+			var rows = grid.getSelecteds();
+			if (rows.length > 0) {
+				if (confirm("确定删除选中记录？")) {
+					var ids = [];
+					for (var i = 0, l = rows.length; i < l; i++) {
+						var r = rows[i];
+						ids.push(r.id);
+					}
+					var sid = ids.join(',');
+					$.ajax({
+						url : "../check/content!remove.action?ids=" + sid,
+						type : "post",
+						success : function(text) {
+							grid.reload();
+							mini.alert("删除成功！");
+						},
+						error : function(text) {
+							mini.alert("删除失败");
+						}
+					});
+				}
+			} else {
+				mini.alert("请选中一条记录！");
+			}
+		}
+		//导出考勤内容信息
+		function exportContentInfo(){
+			window.location.href="../check/content!exportContentInfo.action";
+		}
+    </script>
+</body>
+</html>

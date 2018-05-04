@@ -1,0 +1,176 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+    String flag=request.getParameter("flag");
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>离职页面</title>
+<link href="${base}template/system/css/base.css" rel="stylesheet" type="text/css" />
+<script src="${base}template/miniui/boot.js" type="text/javascript"></script>
+<script src="../template/plugin/public/add.js" type="text/javascript"></script>
+<link href= "../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+<!--引入皮肤样式-->
+<link href="${base}/template/miniui/themes/blue/skin.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+    html, body
+    {
+        font-size:12px;
+        padding:0;
+        margin:0;
+        border:0;
+        height:100%;
+        overflow:hidden;
+    }
+    .check_box
+    {
+        float:left;
+        margin-right:5px;
+        *margin-right:15px !important;
+    }
+    
+    input[type="checkbox"]
+    {
+        vertical-align:-3px;
+    }
+ </style>
+</head>
+
+<body>
+    <form id="form1" method="post">
+        <input class="mini-hidden" name="id" id="id" value="${dimi.id}" style="display:none;"/>
+        <div>
+            <table cellpadding="0" cellspacing="0" border="0" class="addtable" width="90%">
+                <tr> 
+               		<td align="left"   colspan="4" > &nbsp;</td> 
+                </tr> 
+                <tr>
+               		<td align="left" class="list_left_box1"  height="30px" style="font-size:18px;"><b>基本信息</b></td> 
+               		<td align="left" class="list_left_box1"  colspan="3" > </td> 
+                </tr> 
+                <tr>
+                    <td class="list_left_box1" valign="top" >姓名：</td>
+                    <td class="list_right_box" >
+                        <input name="name" id="name" class="mini-textarea" value="${information.name}"
+                               redonly="redonly" width="90%"/>
+                    </td>
+                    <td class="list_left_box1" valign="top" >职工号：</td>
+                    <td class="list_right_box" >
+                        <input name="jobNumber" id="jobNumber" class="mini-textarea" value="${information.jobNumber}"
+                               required="true" requiredErrorText="不能为空" vtype="maxLength:20" width="90%"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="list_left_box1" valign="top" >公司：</td>
+                    <td class="list_right_box" >
+                        <input name="filmName" id="filmName" class="mini-textarea" value="${information.filmName}"
+                               required="true" requiredErrorText="不能为空" vtype="maxLength:20" width="90%"/>
+                    </td>
+                    <td class="list_left_box1" valign="top" >部门：</td>
+                    <td class="list_right_box"  >
+                         <input name="departName" id="departName" class="mini-textarea" value="${information.departName}"
+                                redonly="true" width="90%"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="list_left_box1" valign="top" >岗位：</td>
+                    <td class="list_right_box" >
+                         <input name="post" id="post" class="mini-textarea" value="${information.post}"
+                                redonly="true" width="90%"/>
+                    </td>
+                </tr>
+                <tr> 
+               		<td align="left"   colspan="4" > &nbsp;</td> 
+                </tr> 
+                <tr>
+               		<td align="left" class="list_left_box1"  height="30px" style="font-size:18px;"><b>离职信息</b></td> 
+               		<td align="left" class="list_left_box1"  colspan="3" > </td> 
+                </tr> 
+                <tr>
+                    <td class="list_left_box1" valign="top" >离职类型*：</td>
+                    <td class="list_right_box">
+                        <input id="leaveType" name="leaveType" required="true" requiredErrorText="不能为空" class="mini-combobox" style="width:90%;" value="${dimi.leaveType}"  textField="dicname" valueField="dicvalue"
+		                   		url="../system/dectionary!listjson.action?id=402881955bf63aea015bf6a02188000b" showNullItem="true" emptyText="请选择..." nullItemText="请选择..." />
+                    </td>
+                    <td class="list_left_box1" valign="top" >离职日期*：</td>
+                    <td class="list_right_box">
+                        <input class="mini-datepicker" format="yyyy-MM-dd"
+									name="leaveDate" id="leaveDate" required="true" requiredErrorText="不能为空" style="width: 90%" msg="日期格式不正确" allowInput="false"
+									 value="${dimi.leaveDate}"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="list_left_box1" valign="top" >操作人：</td>
+                    <td class="list_right_box" >
+                         <input name="approver" id="approver" class="mini-textarea" value="${dimi.approver}"
+                                width="90%"/>
+                    </td>
+                    <td class="list_left_box1" valign="top" >批准文号：</td>
+                    <td class="list_right_box" >
+                         <input name="fileNumber" id="fileNumber" class="mini-textarea" value="${dimi.fileNumber}"
+                                width="90%"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="list_left_box1" valign="top" >离职后去向：</td>
+                    <td class="list_right_box" >
+                         <input name="direction" id="direction" class="mini-textarea" value="${dimi.direction}"
+                                width="90%"/>
+                    </td>
+                    <td class="list_left_box1" valign="top" >加入黑名单*：</td>
+                    <td class="list_right_box">
+                        <input id="ishitlist" name="ishitlist" class="mini-combobox"
+                        	emptyText="请选择..."
+                          	url="../template/using.txt" textField="text" 
+                          	 width="90%" value="${dimi.ishitlist}"/>
+                    </td>
+                </tr>
+                <tr>
+                	<td class="list_left_box1" valign="top" >是否有补偿金*：</td>
+                    <td class="list_right_box">
+                        <input id="iscompensate" name="iscompensate" class="mini-combobox"
+                        	emptyText="请选择..."
+                          	url="../template/using.txt" textField="text" 
+                          	 width="90%" value="${dimi.iscompensate}"/>
+                    </td>
+                    <td class="list_left_box1" valign="top" >补偿月数：</td>
+                    <td class="list_right_box" >
+                         <input name="cost" id="cost" class="mini-textarea" value="${dimi.cost}"
+                                width="90%"/>
+                    </td>
+                    
+                </tr>
+                <tr>
+                    <td class="list_left_box1" valign="top" >是否有代通知金：</td>
+                     <td class="list_right_box">
+                        <input id="isdtzj" name="isdtzj" class="mini-combobox"
+                        	emptyText="请选择..."
+                          	url="../template/using.txt" textField="text" 
+                          	 width="90%" value="${dimi.isdtzj}"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;position: fixed;bottom: 0;width: 100%;" borderStyle="border:0;">
+            <a class="mini-button" id="ok" onclick="onOk" iconCls="icon-save" style="width:60px;margin-right:20px;"iconCls="icon-save">保存</a> 
+            <a class="mini-button" onclick="onReload" id="cz" style="width:60px;margin-right:20px;" iconCls="icon-reload">重置</a>
+            <a class="mini-button" onclick="onCancel" iconCls="icon-close" style="width:60px;" iconCls="icon-close">关闭</a> 
+        </div>
+        
+    </form>
+    
+    <script type="text/javascript">
+        mini.parse();
+           
+    </script>
+</body>
+</html>

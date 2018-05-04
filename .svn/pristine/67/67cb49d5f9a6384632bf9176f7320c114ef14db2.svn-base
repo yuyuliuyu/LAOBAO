@@ -1,0 +1,245 @@
+package com.lingnet.hcm.action.salary;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.Period;
+import com.lingnet.hcm.service.salary.PeriodDataService;
+import com.lingnet.hcm.service.salary.PeriodService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BranchService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 薪酬期间
+ * @ClassName: SalaryManageAction 
+ * @Description: 薪酬期间
+ * @author zhanghj
+ * @date 2017年3月6日 下午4:24:10 
+ *
+ */
+public class SalaryManageAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+
+    private String depId;// 部门ID
+    private Period period;
+    private String companyName;// 公司名称
+
+    @Resource(name="periodService")
+    private PeriodService periodService;
+    @Resource(name="periodDataService")
+    private PeriodDataService periodDataService;
+    @Resource(name="branchService")
+    private BranchService branchService;
+    @Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        return "add";
+    }
+
+    /**
+     * @Title: 设置薪酬期间
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String period() {
+        return "period";
+    }
+
+    /**
+     * @Title: 薪酬期间增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String periodadd() {
+        return "periodadd";
+    }
+
+    /**
+     * @Title: 薪酬期间编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String periodedit() {
+        period = periodService.get(Period.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (null != period)
+            depId = period.getDepId();
+        return "periodadd";
+    }
+
+    /**
+     * @Title: 获取薪酬区间 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String getSalaryPeriodListData() {
+        return ajax(Status.success, JsonUtil.Encode(periodService.getSalaryPeriodListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取薪酬区间 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String getSalaryPeriodListDatas() {
+        return ajax(Status.success, JsonUtil.Encode(periodService.getSalaryPeriodListDatas()));
+    }
+
+    /**
+     * @Title: 获取薪酬区间内容 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String getPeriodListData() {
+        return ajax(Status.success, JsonUtil.Encode(periodService.periodDataService(id)));
+    }
+
+    /**
+     * @Title: 增加或者更新薪酬期间 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, periodService.saveOrUpdate(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除一条薪酬期间 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月21日 V 1.0
+     */
+    public String remove() {
+        try {
+            return ajax(Status.success, periodService.remove(ids, depId));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取所有公司 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月22日 V 1.0
+     */
+    public String getBranches() {
+        List<Branch> list = null;
+        Conjunction and = Restrictions.conjunction();
+        // 名称查询
+        if (!StringUtils.isBlank(companyName)) {
+            and.add(Restrictions.like("fzx", companyName.trim(), MatchMode.ANYWHERE));
+        }
+
+        if (StringUtils.isBlank(depId)) {
+            list = getBeanListByCriteria(Branch.class, Restrictions.eq("isDelete", 0), and);
+        } else {
+            list = getBeanListByCriteria(Branch.class, Restrictions.eq("id", depId), Restrictions.eq("isDelete", 0), and);
+        }
+
+        return ajax(Status.success, JsonUtil.Encode(list));
+    }
+
+    /**
+     * @Title: 获取所有部门
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月22日 V 1.0
+     */
+    public String getDepList() {
+        List<QxDepartment> list = null;
+        if (StringUtils.isBlank(depId)) {
+            list = backendDepService.getList(QxDepartment.class);
+        } else {
+            list = backendDepService.getList(QxDepartment.class, Restrictions.eq("id", depId));
+        }
+        
+        return ajax(Status.success, JsonUtil.Encode(list));
+    }
+
+    public String getDepId() {
+        return depId;
+    }
+
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+
+    public Period getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(Period period) {
+        this.period = period;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+}

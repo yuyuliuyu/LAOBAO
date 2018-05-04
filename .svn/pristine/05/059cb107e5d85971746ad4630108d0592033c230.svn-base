@@ -1,0 +1,1018 @@
+package com.lingnet.hcm.action.salary;
+
+import java.io.File;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.SalaryGroup;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.hcm.entity.salary.SalaryItemType;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.hcm.entity.salary.SalaryWage;
+import com.lingnet.hcm.service.salary.SalaryGroupService;
+import com.lingnet.hcm.service.salary.SalaryGroupWageService;
+import com.lingnet.hcm.service.salary.SalaryItemAndTypeService;
+import com.lingnet.hcm.service.salary.SalaryItemsService;
+import com.lingnet.hcm.service.salary.SalaryWageAndTypeService;
+import com.lingnet.hcm.service.salary.SalaryWageService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.service.BranchService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 薪资项目管理
+ * @ClassName: SalaryItemsAction 
+ * @Description: 薪资项目管理 
+ * @author zhanghj
+ * @date 2017年3月9日 下午1:56:20 
+ *
+ */
+public class SalaryItemsAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+
+    private String depId;
+    private String companyId;// 公司ID
+    private String depName;// 公司名称
+    private String pid;// 父级ID
+    private String name;// 薪资类别名称
+    private String note;// 描述
+    private int type;// 项目属性
+    private int sign;// 标志 1：引用的薪资项目 2 选择的薪资项目
+    private String gridData;// 列表数据
+    private String yinWage;// 引用的工资套
+    private String personalIds;// 员工id
+    private String groupId;// 薪资组ID
+    private String flg = "";// 标记
+    private SalaryItems salaryItems;
+    private SalaryGroup salaryGroup;
+    private SalaryWage salaryWage;
+    private SalaryGroupWage salaryGroupWage;
+    private File uploadFile;// 导入的文件
+
+    @Resource(name="salaryItemsService")
+    private SalaryItemsService salaryItemsService;
+    @Resource(name="salaryItemAndTypeService")
+    private SalaryItemAndTypeService salaryItemAndTypeService;
+    @Resource(name="salaryGroupService")
+    private SalaryGroupService salaryGroupService;
+    @Resource(name="salaryWageService")
+    private SalaryWageService salaryWageService;
+    @Resource(name="salaryWageAndTypeService")
+    private SalaryWageAndTypeService salaryWageAndTypeService;
+    @Resource(name="salaryGroupWageService")
+    private SalaryGroupWageService salaryGroupWageService;
+    @Resource(name="branchService")
+    private BranchService branchService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 修改页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        salaryItems = salaryItemsService.get(SalaryItems.class, Restrictions.eq("id", id));
+        if (salaryItems!=null) {
+            depId = salaryItems.getDepId();
+        }
+        return "add";
+    }
+
+    /**
+     * @Title: 薪资项目类别
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String type() {
+        return "type";
+    }
+
+    /**
+     * @Title: 薪资项目类别增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeadd() {
+        Branch branch = branchService.get(Branch.class, Restrictions.eq("id", depId));
+        if (branch != null)
+            depName = branch.getFzx();
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 薪资项目类别修改
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeedit() {
+        SalaryItemType salaryItemType = salaryItemsService.get(SalaryItemType.class, Restrictions.eq("id", id));
+        if (null != salaryItemType) {
+            depId = salaryItemType.getDepId();
+            name = salaryItemType.getName();
+            note = salaryItemType.getNote();
+        }
+        Branch branch = branchService.get(Branch.class, Restrictions.eq("id", depId));
+        if (branch != null)
+            depName = branch.getFzx();
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 薪资项目二级类别增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typelevel() {
+        Branch branch = branchService.get(Branch.class, Restrictions.eq("id", depId));
+        if (branch != null)
+            depName = branch.getFzx();
+        return "typelevel";
+    }
+
+    /**
+     * @Title: 薪资项目二级类别修改
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeleveledit() {
+        SalaryItemType salaryItemType = salaryItemsService.get(SalaryItemType.class, Restrictions.eq("id", id));
+        if (null != salaryItemType) {
+            depId = salaryItemType.getDepId();
+            name = salaryItemType.getName();
+            note = salaryItemType.getNote();
+            pid = salaryItemType.getPid();
+        }
+        Branch branch = branchService.get(Branch.class, Restrictions.eq("id", depId));
+        if (branch != null)
+            depName = branch.getFzx();
+        return "typelevel";
+    }
+
+    /**
+     * @Title: 薪酬类别保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryItemsService.saveOrUpdate(formdata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 保存薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdateItems() {
+        try {
+            return ajax(Status.success, salaryItemsService.saveOrUpdateItems(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 薪酬类别数据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String tree() {
+        return "tree";
+    }
+
+    /**
+     * @Title: 删除薪资类别 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryItemsService.remove(id));
+    }
+
+    /**
+     * @Title: 删除薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String removeSlaryItems() {
+        return ajax(Status.success, salaryItemsService.removeSlaryItems(ids));
+    }
+
+    /**
+     * @Title: 工资套
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String wage() {
+        return "wage";
+    }
+
+    /**
+     * @Title: 工资套增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String wageadd() {
+        return "wageadd";
+    }
+
+    /**
+     * @Title: 工资套编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String wageEdit() {
+        salaryWage = salaryWageService.get(SalaryWage.class, Restrictions.eq("id", id));
+        if (salaryWage != null) companyId = salaryWage.getCompanyId();
+
+        // 工资套是否被薪资组工资套引用，薪资组工资套是否在工资分配中
+        String checkResult = salaryWageService.checkWageStatus(salaryWage.getId());
+        if (!checkResult.equals("success")) {
+            flg = checkResult;
+        }
+
+        return "wageadd";
+    }
+
+    /**
+     * @Title: 获取工资套与薪资项目关联数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getWageSalaryListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryWageService.getWageSalaryListData(id)));
+    }
+
+    /**
+     * @Title: 薪资项目选择
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String choose() {
+        return "choose";
+    }
+
+    /**
+     * @Title: 薪资组
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String group() {
+        return "group";
+    }
+
+    /**
+     * @Title: 薪资组增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String groupadd() {
+        return "groupadd";
+    }
+
+    /**
+     * @Title: 薪资组编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String groupEdit() {
+        salaryGroup = salaryGroupService.get(SalaryGroup.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (salaryGroup != null) {
+            companyId = salaryGroup.getCompanyId();
+            depId = salaryGroup.getDepId();
+            String checkResult = salaryGroupService.checkGroupStatus(salaryGroup.getId(), companyId);
+            if (!checkResult.equals(SUCCESS)) {
+                flg = checkResult;
+            }
+        }
+
+        return "groupadd";
+    }
+
+    /**
+     * @Title: 薪资组工资套分配展示页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String groupList() {
+        return "grouplist";
+    }
+
+    /**
+     * @Title: 工资套引用
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String wageyin() {
+        return "wageyin";
+    }
+
+    /**
+     * @Title: 薪资组工资套分配增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String groupAllotAdd() {
+        return "groupallot";
+    }
+
+    /**
+     * @Title: 薪资组工资套分配编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String groupAllotEdit() {
+        salaryGroupWage = salaryGroupWageService.get(SalaryGroupWage.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (salaryGroupWage != null) {
+            companyId = salaryGroupWage.getCompanyId();
+            SalaryWage wage = salaryWageService.get(SalaryWage.class, Restrictions.eq("id", salaryGroupWage.getSalaryWageId()),
+                    Restrictions.eq("isDelete", 0));
+            if (wage != null) yinWage = wage.getName();
+
+            // 查找薪资组工资套是否存在工资分配中以及为完成发放
+            String checkResult = salaryGroupWageService.checkWageStatus(salaryGroupWage.getId(), salaryGroupWage.getCompanyId());
+            if (!checkResult.equals("success")) {
+                flg =  "该薪资组工资套正在发放中，只能查看";
+            }
+        }
+
+        return "groupallot";
+    }
+
+    /**
+     * @Title: 个人薪资组分配展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String allot() {
+        return "allot";
+    }
+
+    /**
+     * @Title: 注销薪资组
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String groupOff() {
+        return "groupoff";
+    }
+
+    /**
+     * @Title: 薪资组删除页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String groupDel() {
+        return "groupdel";
+    }
+
+    /**
+     * @Title: 工资条
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String person() {
+        return "person";
+    }
+
+    /**
+     * @Title: 选择薪资组
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String salary() {
+        return "salary";
+    }
+
+    /**
+     * @Title: 公司列表闪现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月20日 V 1.0
+     */
+    public String company() {
+        return "company";
+    }
+
+    /**
+     * @Title: 获取薪资项目类别数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月9日 V 1.0
+     */
+    public String getItemsTypeListData() {
+        return ajax(Status.success, salaryItemsService.getItemsTypeListData(depId));
+    }
+
+    /**
+     * @Title: 获取薪资项目类别数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月9日 V 1.0
+     */
+    public String getItemsTypeListsData() {
+        List<SalaryItemType> list = salaryItemsService.getList(SalaryItemType.class, Restrictions.eq("depId", depId));
+
+        return ajax(Status.success, JsonUtil.Encode(list));
+    }
+
+    /**
+     * @Title: 获取薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String getSalaryItemListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemListData(depId, id, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取有权限的薪资项目和集团统一管控的数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String getSalaryItemGKListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemGKListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取薪资类别下的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String getSalaryItemListDatas() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemListDatas(depId, id, searchData, pager)));
+    }
+
+    /**
+     * @Title: 根据类型获取不同的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String getSalaryItemToTypeData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemToTypeData(type)));
+    }
+
+    /**
+     * @Title: 根据项目类型获取不同的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String getSalaryItemToItemTypeData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemToItemTypeData()));
+    }
+
+    /**
+     * @Title: 薪资项目对应的薪资类别 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String getSalaryItemAndTypeListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryItemAndTypeListData(id)));
+    }
+
+    /**
+     * @Title: 薪资组增加或更新 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String saveOrUpdateToGroup() {
+        try {
+            return ajax(Status.success, salaryGroupService.saveOrUpdate(formdata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除薪资组 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String removeToSalaryGroup() {
+        return ajax(Status.success, salaryGroupService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取薪资组 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryGroupListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupService.getSalaryGroupListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取全部薪资组 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getGroupAllListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupService.getGroupAllListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取生效日期并且有效的薪资组 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryGroupEffectListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupService.getSalaryGroupEffectListData(companyId, searchData)));
+    }
+
+    /**
+     * @Title: 工资套增加或更新 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String saveOrUpdateToWage() {
+        try {
+            return ajax(Status.success, salaryWageService.saveOrUpdate(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除工资套
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String removeToWage() {
+        return ajax(Status.success, salaryWageService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取工资套 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryWageListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryWageService.getSalaryWageListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取生效日期后并且有效的工资套
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryWageEffectListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryWageService.getSalaryWageEffectListData(pager)));
+    }
+
+    /**
+     * @Title: 获取薪资组工资套 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryGroupWageListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupWageService.getSalaryGroupWageListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 根据薪资组获取对应的工资套 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getGroupWageListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupWageService.getGroupWageListData(companyId, groupId)));
+    }
+
+    /**
+     * @Title: 获取薪资组工资套与薪资项目关联数据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getGroupWageTypeListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupWageService.getGroupWageTypeListData(id, sign)));
+    }
+
+    /**
+     * @Title: 保存薪资组工资套
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdateSalaryGroupWage() {
+        try {
+            return ajax(Status.success, salaryGroupWageService.saveOrUpdateItems(formdata, griddata, gridData));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除薪资组工资套
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String removeToGroupWage() {
+        return ajax(Status.success, salaryGroupWageService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取需要分配薪资组的个人信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public String getPersonalToAllocationListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getPersonalToAllocationListData(ids)));
+    }
+
+    /**
+     * @Title: 获取个人薪资组  
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String getPersonalGroupListData() {
+        return ajax(Status.success, salaryItemsService.getPersonalGroupListData(ids));
+    }
+
+    /**
+     * @Title: 注销个人薪资组  
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String savePersonalGroupListData() {
+        try {
+            return ajax(Status.success, salaryItemsService.savePersonalGroupListData(griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除个人薪资组  
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String removePersonalGroupListData() {
+        return ajax(Status.success, salaryItemsService.removePersonalGroupListData(ids, personalIds));
+    }
+
+    /**
+     * @Title: 个人薪资组分配保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String saveOrUpdateToPersonal() {
+        try {
+            return ajax(Status.success, salaryItemsService.saveOrUpdateToPersonal(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取此薪资组工资套中的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月15日 V 1.0
+     */
+    public String getSalaryGroupItems() {
+        return ajax(Status.success, JsonUtil.Encode(salaryItemsService.getSalaryGroupItems(id)));
+    }
+
+    /**
+     * @Title: 获取值为0时不发送工资条的薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月10日 V 1.0
+     */
+    public String getValueIsZeroNoSendRecords() {
+        return ajax(Status.success, JsonUtil.Encode(salaryGroupWageService.getValueIsZeroNoSendRecords(id)));
+    }
+
+    /**
+     * @Title: 导出薪资项目 
+     * void 
+     * @author zhanghj
+     * @since 2017年6月21日 V 1.0
+     */
+    public void export() {
+        salaryItemsService.export(depId, searchData);
+    }
+
+    /**
+     * @Title: 复制薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年7月1日 V 1.0
+     */
+    public String copyItems() {
+        return ajax(Status.success, salaryItemsService.copyItems(id, name));
+    }
+
+    /**
+     * @Title: 导入薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年7月1日 V 1.0
+     */
+    public String uploadItems() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        // 获取上传文件的名字
+        String[] fileName=wrapper.getFileNames("uploadFile");
+        if (fileName.length == 0) {
+            return ajax(Status.success, "请选择上传文件！");
+        }
+        // 文件后缀
+        String endSuffix= fileName[0].substring(fileName[0].lastIndexOf("."), fileName[0].length());
+        if (!endSuffix.toLowerCase().endsWith("xls")
+                && !endSuffix.toLowerCase().endsWith("xlsx")) {
+            return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
+        }
+        try {
+            String message = salaryItemsService.uploadItems(companyId, endSuffix, uploadFile);
+            return ajax(Status.success, message);
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    public String getDepId() {
+        return depId;
+    }
+
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+
+    public String getPid() {
+        return pid;
+    }
+
+    public void setPid(String pid) {
+        this.pid = pid;
+    }
+
+    public String getDepName() {
+        return depName;
+    }
+
+    public void setDepName(String depName) {
+        this.depName = depName;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public SalaryItems getSalaryItems() {
+        return salaryItems;
+    }
+
+    public void setSalaryItems(SalaryItems salaryItems) {
+        this.salaryItems = salaryItems;
+    }
+
+    public SalaryGroup getSalaryGroup() {
+        return salaryGroup;
+    }
+
+    public void setSalaryGroup(SalaryGroup salaryGroup) {
+        this.salaryGroup = salaryGroup;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public SalaryWage getSalaryWage() {
+        return salaryWage;
+    }
+
+    public void setSalaryWage(SalaryWage salaryWage) {
+        this.salaryWage = salaryWage;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public SalaryGroupWage getSalaryGroupWage() {
+        return salaryGroupWage;
+    }
+
+    public void setSalaryGroupWage(SalaryGroupWage salaryGroupWage) {
+        this.salaryGroupWage = salaryGroupWage;
+    }
+
+    public String getGridData() {
+        return gridData;
+    }
+
+    public void setGridData(String gridData) {
+        this.gridData = gridData;
+    }
+
+    public int getSign() {
+        return sign;
+    }
+
+    public void setSign(int sign) {
+        this.sign = sign;
+    }
+
+    public String getYinWage() {
+        return yinWage;
+    }
+
+    public void setYinWage(String yinWage) {
+        this.yinWage = yinWage;
+    }
+
+    public String getPersonalIds() {
+        return personalIds;
+    }
+
+    public void setPersonalIds(String personalIds) {
+        this.personalIds = personalIds;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getFlg() {
+        return flg;
+    }
+
+    public void setFlg(String flg) {
+        this.flg = flg;
+    }
+
+    public File getUploadFile() {
+        return uploadFile;
+    }
+
+    public void setUploadFile(File uploadFile) {
+        this.uploadFile = uploadFile;
+    }
+
+}

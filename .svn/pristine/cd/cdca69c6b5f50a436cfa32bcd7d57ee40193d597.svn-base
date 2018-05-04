@@ -1,0 +1,160 @@
+package com.lingnet.hcm.entity.check;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 出差申请表
+ * @ClassName: CkEvectionRecord 
+ * @Description: TODO 
+ * @author 马晓鹏
+ * @date 2017年4月14日 下午4:34:07 
+ *
+ */
+@Entity
+@Table(name = "CK_EVECTION_RECORD")
+public class CkEvectionRecord extends BaseEntity implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+    private String empId;           //工号
+    private String depId;
+    private String applyName;
+    private Date applyDate;
+    private String evectionType;
+    private String address;
+    private String vehicle;
+    private Date startDate;
+    private Date endDate;
+    private Double evectionDay;
+    private String processId;
+    private String remark;
+    private Boolean auditStatus; 
+    private Boolean isDelete;
+    private String field1;
+    private String field2;      //当前需审批的人的id
+    
+    public CkEvectionRecord() {
+    }
+    @Column(name = "EMP_ID")
+    public String getEmpId() {
+        return this.empId;
+    }
+    public void setEmpId(String empId) {
+        this.empId = empId;
+    }
+    @Column(name = "DEP_ID")
+    public String getDepId() {
+        return this.depId;
+    }
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+    @Column(name = "APPLY_NAME")
+    public String getApplyName() {
+        return this.applyName;
+    }
+    public void setApplyName(String applyName) {
+        this.applyName = applyName;
+    }
+    @Temporal(TemporalType.DATE)
+    @Column(name = "APPLY_DATE")
+    public Date getApplyDate() {
+        return this.applyDate;
+    }
+    public void setApplyDate(Date applyDate) {
+        this.applyDate = applyDate;
+    }
+    @Column(name = "EVECTION_TYPE")
+    public String getEvectionType() {
+        return this.evectionType;
+    }
+    public void setEvectionType(String evectionType) {
+        this.evectionType = evectionType;
+    }
+    @Column(name = "ADDRESS")
+    public String getAddress() {
+        return this.address;
+    }
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    @Column(name = "VEHICLE")
+    public String getVehicle() {
+        return this.vehicle;
+    }
+    public void setVehicle(String vehicle) {
+        this.vehicle = vehicle;
+    }
+    @Temporal(TemporalType.DATE)
+    @Column(name = "START_DATE")
+    public Date getStartDate() {
+        return this.startDate;
+    }
+    public void setStartDate(Date startDate) {
+        this.startDate = startDate;
+    }
+    @Temporal(TemporalType.DATE)
+    @Column(name = "END_DATE")
+    public Date getEndDate() {
+        return this.endDate;
+    }
+    public void setEndDate(Date endDate) {
+        this.endDate = endDate;
+    }
+    @Column(name = "EVECTION_DAY")
+    public Double getEvectionDay() {
+        return this.evectionDay;
+    }
+    public void setEvectionDay(Double evectionDay) {
+        this.evectionDay = evectionDay;
+    }
+    @Column(name = "PROCESS_ID")
+    public String getProcessId() {
+        return this.processId;
+    }
+    public void setProcessId(String processId) {
+        this.processId = processId;
+    }
+    @Column(name = "REMARK")
+    public String getRemark() {
+        return this.remark;
+    }
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+    @Column(name = "AUDIT_STATUS")
+    public Boolean getAuditStatus() {
+        return this.auditStatus;
+    }
+    public void setAuditStatus(Boolean auditStatus) {
+        this.auditStatus = auditStatus;
+    } 
+    @Column(name = "IS_DELETE")
+    public Boolean getIsDelete() {
+        return this.isDelete;
+    }
+    public void setIsDelete(Boolean isDelete) {
+        this.isDelete = isDelete;
+    }
+    @Column(name = "FIELD1")
+    public String getField1() {
+        return this.field1;
+    }
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+    @Column(name = "FIELD2")
+    public String getField2() {
+        return this.field2;
+    }
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+}

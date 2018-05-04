@@ -1,0 +1,744 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryAssignationDao;
+import com.lingnet.hcm.entity.salary.AssignationStaff;
+import com.lingnet.hcm.entity.salary.AssignationStaffSalary;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.hcm.service.salary.AssignationStaffSalaryService;
+import com.lingnet.hcm.service.salary.AssignationStaffService;
+import com.lingnet.hcm.service.salary.SalaryAssignationService;
+import com.lingnet.hcm.service.salary.SalaryFormulaService;
+import com.lingnet.hcm.service.salary.SalaryTotalAmountService;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.SpringUtil;
+import com.lingnet.util.ToolUtil;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationServiceImpl 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月9日 下午5:01:51 
+ *
+ */
+@Service("salaryAssignationService")
+public class SalaryAssignationServiceImpl extends BaseServiceImpl<SalaryAssignation, String>
+              implements SalaryAssignationService {
+
+    @Resource(name="assignationStaffService")
+    private AssignationStaffService assignationStaffService;
+    @Resource(name="assignationStaffSalaryService")
+    private AssignationStaffSalaryService assignationStaffSalaryService;
+    @Resource(name="salaryFormulaService")
+    private SalaryFormulaService salaryFormulaService;
+    @Resource(name="salaryTotalAmountService")
+    private SalaryTotalAmountService salaryTotalAmountService;
+    @Resource(name="salaryAssignationDao")
+    private SalaryAssignationDao salaryAssignationDao;
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata) throws Exception {
+        SalaryAssignation assignation = JsonUtil.toObject(formdata, SalaryAssignation.class);
+        Boolean add = false;
+
+        // 分配过程ID
+        String id = "";
+        if (StringUtils.isBlank(assignation.getId())) {
+            assignation.setIsDelete(0);
+
+            // 判断是否存在已经发放的日期
+            SalaryAssignation check  = get(SalaryAssignation.class,
+                    Restrictions.eq("salaryGroupId", assignation.getSalaryGroupId()),
+                    Restrictions.eq("salaryPeriod", assignation.getSalaryPeriod()),
+                    Restrictions.eq("isDelete", 0));
+            if (check != null) return "此薪资组对应的薪酬期间已经存在";
+            assignation.setIsSp(0);
+            assignation.setIsFafang(0);
+            id = this.save(assignation);
+            if (StringUtils.isBlank(id))
+                return "保存失败";
+            add = true;
+        } else {
+            SalaryAssignation assignationNew  = get(SalaryAssignation.class, Restrictions.eq("id", assignation.getId()), Restrictions.eq("isDelete", 0));
+            if (assignationNew == null) {
+                return "该该分配过程不存在，已经被删除";
+            }
+
+            // 判断是否存在已经发放的日期
+            SalaryAssignation check  = get(SalaryAssignation.class,
+                    Restrictions.ne("id", assignation.getId()),
+                    Restrictions.eq("salaryGroupId", assignation.getSalaryGroupId()),
+                    Restrictions.eq("salaryPeriod", assignation.getSalaryPeriod()),
+                    Restrictions.eq("isDelete", 0));
+            if (check != null) return "此薪资组、薪酬期间对应的分配过程已经存在";
+            assignationNew.copyFrom(assignation);
+            this.update(assignationNew);
+            id = assignationNew.getId();
+        }
+
+        // 发放数据
+        if (add) {
+            String message = saveAssignData(id, assignation.getSalaryGroupId(), assignation.getSalaryWageId());
+            if (!message.equals("success")) {
+                throw new Exception(message);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getSalaryAssignationListData(String companyId, String searchData, Pager pager) {
+        return salaryAssignationDao.getSalaryAssignationListData(companyId, searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getCheckListData(String id) {
+        return salaryAssignationDao.getCheckListData(id);
+    }
+
+    @Override
+    public Map<String, Object> getSalaryAssignationForAuthListData(String userName, String searchData, Pager pager) {
+        return salaryAssignationDao.getSalaryAssignationForAuthListData(userName, searchData, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String remove(String ids) throws Exception {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            SalaryAssignation assignationNew  = get(SalaryAssignation.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (assignationNew != null) {
+                assignationNew.setIsDelete(1);
+                update(assignationNew);
+            } else {
+                throw new Exception("选择的第"+(i+1)+"个分配过程不存在，已经被删除");
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId) {
+        return salaryAssignationDao.getNeedAssignationData(groupId, wageId);
+    }
+
+    @Override
+    public Map<String, Object> getAssignationForStaffData(String id, String ids, String searchData) {
+        return salaryAssignationDao.getAssignationForStaffData(id, ids, searchData);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String updateAssignationForStaffData(String id) throws Exception {
+        SalaryAssignation staff = get(SalaryAssignation.class,
+                Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        // 判断分配过程是否存在
+        if (staff == null) {
+            return "该薪酬核算过程不存在";
+        }
+
+        // 首先删除相关的核算数据主表数据
+        deleteByCriteria(AssignationStaff.class, Restrictions.eq("salaryAssignationId", staff.getId()));
+
+        // 删除总量表该公司数据
+        deleteByCriteria(SalaryTotalAmount.class, Restrictions.eq("companyId", staff.getCompanyId()), Restrictions.eq("fpDate", staff.getSalaryPeriod()));
+
+        // 重新分配
+        String message = saveAssignData(id, staff.getSalaryGroupId(), staff.getSalaryWageId());
+        if (!message.equals("success")) {
+            throw new Exception(message);
+        }
+
+        return "success";
+    }
+
+    /**
+     * @Title: 分配核算过程数据
+     * @param assignId
+     * @param groupId
+     * @param wageId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    private String saveAssignData(String assignId, String groupId, String wageId) {
+        List<Map<String, Object>> needStaffs = getNeedAssignationData(groupId, wageId);
+        List<AssignationStaffSalary> assignationStaffSalaries = new ArrayList<AssignationStaffSalary>();
+        DecimalFormat df = new DecimalFormat();
+        for (int i = 0, n = needStaffs.size(); i < n; i++) {
+            Map<String, Object> staffInfo = needStaffs.get(i);
+            AssignationStaff staff = new AssignationStaff();
+            staff.setSalaryAssignationId(assignId);
+            staff.setStaffId(staffInfo.get("id").toString());
+            staff.setJobNumber(staffInfo.get("jobNumber").toString());
+            staff.setStaffName(staffInfo.get("name").toString());
+            staff.setIsDelete(0);
+            String assignMainId= assignationStaffService.save(staff);
+            if (StringUtils.isBlank(assignMainId))
+                return "发生异常，薪酬核算数据分配失败";
+
+            // 拆分薪资项目
+            Object itemsObj = staffInfo.get("itemsId");
+            if (itemsObj != null) {
+                String[] items = itemsObj.toString().split(",;");
+                String[] itemsName = staffInfo.get("itemsName").toString().split(",;");
+                String[] formulas = staffInfo.get("formula").toString().split(",;");
+                String[] xss = staffInfo.get("xs").toString().split(",;");
+                String[] sxs = staffInfo.get("sx").toString().split(",;");
+                for (int j = 0, m = items.length; j < m; j++) {
+                    AssignationStaffSalary staffSalary = new AssignationStaffSalary();
+                    staffSalary.setAssignationStaffId(assignMainId);
+                    staffSalary.setIbfId(items[j]);
+                    staffSalary.setIbfName(itemsName[j]);
+                    String v = numberAccuracy(df, xss[j], formula(formulas[j]));
+                    staffSalary.setAssignationCharge(v);
+                    staffSalary.setSx(Integer.valueOf(sxs[j]));
+                    staffSalary.setIsDelete(0);
+                    assignationStaffSalaries.add(staffSalary);
+                }
+            }
+        }
+
+        // 保存薪酬核算数据中间表
+        if (assignationStaffSalaries.size() > 0) {
+            assignationStaffSalaryService.saveBatch(assignationStaffSalaries);
+        }
+
+        // 查找分配权限的人数
+        Map<String, Object> fpqxPeopleCount = salaryAssignationDao.getFpqxPeopleCount(assignId);
+
+        // 公司、基层
+        String[] fpqx = {"1", "2"};
+        SalaryAssignation assignation = get(SalaryAssignation.class, Restrictions.eq("id", assignId),  Restrictions.eq("isDelete", 0));
+        if (assignation != null) {
+            for (String i : fpqx) {
+                SalaryTotalAmount totalAmount = new SalaryTotalAmount();
+                totalAmount.setCompanyId(assignation.getCompanyId());
+                int peopleCount = fpqxPeopleCount.get(i) == null ? 0 : Integer.valueOf(fpqxPeopleCount.get(i).toString());
+                totalAmount.setPeopleCount(peopleCount);
+                totalAmount.setByjxldkh("0");
+                totalAmount.setSpecialReward("0");
+                totalAmount.setOtherReward("0");
+                totalAmount.setRewardTotal("0");
+                totalAmount.setBykfpzl("0");
+                totalAmount.setFpDate(assignation.getSalaryPeriod());
+                totalAmount.setCurMonthAmount("0");
+                totalAmount.setIsDelete(0);
+                totalAmount.setFpqx(i);
+                String salaryPeriod = salaryAssignationDao.getLastMonthSalaryPeriod(assignation.getSalaryPeriod());
+                Map<String, String> map = JsonUtil.parseProperties(salaryPeriod);
+                if (map.get("success").equals("1")) {
+                    // 查找上月结余
+                    SalaryTotalAmount latMonth = get(SalaryTotalAmount.class,
+                            Restrictions.eq("companyId", assignation.getCompanyId()),
+                            Restrictions.eq("fpDate", map.get("info")),
+                            Restrictions.eq("fpqx", i),
+                            Restrictions.eq("isDelete", 0));
+                    if (latMonth != null) {
+                        totalAmount.setLastMonthAmount(latMonth.getCurMonthAmount());
+                    } else {
+                        totalAmount.setLastMonthAmount("0");
+                    }
+                    String result = salaryTotalAmountService.save(totalAmount);
+                    if (StringUtils.isBlank(result))
+                        return "发生异常，薪酬核算数据分配失败";
+                } else {
+                    return map.get("info");
+                }
+            }
+        } else return "此分配过程不存在，已经被删除";
+
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveSelectStaffData(String assignId, String selectData) throws Exception {
+        List<Map<String, String>> needStaffs = JsonUtil.getMapList(selectData);
+        List<AssignationStaffSalary> assignationStaffSalaries = new ArrayList<AssignationStaffSalary>();
+        for (int i = 0, n = needStaffs.size(); i < n; i++) {
+            Map<String, String> staffInfo = needStaffs.get(i);
+            AssignationStaff staff = new AssignationStaff();
+            staff.setSalaryAssignationId(assignId);
+            staff.setStaffId(staffInfo.get("id").toString());
+            staff.setJobNumber(staffInfo.get("jobNumber").toString());
+            staff.setStaffName(staffInfo.get("name").toString());
+            staff.setIsDelete(0);
+            String assignMainId= assignationStaffService.save(staff);
+            if (StringUtils.isBlank(assignMainId))
+                throw new Exception("发生异常，薪酬核算数据分配失败");
+
+            // 拆分薪资项目
+            Object itemsObj = staffInfo.get("itemsId");
+            if (itemsObj != null) {
+                String[] items = itemsObj.toString().split(",");
+                String[] itemsName = staffInfo.get("itemsName").toString().split(",");
+                String[] sxs = staffInfo.get("sx").toString().split(",");
+                for (int j = 0, m = items.length; j < m; j++) {
+                    AssignationStaffSalary staffSalary = new AssignationStaffSalary();
+                    staffSalary.setAssignationStaffId(assignMainId);
+                    staffSalary.setIbfId(items[j]);
+                    staffSalary.setIbfName(itemsName[j]);
+                    staffSalary.setAssignationCharge("0");
+                    staffSalary.setSx(Integer.valueOf(sxs[j]));
+                    staffSalary.setIsDelete(0);
+                    assignationStaffSalaries.add(staffSalary);
+                }
+            }
+        }
+
+        // 保存薪酬核算数据中间表
+        if (assignationStaffSalaries.size() > 0) {
+            assignationStaffSalaryService.saveBatch(assignationStaffSalaries);
+
+            // 更新总量表数据
+            SalaryAssignation assignation = get(SalaryAssignation.class, Restrictions.eq("id", assignId),  Restrictions.eq("isDelete", 0));
+            if (assignation != null) {
+                List<AssignationStaff> assignationStaffs = getList(AssignationStaff.class,
+                        Restrictions.eq("salaryAssignationId", assignation.getId()),
+                        Restrictions.eq("isDelete", 0));
+                SalaryTotalAmount amount = get(SalaryTotalAmount.class,
+                        Restrictions.eq("companyId", assignation.getCompanyId()),
+                        Restrictions.eq("fpDate", assignation.getSalaryPeriod()),
+                        Restrictions.eq("isDelete", 0));
+                amount.setPeopleCount(assignationStaffs.size());
+                salaryTotalAmountService.update(amount);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String removeForAssign(String ids) throws Exception {
+        String[] idsArray = ids.split(",");
+        List<AssignationStaff> assignationStaffSalaries = new ArrayList<AssignationStaff>();
+        String assignId = "";
+        for (int i = 0; i < idsArray.length; i++) {
+            AssignationStaff salary = get(AssignationStaff.class,
+                    Restrictions.eq("id", idsArray[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (salary == null) {
+                throw new Exception("第"+(i+1)+"个员工不存在，已经被删除");
+            }
+            salary.setIsDelete(1);
+            assignationStaffSalaries.add(salary);
+            assignId = salary.getSalaryAssignationId();
+        }
+        assignationStaffService.saveBatch(assignationStaffSalaries);
+
+        // 更新总量表数据
+        SalaryAssignation assignation = get(SalaryAssignation.class, Restrictions.eq("id", assignId),  Restrictions.eq("isDelete", 0));
+        if (assignation != null) {
+            List<AssignationStaff> assignationStaffs = getList(AssignationStaff.class,
+                    Restrictions.eq("salaryAssignationId", assignation.getId()),
+                    Restrictions.eq("isDelete", 0));
+            SalaryTotalAmount amount = get(SalaryTotalAmount.class,
+                    Restrictions.eq("companyId", assignation.getCompanyId()),
+                    Restrictions.eq("fpDate", assignation.getSalaryPeriod()),
+                    Restrictions.eq("isDelete", 0));
+            amount.setPeopleCount(assignationStaffs.size());
+            salaryTotalAmountService.update(amount);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String updateReCalculateStaffsItem(String assignStaffId, String assignId, String id) {
+        List<Map<String, Object>> list = salaryAssignationDao.getSelectedStaffAssignData(assignStaffId, assignId, id);
+        List<AssignationStaffSalary> staffSalaries = new ArrayList<AssignationStaffSalary>();
+        DecimalFormat df = new DecimalFormat();
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, Object> map = list.get(i);
+            // 中间表ID
+            String[] staffSalaryIds = map.get("id").toString().split(",");
+
+            // 默认公式
+            String[] formulas = map.get("formula").toString().split(",");
+
+            for (int j = 0, m = staffSalaryIds.length; j < m; j++) {
+                // 查找中间表数据
+                AssignationStaffSalary staffSalary = assignationStaffSalaryService.get(AssignationStaffSalary.class,
+                        Restrictions.eq("id", staffSalaryIds[j]),
+                        Restrictions.eq("isDelete", 0));
+                if (staffSalary != null) {
+                    // 计算公式
+                    Object result = formula(formulas[j]);
+                    SalaryItems items = get(SalaryItems.class, Restrictions.eq("id", staffSalary.getIbfId()));
+                    if (items != null) {
+                        // 小数位数
+                        staffSalary.setAssignationCharge(numberAccuracy(df, items.getNumberAccuracy(), result == null ? "0" : result.toString()));
+                        staffSalaries.add(staffSalary);
+                    }
+                }
+            }
+        }
+
+        // 更新值
+        assignationStaffSalaryService.saveBatch(staffSalaries);
+
+        return "success";
+    }
+
+    @Override
+    public String updateSelectReCalculateStaffsItem(String ids, String itemID, String formula) {
+        String[] idsArray = ids.split(",");
+        List<AssignationStaffSalary> staffSalaries = new ArrayList<AssignationStaffSalary>();
+        // 计算公式
+        Object result = formula(formula);
+        result = (result == null ? "0" : result);
+        DecimalFormat df = new DecimalFormat();
+        for (int i = 0, n =idsArray.length; i < n; i++) {
+            AssignationStaffSalary staffSalary = get(AssignationStaffSalary.class,
+                    Restrictions.eq("assignationStaffId", idsArray[i]),
+                    Restrictions.eq("ibfId", itemID),
+                    Restrictions.eq("isDelete", 0));
+            if (staffSalary != null) {
+                SalaryItems items = get(SalaryItems.class, Restrictions.eq("id", itemID));
+                if (items != null) {
+                    // 小数位数
+                    staffSalary.setAssignationCharge(numberAccuracy(df, items.getNumberAccuracy(), result));
+                    staffSalaries.add(staffSalary);
+                }
+            }
+        }
+
+        // 更新值
+        assignationStaffSalaryService.saveBatch(staffSalaries);
+
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String updateSelectStaffSalaryData(String griddata, String columns) throws Exception {
+        List<Map<String, String>> gridSalarys = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = gridSalarys.size(); i < l; i++) {
+            Map<String, String> map = gridSalarys.get(i);
+            if ("modified".equals(map.get("_state"))) {
+                AssignationStaff staff = assignationStaffService.get(AssignationStaff.class,
+                        Restrictions.eq("id", map.get("id")),
+                        Restrictions.eq("isDelete", 0));
+                if (staff == null) {
+                    throw new Exception(map.get("name") + "核算数据不存在，已经被删除");
+                }
+                String[] salaryId = columns.split(",");
+                for (String str : salaryId) {
+                    AssignationStaffSalary staffSalary = assignationStaffSalaryService.get(AssignationStaffSalary.class,
+                            Restrictions.eq("assignationStaffId", staff.getId()),
+                            Restrictions.eq("id", str),
+                            Restrictions.eq("isDelete", 0));
+                    if (staffSalary == null) {
+                        throw new Exception(map.get("name") + "核算数据不存在，已经被删除");
+                    }
+                    String item = map.get(staffSalary.getIbfId());
+                    staffSalary.setAssignationCharge(item);
+                    assignationStaffSalaryService.update(staffSalary);
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, String>> getAllGroupWageFinancialList(String assignStaffId, String itemid) {
+        return salaryAssignationDao.getAllGroupWageFinancialList(assignStaffId, itemid);
+    }
+
+    /**
+     * @Title: 公式计算
+     * @param cntMath
+     * @return 
+     * Object 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    private Object formula(String cntMath) {
+        JexlEngine jexl=new JexlEngine();  
+        Expression e = jexl.createExpression("result= " + cntMath);
+        JexlContext jc = new MapContext();
+        jc.set("formulaService", SpringUtil.getBean("formulaService"));
+        jc.set("date", new Date());
+        e.evaluate(jc);
+
+        return jc.get("result");
+    }
+
+    /**
+     * @Title: 计算保留值
+     * @param df
+     * @param xs
+     * @param value
+     * @return 
+     * Object 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    private String numberAccuracy(DecimalFormat df, String xs, Object value) {
+        // 小数位数
+        if (Integer.valueOf(xs) == 0) {
+            df.applyPattern("0");
+        } else {
+            df.applyPattern("0."+String.format("%0"+ xs +"d%n", 0));
+        }
+
+        return df.format(Double.valueOf(value.toString())).trim();
+    }
+
+    @Override
+    public String commitCheck(String id) {
+        // 查找该审核过程是否存在
+        SalaryAssignation assignation = get(SalaryAssignation.class,
+                Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        if (assignation == null) {
+            return "该核算过程不存在，已经被删除";
+        }
+
+        // 是否已经提交审核
+        if (assignation.getIsSp() == 1) {
+            return "该核算过程已经提交";
+        }
+
+        // 是否已经通过
+        if (assignation.getIsSp() == 3) {
+            return "该核算过程已经审核通过";
+        }
+        assignation.setIsSp(1);
+        update(assignation);
+
+        return "success";
+    }
+
+    @Override
+    public String batchCommitCheck(String ids) {
+        String[] idsArray = ids.split(",");
+        List<SalaryAssignation> list = new ArrayList<SalaryAssignation>();
+        for (int i = 0, l = idsArray.length; i < l; i++) {
+            // 查找该审核过程是否存在
+            SalaryAssignation assignation = get(SalaryAssignation.class,
+                    Restrictions.eq("id", idsArray[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (assignation == null) {
+                return "第"+(i+1)+"个核算过程不存在，已经被删除";
+            }
+
+            // 是否已经提交审核
+            if (assignation.getIsSp() == 1) {
+                return "第"+(i+1)+"个核算过程已经提交";
+            }
+
+            // 是否已经通过
+            if (assignation.getIsSp() == 3) {
+                return "第"+(i+1)+"个核算过程已经审核通过";
+            }
+            assignation.setIsSp(1);
+            list.add(assignation);
+        }
+
+        if (list.size() > 0) {
+            saveBatch(list);
+        } else {
+            return "该核算过程已经通过";
+        }
+
+        return "success";
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public void export(String id, String searchData) {
+        // 查找该审核过程是否存在
+        SalaryAssignation assignation = get(SalaryAssignation.class,
+                Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        if (assignation == null) {
+            return;
+        }
+        String sql = salaryAssignationDao.getAssignationForStaffDataSql(id, "", searchData);
+        List<?> list = findBySql(sql);
+
+        ArrayList<ArrayList> tableData = new ArrayList<ArrayList>();
+        for (int i = 0; i < list.size(); i++) {
+            ArrayList rowList=new ArrayList();
+            Object[] obj = (Object[]) list.get(i);
+            rowList.add(i+1);//序号
+            rowList.add(obj[2]);// 工号
+            rowList.add(obj[3]);// 姓名
+            String[] charge = obj[6].toString().split(",");
+            for (String str : charge) {
+                rowList.add(str);// 薪资项目对应的值
+            }
+            tableData.add(rowList);
+        }
+
+        // 汇总数据
+        List<Map<String, Object>> totalList = salaryAssignationDao.getTotalData(id);
+
+        //表格标题
+        String[] tableCaption ={"序号","工号","姓名"};
+        if (list.size() > 0) {
+            // 取出薪资项目
+            Object[] obj = (Object[]) list.get(0);
+            String[] items = obj[5].toString().split(",");
+            int len1 = tableCaption.length;
+            int len2 = items.length;
+
+            // 扩容第一个数组
+            tableCaption = Arrays.copyOf(tableCaption, len1 + len2);
+            System.arraycopy(items, 0, tableCaption, len1, len2);
+
+            // 薪资ID,增加合计一行
+            String[] itemsID = obj[4].toString().split(",");
+            ArrayList rowList=new ArrayList();
+            rowList.add("合计");
+            rowList.add("");
+            rowList.add("");
+            for (String item : itemsID) {
+                Boolean isExist = false;
+                for (Map<String, Object> map : totalList) {
+                    if (map.get("IBFID").equals(item)) {
+                        rowList.add(map.get("CHARGE"));
+                        isExist = true;
+                        break;
+                    }
+                }
+                if (!isExist) {
+                    rowList.add("");
+                }
+            }
+            tableData.add(rowList);
+        }
+
+        //表格脚部分
+        String dcr=ToolUtil.userName();
+        Date dcrq=new Date();
+        ArrayList footData=new ArrayList();
+        footData.add("导出人： "+ ExcelUtil.toString(dcr));
+        footData.add("导出日期： "+ ExcelUtil.toString(dcrq));
+        ExcelUtil.export(assignation.getName() +"导出薪酬数据", null, tableCaption, tableData, footData);
+    }
+
+    @Override
+    public Map<String, Object> getNeedCheckStaffData(String id, Pager pager) {
+        return salaryAssignationDao.getNeedCheckStaffData(id, pager);
+    }
+
+    @Override
+    public String updateReleaseData(String ids) {
+        String[] idsArray = ids.split(",");
+        List<SalaryAssignation> assignations = new ArrayList<SalaryAssignation>();
+        for (int i = 0, l = idsArray.length; i < l; i++) {
+            // 查找该审核过程是否存在
+            SalaryAssignation assignation = get(SalaryAssignation.class,
+                    Restrictions.eq("id", idsArray[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (assignation == null) {
+                return "该核算过程不存在，已经被删除";
+            }
+
+            // 已经发放
+            if (assignation.getIsFafang() == 1) {
+                return assignation.getName() + "核算过程已发放";
+            }
+
+            // 已经发布
+            if (assignation.getIsFafang() == 3) {
+                return assignation.getName() + "核算过程已发布";
+            }
+
+            // 未提交
+            if (assignation.getIsSp() == 0) {
+                return assignation.getName() + "核算过程未提交，不能发放";
+            }
+
+            // 未通过
+            if (assignation.getIsSp() == 2) {
+                return assignation.getName() + "核算过程未通过，不能发放";
+            }
+
+            // 未通过
+            if (assignation.getIsSp() != 3) {
+                return assignation.getName() + "核算过程未通过，不能发放";
+            }
+
+            assignation.setIsFafang(1);
+            assignation.setFafangAccount(LingUtil.userinfo().getId());
+            assignation.setFafangDate(new Date());
+            assignations.add(assignation);
+        }
+
+        // 更新状态
+        saveBatch(assignations);
+
+        return "success";
+    }
+
+    @Override
+    public String updateNoReleaseData(String ids) {
+        String[] idsArray = ids.split(",");
+        List<SalaryAssignation> assignations = new ArrayList<SalaryAssignation>();
+        for (int i = 0, l = idsArray.length; i < l; i++) {
+            // 查找该审核过程是否存在
+            SalaryAssignation assignation = get(SalaryAssignation.class,
+                    Restrictions.eq("id", idsArray[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (assignation == null) {
+                return "该核算过程不存在，已经被删除";
+            }
+
+            // 未发放
+            if (assignation.getIsFafang() == 0) {
+                return assignation.getName() + "核算过程未发放";
+            }
+
+            // 已发布
+            if (assignation.getIsFafang() == 2) {
+                return assignation.getName() + "核算过程已发布";
+            }
+
+            assignation.setIsFafang(0);
+            assignation.setFafangAccount(LingUtil.userinfo().getId());
+            assignation.setFafangDate(new Date());
+            assignations.add(assignation);
+        }
+
+        // 更新状态
+        saveBatch(assignations);
+
+        return "success";
+    }
+
+}

@@ -1,0 +1,160 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>人员异动</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="../template/system/css/base.css" type="text/css"></link>
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <script src="${base}/template/plugin/public/treeList.js" type="text/javascript"></script>
+    <style type="text/css">
+    body {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    .myrow {
+        background: #fceee2;
+    }
+    </style>
+</head>
+<body>
+    <div class="mini-toolbar" style="padding:0px;border-top:0;border-left:0;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:200px;">职工号：
+                    <input class="mini-textbox" id="jobNumber" name="jobNumber" emptyText="请输入职工号" onenter="onKeyEnter" />
+                </td>
+                <td style="width:200px;">姓名：
+                    <input id="name" name="name" class="mini-textbox" emptyText="请输入员工姓名" onenter="onKeyEnter"/>
+                </td>
+                
+                <td style="white-space:nowrap;">
+                	<a class="mini-button" iconCls="icon-search" onclick="search('jobNumber,name','jobNumber,name')" onenter="onKeyEnter">查询</a>
+               	</td>
+            </tr>
+        </table>
+    </div>
+   <div class="mini-toolbar" style="padding:0px;border-top:0;">
+	       			 <table style="width:100%;">
+	           			 <tr>
+			                <td style="width:100%;">
+			                    <a class="mini-button" iconCls="icon-search" onclick="look()">查看员工详细信息</a>
+			                </td>
+	            		 </tr>
+	        		</table>
+	    		</div>
+    <div class="mini-fit">
+        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+             url="../personnel/change!getListData.action" idField="id" multiSelect="true" 
+             allowAlternating="true" pageSize="100" >
+            <div property="columns">
+            	<div type="checkcolumn"></div>
+                <div type="indexcolumn" headerAlign="center">序列</div>
+                <div field="id" id="id" width="0" name="id" headerAlign="center" align="center" class="mini-hidden">id</div>
+                <div field="personId" id="personId" width="0" name="personId" headerAlign="center" align="center" class="mini-hidden">personId</div>
+		         <div field="jobNumber" id ="jobNumber" name = "jobNumber" width="100" headerAlign="center" align="left">职工号</div>
+		         <div field="pername" id ="pername" name = "pername"width="100" headerAlign="center" align="left">职工姓名</div>
+		         <div field="filmName" id ="filmName" name = "filmName"width="200" headerAlign="center" align="left">单位</div>
+		         <div field="departName" id ="departName" name = "departName"width="100" headerAlign="center" align="left">部门</div>
+		         <div field="post" id ="post" name = "post"width="100" headerAlign="center" align="left">标准岗位</div>
+		         <div field="specificPost" id ="specificPost" name = "specificPost"width="100" headerAlign="center" align="left">具体岗位</div>
+		         
+                <div type="comboboxcolumn" field="changeType" width="100" headerAlign="center" align="center">异动类型
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881955bdb82a5015bdc08b32b0013"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div field="changedate" width="100" headerAlign="center" align="center">异动时间</div>
+                <div type="comboboxcolumn" field="changeCause" width="100" headerAlign="center" align="center">变动原因
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881955c0eb69e015c1015855e0026"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                
+         		<div field="filmName2" width="100" headerAlign="center" align="center">异动后公司</div>
+                <div field="depName2" width="100" headerAlign="center" align="center">异动后部门</div>
+                <div field="spanPostName2" width="100" headerAlign="center" align="center">异动后标准岗位</div>
+                <div field="spPostName2" width="100" headerAlign="center" align="center">异动后具体岗位</div>
+                <div type="comboboxcolumn" field="jobLevel2" width="100" headerAlign="center" align="center">异动后职务级别
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935ba8c785015ba8e043c80011"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="empType2" width="100" headerAlign="center" align="center">异动后员工类型
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935baceaa1015bad355ba8000a"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="onJob2" width="100" headerAlign="center" align="center">异动后在职状态
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935baceaa1015bae044344001a"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="onPost2" width="100" headerAlign="center" align="center">异动后在岗状态
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881955bc84595015bc87aa73e0010"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                
+                <div field="film" width="100" headerAlign="center" align="center">原公司</div>
+                <div field="dep" width="100" headerAlign="center" align="center">原部门</div>
+                <div field="spanPost" width="100" headerAlign="center" align="center">原标准岗位</div>
+                <div field="spPost" width="100" headerAlign="center" align="center">原具体岗位</div>
+                <div type="comboboxcolumn" field="jobLevel" width="100" headerAlign="center" align="center">原职务级别
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935ba8c785015ba8e043c80011"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="empType" width="100" headerAlign="center" align="center">原员工类型
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935baceaa1015bad355ba8000a"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="onJob" width="100" headerAlign="center" align="center">原在职状态
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935baceaa1015bae044344001a"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="onPost" width="100" headerAlign="center" align="center">原在岗状态
+                	<input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881955bc84595015bc87aa73e0010"
+                		textField="dicname" valueField="dicvalue"/>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        mini.parse();
+        
+        var grid=mini.get("grid");
+        grid.hideColumn("id");
+        grid.hideColumn("personId");
+        
+        grid.load();
+        ///////////////////////////////////////////////
+        function onKeyEnter(e) {
+        	search('jobNumber,name','jobNumber,name');
+        }
+        
+      //员工查看页面
+        function look() {
+       	var row = grid.getSelected();
+       	if(row){
+       		var tabs = window.parent.mini.get("mainTabs");
+               var tab = { title: "员工管理查看", showCloseButton: true };
+               tab.url = "../personnel/personnel!all.action?personId="+row.personId;
+               tabs.addTab(tab);
+               tabs.activeTab(tab);
+       	}else{
+       		mini.alert("请选中一条记录！");
+       	}
+       }
+        
+    </script>
+</body>
+</html>

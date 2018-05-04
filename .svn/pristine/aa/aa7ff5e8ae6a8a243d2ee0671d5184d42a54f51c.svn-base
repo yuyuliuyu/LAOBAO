@@ -1,0 +1,98 @@
+package com.lingnet.hcm.dao.impl.empdata;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.empdata.AwardDao;
+import com.lingnet.hcm.dao.empdata.CareerDao;
+import com.lingnet.hcm.entity.person.Award;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 人员岗位兼职Dao实现类
+ */
+@Repository("awardDao")
+public class AwardDaoImpl extends BaseDaoImpl<Award, String> implements AwardDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" SELECT BAS.JOB_NUMBER,BAS.NAME PERNAME,BAS.FILM_NAME,BAS.DEPART_NAME,BAS.POST PERPOST,BAS.SPECIFIC_POST,  ")
+		.append(" JA.ID,JA.AWARD_NAME,JA.AWARDDATE,JA.APPROVE_NUM,JA.APPROVE_OFFICE,JA.AWARD_CLASS,JA.AWARD_TYPE, ")
+		.append(" JA.AWARD_LEVEL,JA.AWARD_CAUSE,JA.AWARD_STEP,JA.AWARD_AMOUNT,JA.FILE_NUM,JA.FILE_NAME,JA.REMARK,JA.URL ")
+		.append(" FROM JC_AWARD JA ")
+		.append(" LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.ID=JA.PERSON_ID  ")
+		.append(" WHERE 1=1  ")
+		;
+		
+		if(searchData!=null&&!"".equals(searchData)){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and BAS.JOB_NUMBER LIKE'%"+dataMap.get("jobNumber")+"%'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and BAS.NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("personId") != null && !"".equals(dataMap.get("personId"))){
+				sql.append(" and BAS.ID = '"+dataMap.get("personId")+"'");
+			}
+			if (dataMap.get("awardName") != null && !"".equals(dataMap.get("awardName"))){
+				sql.append(" and JA.AWARD_NAME like '%"+dataMap.get("awardName")+"%'");
+			}
+			
+		}
+		sql.append(" ORDER BY JA.AWARDDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        SimpleDateFormat form =new SimpleDateFormat("yyyy-MM-dd");
+        String stamp = "";
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("id", obj[6]);
+			map.put("awardName", obj[7]);
+			if(obj[8]!=null&&!"".equals(obj[8])){
+				stamp=form.format(obj[8]);
+				map.put("awarddate", stamp);
+			}
+			map.put("approveNum", obj[9]);
+			map.put("approveOffice", obj[10]);//人名字
+			map.put("awardClass", obj[11]);
+			map.put("awardType", obj[12]);
+			map.put("awardLevel", obj[13]);
+			map.put("awardCause", obj[14]);
+			map.put("awardStep", obj[15]);
+			map.put("awardAmount", obj[16]);
+			map.put("fileNum", obj[17]);
+			if(obj[18]!=null){
+				map.put("fileName", "<a href='#' onClick=\"filedownload('"+obj[6]+"')\">"+obj[18]+"</a>");
+			}
+			map.put("remark", obj[19]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

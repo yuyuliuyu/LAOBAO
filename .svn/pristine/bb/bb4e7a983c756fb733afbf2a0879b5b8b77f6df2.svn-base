@@ -1,0 +1,150 @@
+package com.lingnet.hcm.service.salary;
+
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.util.Pager;
+
+/**
+ * 平均工资计算过程
+ * @ClassName: SalaryMonthService 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年4月24日 下午2:45:14 
+ *
+ */
+public interface SalaryMonthService extends BaseService<SalaryMonth, String> {
+
+    /**
+     * @Title: 获取每月平均工资 
+     * @param companyId 公司ID
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public Map<String, Object> getPerMonthSalary(String companyId, Pager pager);
+
+    /**
+     * @Title: 删除月平均工资 
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String remove(String ids);
+
+    /**
+     * @Title: 月平均工资保存 
+     * @param formdata
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月24日 V 1.0
+     */
+    public String saveOrUpdate(String formdata, String griddata) throws Exception;
+
+    /**
+     * @Title: 获取关联到的薪资项目
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public List<Map<String, Object>> getMonthItemForId(String id);
+
+    /**
+     * @Title: 重新计算平均工资 
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String updateReloadCalculation(String id);
+
+    /**
+     * @Title: 获取需要计算平均工资的员工 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public List<Map<String, Object>> getPersonalToAllocationListData(String id);
+
+    /**
+     * @Title: 获取月平均工资的员工 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public Map<String, Object> getMonthSalaryListData(String id, Pager pager);
+
+    /**
+     * @Title: 增加或者删除参加计算员工  
+     * @param id
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月25日 V 1.0
+     */
+    public String saveOrUpdateToPerson(String id, String griddata) throws Exception;
+
+    /**
+     * @Title: 获取维护的员工月平均工资
+     * @param depId
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月28日 V 1.0
+     */
+    public Map<String, Object> getMonthAvgSalary(String depId, Pager pager);
+
+    /**
+     * @Title: 增加或者更新员工月平均工资
+     * @param year
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年5月28日 V 1.0
+     */
+    public String saveOrUpdateMonthAvgSalary(int year, String griddata) throws Exception;
+
+    /**
+     * @Title: 替换现有平均工资
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月25日 V 1.0
+     */
+    public String replaceCurAvgSalary(String id);
+
+    /**
+     * @Title: 导入平均工资
+     * @param endSuffix
+     * @param uploadFile
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年6月26日 V 1.0
+     */
+    public String beachCheck(String endSuffix, File uploadFile) throws Exception;
+
+}

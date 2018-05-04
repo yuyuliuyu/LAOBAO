@@ -1,0 +1,182 @@
+package com.lingnet.hcm.service.impl.check;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.AuditInfosDao;
+import com.lingnet.hcm.dao.check.CheckInfosDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.service.check.AuditInfosService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+/**
+ * 
+ * @ClassName: AuditInfosServiceImpl 
+ * @Description: 员工考勤审核记录Service实现类 
+ * @author wangqiang
+ * @date 2017年4月19日 上午11:29:58 
+ *
+ */
+@Service("auditInfosService")
+public class AuditInfosServiceImpl extends BaseServiceImpl<CkInfoCommit, String> implements AuditInfosService{
+	
+	@Resource(name = "auditInfosDao")
+	private AuditInfosDao auditInfosDao;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+	
+	@Resource(name = "personnelDao")
+	private PersonnelDao personnelDao;
+	
+	@Resource(name = "checkInfosDao")
+	private CheckInfosDao checkInfosDao;
+	
+	@Override
+	public Map<String, String> saveReportInfos(String yearMonth, String commitId) throws Exception {
+		Map<String, String> map = new HashMap<String, String>();
+		//获得当前用户的所有权限部门集合
+        String depIds = getAllDepIdStrs();
+        
+        depIds=depIds.replace("'", "");
+        depIds="'"+depIds+"'";
+        Map<String, String> infoMap = auditInfosDao.getAuditInfoByCond(depIds.substring(1, depIds.length()-1), yearMonth);
+        if (infoMap.isEmpty()){
+        	//获得部门下所有人员ID集合
+            String empIds = personnelDao.getEmpIdsByDepIds(getAllDepIdStrs());
+            CkInfoCommit commitInfo = new CkInfoCommit();
+            commitInfo.setEmpId(LingUtil.userinfo().getDepId());//上报人员ID
+            commitInfo.setPersonIds(empIds);//员工ID集合
+            commitInfo.setMonthCalendar(yearMonth);
+            commitInfo.setCommitDate(new Date());
+            commitInfo.setDepId(depIds.substring(1,depIds.length()-1));
+            commitInfo.setAuditStatus(0);
+            commitInfo.setIsDelete(0);
+            auditInfosDao.save(commitInfo);
+            //批量修改员工上报部门
+            String jobNumbers = personnelDao.getJobNumbersByDepIds(getAllDepIdStrs());
+            checkInfosDao.updateDepIdByJobNumbers(jobNumbers, depIds);
+            map.put("status", "success");
+        } else {
+        	if ("待审核".equals(infoMap.get("auditStatus"))){
+        		map.put("status", "error");
+            	map.put("msg", "该部门考勤已上报，请勿重复上报！");
+        	} else if ("审核通过".equals(infoMap.get("auditStatus"))){
+        		map.put("status", "error");
+            	map.put("msg", "该部门考勤已审核通过，请勿重复上报！");
+        	} else if ("审核不通过".equals(infoMap.get("auditStatus"))){
+        		if (commitId != null && !"".equals(commitId)){
+        			CkInfoCommit commitInfo = auditInfosDao.get(commitId);
+        			commitInfo.setAuditStatus(0);
+        			auditInfosDao.update(commitInfo);
+        		}
+        	}
+        	
+        }
+        return map;
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+		String depIds = "";
+  		String userId = toolUtil.getUserId();
+  		List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+  				+ "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+  				+ "WHERE B.IS_DELETE = 0 ");
+  		if (data!=null&&data.size()>0){
+  			for (int i=0;i<data.size();i++){
+  				Object b = (Object)data.get(i);
+  				//depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+  				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+               		"INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+               		"WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    //String parent=dep[0]==null?"":dep[0].toString();
+            	    depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+  				}
+  			}
+  		}else{
+            List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+                    "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+                    "WHERE  D.IS_DELETE=0 ");
+                for (int k=0; k<dataP.size(); k++){
+                    Object[] dep=(Object[])dataP.get(k);
+                    String parent=dep[0]==null?"":dep[0].toString();
+                    if ("ROOT".equals(parent)){
+                        depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                    }else{
+                        depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                    }
+                }
+          }
+  		if (!"".equals(depIds)){
+  			depIds = depIds.substring(0,depIds.length()-2);
+  		}
+  		return depIds;
+	}
+
+	@Override
+	public Map<String, String> getAuditStatusByYearMonth(String yearMonth) {
+		String userId = LingUtil.userinfo().getDepId();
+		return auditInfosDao.getAuditStatusByCond(userId, yearMonth);
+	}
+
+	@SuppressWarnings({ "rawtypes"})
+	@Override
+	public List<Map<String, String>> getDataByCond(String searchData) {
+		List<Map<String, String>> ckInfoList = new ArrayList<Map<String, String>>();
+		if (searchData != null) {
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			String branchId = dataMap.get("companyId");
+			String depIds = dataMap.get("depId");
+			String yearMonth = dataMap.get("yearMonth");
+			depIds=depIds.replace("'", "");
+			if ("".equals(depIds)){
+				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT PARENT, ID FROM QX_DEPARTMENT D " +
+               		"WHERE BARCH_ID='"+branchId+"' AND IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+  				}
+  				depIds = depIds.substring(0, depIds.length()-2);
+			} else {
+//				depIds = "'" + depIds + "'";
+			}
+			if (!"".equals(depIds)){
+				ckInfoList = auditInfosDao.getInfoByCond(depIds, yearMonth);
+			}
+		} 
+		return ckInfoList;
+	}
+
+	@Override
+	public Map<String, String> getAuditStatusByCond(String depId, String yearMonth) {
+		return auditInfosDao.getAuditInfoByCond(depId, yearMonth);
+	}
+
+	@Override
+	public CkInfoCommit getInfoByYearMonth(String yearMonth) {
+		String userId = toolUtil.getUserId();
+		return auditInfosDao.getInfoByYearMonth(userId, yearMonth);
+	}
+}

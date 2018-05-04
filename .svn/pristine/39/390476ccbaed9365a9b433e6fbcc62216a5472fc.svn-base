@@ -1,0 +1,158 @@
+package com.lingnet.hcm.action.check; 
+import java.util.HashMap;
+import java.util.List; 
+import java.util.Map;
+
+import javax.annotation.Resource; 
+
+import org.hibernate.criterion.Restrictions; 
+
+import com.lingnet.common.action.BaseAction; 
+import com.lingnet.hcm.entity.WorkFlowChild;
+import com.lingnet.hcm.entity.check.CkEvectionRecord;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.WorkFlowService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+
+public class EvectionRecordAction extends BaseAction{
+    private static final long serialVersionUID = 1L;
+    
+    @Resource(name = "adminService")
+    private AdminService adminService;
+    
+    @Resource(name = "workflowservice")
+    private WorkFlowService workflowservice;
+    private String id;
+    private CkEvectionRecord evection;
+    private String jsondate;
+    private String advid;
+    private String state;
+    
+    private List<CkEvectionRecord> evectionlist;
+    
+    public String list(){
+        return "list";
+    }
+    
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public String jsonlist(){
+        try {
+            if(state==null||"".equals(state.trim())){
+                pager=this.findPager(CkEvectionRecord.class, pager,Restrictions.isNotNull("id"));
+            }else{
+                pager=this.findPager(CkEvectionRecord.class, pager,Restrictions.isNotNull("id"),Restrictions.eq("field2",LingUtil.userinfo().getUsername()));
+            }
+        } catch (Exception e) { 
+            e.printStackTrace();
+        } 
+        Map result = new HashMap(); 
+        result.put("data", pager.getResult()); 
+        result.put("total", pager.getTotalCount()); 
+        String json=JsonUtil.Encode(result);
+        return ajax(Status.success,json);
+//        return ajax(Status.success,JsonUtil.toJson(pager.getResult()));
+    }
+    
+    public String add(){
+        if(id==null||"".equals(id.trim())){
+            evection=new CkEvectionRecord();  
+            evection.setEmpId(LingUtil.userinfo().getUsername());
+            evection.setApplyName(LingUtil.userinfo().getName());
+        }else{
+            evection=this.getBeanById(CkEvectionRecord.class, id);
+        }
+        return "add";
+    }
+    
+    public String saveOrUpdate(){
+        if(jsondate==null||"".equals(jsondate.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        evection=JsonUtil.toObject(jsondate, CkEvectionRecord.class);
+        if(evection==null){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else if(evection.getId()==null||"".equals(evection.getId().trim())){
+            this.save(evection);
+        }else{
+            this.update(evection);
+        }
+        return ajax(Status.success,"保存/修改成功");
+    }
+    
+    public String remove(){
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }else{
+            try {
+                this.deleteByCriteria(CkEvectionRecord.class, id);
+                return ajax(Status.success,"删除成功");
+            } catch (Exception e) {
+                return ajax(Status.success,"数据错误，请联系管理员");
+            }
+        }
+    }
+    /**
+     * 将审批提报上级
+     * @Title: giveapp 
+     * @return 
+     * String 
+     * @author 马晓鹏
+     * @since 2017年4月15日 V 1.0
+     */
+    public String nextapp(){
+        WorkFlowChild child=new WorkFlowChild();
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        evection=this.getBeanById(CkEvectionRecord.class, id);
+        if(evection==null){
+            return ajax(Status.success,"数据错误，请联系管理员");
+        }
+        /* 为空表示非第一次，需从流程表中获取。*/
+        if(advid==null||"".equals(advid.trim())){
+           child=  workflowservice.findnextbyid(evection.getField2());
+           advid=child.getAppid();
+        }
+        evection.setField2(advid);
+        this.update(evection);
+        return ajax(Status.success,"提报成功");
+    }
+    /*---------------------------------------------*/
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public CkEvectionRecord getEvection() {
+        return evection;
+    }
+    public void setEvection(CkEvectionRecord evection) {
+        this.evection = evection;
+    }
+    public String getJsondate() {
+        return jsondate;
+    }
+    public void setJsondate(String jsondate) {
+        this.jsondate = jsondate;
+    }
+    public String getAdvid() {
+        return advid;
+    }
+    public void setAdvid(String advid) {
+        this.advid = advid;
+    }
+    public List<CkEvectionRecord> getEvectionlist() {
+        return evectionlist;
+    }
+    public void setEvectionlist(List<CkEvectionRecord> evectionlist) {
+        this.evectionlist = evectionlist;
+    } 
+    public String getState() {
+        return state;
+    } 
+    public void setState(String state) {
+        this.state = state;
+    } 
+}

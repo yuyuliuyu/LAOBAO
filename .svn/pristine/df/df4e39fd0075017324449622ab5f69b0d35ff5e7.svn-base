@@ -1,0 +1,193 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>工作台设置</title>
+<script src="../template/miniui/boot.js" type="text/javascript"></script>
+<!--引入皮肤样式-->
+<link href="../template/miniui/themes/other/skin.css" rel="stylesheet"
+	type="text/css" />
+<script type="text/javascript"
+	src="../template/plugin/public/cent_dep.js"></script>
+<style type="text/css">
+body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+</head>
+<body>
+	<div class="mini-fit">
+				<div class="mini-toolbar" style="padding:0px;border-top:0;">
+					<table style="width:100%;">
+						<tr>
+							<td style="width:100%;">
+								<a class="mini-button" name="yctoolbar" iconCls="icon-add" onclick="add()">订立协议</a>
+								<a class="mini-button" name="yctoolbar" iconCls="icon-edit" onclick="edit()">变更协议</a>
+								<a class="mini-button" name="yctoolbar" iconCls="icon-zhuanyibumen" onclick="changestate(1)">中止协议</a>
+								<a class="mini-button" name="yctoolbar" iconCls="icon-zhuanyibumen" onclick="changestate(2)">解除协议</a> 
+								<a class="mini-button" iconCls="icon-add" onclick="look()">查看协议</a>
+						</tr>
+					</table>
+				</div>
+	    <input type="hidden"  name="flag" id="flag" value="${flag}" />
+		<div id="grid" class="mini-datagrid" style="width:100%;height:100%;"
+			contextMenu="#gridMenu" url="../contract/employ_agreement!jsonlist.action?personId=${personId}" allowAlternating="true"
+			idField="id" pageSize="10" onshowrowdetail="onShowRowDetail">
+						<div property="columns">
+               			<div type="checkcolumn" width="50"></div>
+				        <div field="id" name="id" id="id" width="100" headerAlign="center" align="center">id</div> 
+				        <div field="userid"  name="userid"  width="100" headerAlign="center" align="center">职工号</div>
+				        <div field="username"  name="username"  width="100" headerAlign="center" align="center">职工名</div>
+				        <div field="deptid"  name="deptid"  width="100" headerAlign="center" align="center">部门</div> 
+				        <div field="positionid"  name="positionid"  width="100" headerAlign="center" align="center">岗位</div>
+				        <div field="contractid"  name="contractid"  width="100" headerAlign="center" align="center">合同编号</div>
+				        <div field="agreno"  name="agreno"  width="100" headerAlign="center" align="center">协议编号</div>
+				        <div field="agretype"  name="agretype"  width="100" headerAlign="center" align="center">协议类型</div> 
+				        <div field="signdate"  name="signdate"  width="100" headerAlign="center" align="center">协议签订时间</div>
+				        <div field="effecdate"  name="effecdate"  width="100" headerAlign="center" align="center">协议生效时间</div>
+				        <div field="agreterm"  name="agreterm"  width="100" headerAlign="center" align="center">协议期限</div>
+				        <div field="penalpymoney"  name="penalpymoney"  width="100" headerAlign="center" align="center">违约金</div>
+				        <div field="compenmoney"  name="compenmoney"  width="100" headerAlign="center" align="center">补偿金</div> 
+					</div>
+				</div> 
+		</div>
+	<script type="text/javascript">
+		var flag=$("#flag").val();
+		mini.parse(); 
+		var grid = mini.get("grid");
+		if(flag=="1"){
+	   	 	grid.hideColumn("jobNumber");
+	   	 	grid.hideColumn("pername");
+	    	grid.hideColumn("filmName");
+	    	grid.hideColumn("departName");
+	    	grid.hideColumn("post");
+	    	grid.hideColumn("specificPost");
+	    	var statusName = mini.getsbyName("yctoolbar");
+            for(var i=0; i < statusName.length; i++){
+                var link = statusName[i];
+                link.hide();
+            }
+		}
+		grid.hideColumn("id");
+		grid.hideColumn("indexcolumn");
+		grid.load();
+		//添加分类
+		function add() {
+			mini.open({
+						url : "../contract/employ_agreement!add.action?personId=${personId}",
+						title : "增加工作台模块",
+						width : 670,
+						height : 500,
+						/* allowResize : false, */
+						onload : function() {
+						},
+						ondestroy : function(action) {
+							//刷新页面
+							window.location.reload();
+						}
+					});
+		} 
+		function edit() { 
+			var rows = grid.getSelecteds();
+			if (rows.length == 1) {
+				mini.open({
+					url : "../contract/employ_agreement!add.action?personId=${personId}&id=" + rows[0].id ,
+					title : "编辑工作台模块",
+					width : 670,
+					height : 500,
+					/* allowResize : false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						grid.reload();
+					}
+				});
+			} else {
+				mini.alert("请选中一条记录！");
+			}
+		}
+		function look() { 
+			var rows = grid.getSelecteds();
+			if (rows.length == 1) {
+				mini.open({
+					url : "../contract/employ_agreement!add.action?personId=${personId}&id=" + rows[0].id+ "&show=false" ,
+					title : "编辑工作台模块",
+					width : 670,
+					height : 500,
+					/* allowResize : false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						grid.reload();
+					}
+				});
+			} else {
+				mini.alert("请选中一条记录！");
+			}
+		}
+		//删除值
+		function remove(){
+			var rows = grid.getSelecteds();
+			if (rows.length == 1) {
+				if (confirm("确定删除选中的记录？")) {
+					$.ajax({
+						url : "../contract/employ_agreement!remove.action?id="+rows[0].id,
+						type : "post",
+						success : function(text) {
+							grid.reload();
+							mini.alert("删除成功！");
+						},
+						error : function(text) {
+							mini.alert("删除失败");
+						}
+					});
+				}
+			} else {
+				mini.alert("请选中一条记录！");
+			}
+		}
+
+		//删除值
+		function changestate(state){
+			var rows = grid.getSelecteds();
+			if (rows.length == 1) {
+				if (confirm("确定删除选中的记录？")) { 
+					$.ajax({
+						url : "../contract/employ_agreement!changestate.action?id="+rows[0].id+"&state="+state,
+						type : "post",
+						success : function(text) {
+							grid.reload();
+							mini.alert(text);
+						},
+						error : function(text) {
+							mini.alert("操作失败");
+						}
+					});
+				}
+			} else {
+				mini.alert("请选中一条记录！");
+			}
+		} 
+		function onKeyEnter(e) {
+			search();
+		}
+	</script>
+</body>
+</html>

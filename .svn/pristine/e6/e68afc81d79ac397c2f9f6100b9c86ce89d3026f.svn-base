@@ -1,0 +1,170 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.Formula;
+
+/**
+ * 公式表
+ * @ClassName: FormulaService 
+ * @Description: 公式表
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+public interface FormulaService extends BaseService<Formula, String> {
+
+    /**
+     * @Title: 获取当前日期 
+     * @return 
+     * Date 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public Date getCurDate();
+
+    /**
+     * @Title: 提取年 
+     * @param date
+     * @return 
+     * int 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public int getYear(Date date);
+
+    /**
+     * @Title: 提取月 
+     * @param date
+     * @return 
+     * int 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public int getMonth(Date date);
+
+    /**
+     * @Title: 提取日 
+     * @param date
+     * @return 
+     * int 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public int getDay(Date date);
+
+    /**
+     * @Title: 获取某年某月的天数 
+     * @param year
+     * @param month
+     * @return 
+     * int 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public int getMonthDays(int year, int month);
+
+    /**
+     * @Title: 增加公式 
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String saveOrUpdate(String formdata);
+
+    /**
+     * @Title: 删除 
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String remove(String ids);
+
+    /**
+     * @Title: 获取全局公式 
+     * @param searchData
+     * @return 
+     * List<Formula> 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public List<Map<String, Object>> getFullFormulaListData(String searchData);
+
+    /**
+     * @Title: 基本工资计算
+     * @param staffId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月5日 V 1.0
+     */
+    public String getBaseSalary(String staffId);
+
+    /**
+     * @Title: 获取员工ID
+     * @param staffId
+     * @param noJoin
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月5日 V 1.0
+     */
+    public String getGridRowStaffId(String staffId, Boolean noJoin);
+
+    /**
+     * @Title: 获取工月平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月10日 V 1.0
+     */
+    public String getStaffMonthAvgSalary(int offset, String staffId, Boolean noJoin);
+
+    /**
+     * @Title: 获取公司缴费基数
+     * @param insuranceId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月19日 V 1.0
+     */
+    public String getBaseCompanyToJf(String insuranceId);
+
+    /**
+     * @Title: 获取公司缴费比例
+     * @param insuranceId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月19日 V 1.0
+     */
+    public String getCompanyJfBl(String insuranceId);
+
+    /**
+     * @Title: 获取员工缴费基数
+     * @param insuranceId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月19日 V 1.0
+     */
+    public String getBasePersonalToJf(String insuranceId);
+
+    /**
+     * @Title: 获取员工缴费比例
+     * @param insuranceId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月19日 V 1.0
+     */
+    public String getPersonalJfBl(String insuranceId);
+
+}

@@ -1,0 +1,806 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.net.URLDecoder;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryInsuranceDao;
+import com.lingnet.hcm.entity.basic.InsuranceBenefits;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.CheckMonthInfo;
+import com.lingnet.hcm.entity.salary.CheckMonthProperties;
+import com.lingnet.hcm.entity.salary.InsuranceItems;
+import com.lingnet.hcm.entity.salary.InsuranceMiddle;
+import com.lingnet.hcm.entity.salary.PaymentCheckMonth;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.service.salary.CheckMonthInfoService;
+import com.lingnet.hcm.service.salary.CheckMonthPropertiesService;
+import com.lingnet.hcm.service.salary.InsuranceItemsService;
+import com.lingnet.hcm.service.salary.InsuranceMiddleService;
+import com.lingnet.hcm.service.salary.PaymentCheckMonthService;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+
+/**
+ * 缴费标准表
+ * @ClassName: SalaryInsuranceServiceImpl 
+ * @Description: 缴费标准表 
+ * @author zhanghj
+ * @date 2017年4月19日 上午10:27:46 
+ *
+ */
+@Service("salaryInsuranceService")
+public class SalaryInsuranceServiceImpl extends BaseServiceImpl<SalaryInsurance, String>
+              implements SalaryInsuranceService {
+
+    @Resource(name="insuranceItemsService")
+    private InsuranceItemsService insuranceItemsService;
+    @Resource(name="insuranceMiddleService")
+    private InsuranceMiddleService insuranceMiddleService;
+    @Resource(name="paymentCheckMonthService")
+    private PaymentCheckMonthService paymentCheckMonthService;
+    @Resource(name="checkMonthInfoService")
+    private CheckMonthInfoService checkMonthInfoService;
+    @Resource(name="checkMonthPropertiesService")
+    private CheckMonthPropertiesService checkMonthPropertiesService;
+    @Resource(name="salaryInsuranceDao")
+    private SalaryInsuranceDao salaryInsuranceDao;
+
+    @Override
+    public Map<String, Object> getPaymentInsuranceListData(String depId, String searchData, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+        if (!StringUtils.isBlank(depId)) {
+            and.add(Restrictions.eq("companyId", depId));
+        }
+        pager = findPager(SalaryInsurance.class, pager, and, Restrictions.eq("isDelete", 0));
+        List<?> list = pager.getResult();
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", list);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String saveOrUpdate(String formdata) {
+        SalaryInsurance insurance = JsonUtil.toObject(formdata, SalaryInsurance.class);
+        if (insurance == null) {
+            return "数据不能为空";
+        }
+
+        // 新增
+        if (StringUtils.isBlank(insurance.getId())) {
+            // 查询是否存在相同的福利项目
+            SalaryInsurance ins = get(SalaryInsurance.class,
+                    Restrictions.eq("name", insurance.getName()),
+                    Restrictions.eq("isDelete", 0),
+                    Restrictions.eq("companyId", insurance.getCompanyId()));
+            if (ins != null) {
+                return "存在相同的福利项目";
+            }
+            insurance.setIsDelete(0);
+            String id = save(insurance);
+            if (StringUtils.isBlank(id)) {
+                return "保存失败";
+            }
+        } else {
+            SalaryInsurance insuranceNew = get(SalaryInsurance.class,
+                    Restrictions.eq("id", insurance.getId()), Restrictions.eq("isDelete", 0));
+            if (insuranceNew != null) {
+                // 查询是否存在相同的福利项目
+                SalaryInsurance ins = get(SalaryInsurance.class,
+                        Restrictions.ne("id", insurance.getId()),
+                        Restrictions.eq("name", insurance.getName()),
+                        Restrictions.eq("isDelete", 0),
+                        Restrictions.eq("companyId", insurance.getCompanyId()));
+                if (ins != null) {
+                    return "存在相同的福利项目";
+                }
+                insuranceNew.copyFrom(insurance);
+                update(insuranceNew);
+            } else {
+                return "当前福利项目不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0,l=idArray.length; i < l; i++) {
+            SalaryInsurance insurance = get(SalaryInsurance.class,
+                    Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (insurance != null) {
+                insurance.setIsDelete(1);
+                update(insurance);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getInsuranceItemsListData(String depId, String searchData, Pager pager) {
+        return salaryInsuranceDao.getInsuranceItemsListData(searchData, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToInsurance(String formdata, String griddata) throws Exception {
+        List<Map<String, String>> staffList = JsonUtil.getMapList(formdata);
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        DecimalFormat df = new DecimalFormat();
+        for (int i = 0, l = staffList.size(); i < l; i++) {
+            Map<String, String> staffMap = staffList.get(i);
+            BasicInformation info = get(BasicInformation.class, Restrictions.eq("id", staffMap.get("id")), Restrictions.eq("isDelete", 0));
+            if (info == null) {
+                throw new Exception("第"+(i+1)+"个选中的人不存在，已经被删除");
+            }
+            // 保存中间表
+            InsuranceMiddle middle = new InsuranceMiddle();
+            middle.setStaffId(staffMap.get("id"));
+            middle.setIsDaijiao(Integer.valueOf(staffMap.get("isDaiJiao").toString()));
+            middle.setIsDelete(0);
+            String staffResult = insuranceMiddleService.save(middle);
+            if (StringUtils.isBlank(staffResult)) {
+                throw new Exception("发生异常，保存失败");
+            }
+            for (int j = 0, n = list.size(); j < n; j++) {
+                Map<String, String> map = list.get(j);
+                InsuranceItems items = JsonUtil.toObject(JsonUtil.Encode(map), InsuranceItems.class);
+                items.setInsuranceMiddleId(staffResult);
+                items.setIsDelete(0);
+                items.setIsEnd(0);
+
+                // 计算缴纳费用
+                Double bseCom = Double.valueOf(items.getBaseCompany()) * Double.valueOf(map.get("biCompany")) * 0.01;
+                Double bsePer = Double.valueOf(items.getBasePersonal()) * Double.valueOf(map.get("biPersonal")) * 0.01;
+                if (bseCom > Double.valueOf(map.get("high"))) {// 公司缴纳上限比较
+                    bseCom = Double.valueOf(map.get("high"));
+                } else if (bseCom < Double.valueOf(map.get("low"))) {// 公司缴纳下限比较
+                    bseCom = Double.valueOf(map.get("low"));
+                }
+                if (bsePer > Double.valueOf(map.get("high"))) {// 员工缴纳上限比较
+                    bsePer = Double.valueOf(map.get("high"));
+                } else if (bsePer < Double.valueOf(map.get("low"))) {// 员工缴纳下限比较
+                    bsePer = Double.valueOf(map.get("low"));
+                }
+                items.setPaymentCompany(ceilMath(df, Integer.valueOf(map.get("payCarryRule")), map.get("xs"), bseCom));
+                items.setPaymentPersonal(ceilMath(df, Integer.valueOf(map.get("payCarryRule")), map.get("xs"), bsePer));
+                String result = insuranceItemsService.save(items);
+                if (StringUtils.isBlank(result)) {
+                    throw new Exception("发生异常，保存失败");
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getNoInsuranceOfStaffListData(String depId, String searchData, Pager pager) {
+        return salaryInsuranceDao.getNoInsuranceOfStaffListData(depId, searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getNoChoseStaffListData(String ids) {
+        return salaryInsuranceDao.getNoChoseStaffListData(ids);
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedJoinInsuranceItemsData(String ids) {
+        return salaryInsuranceDao.getNeedJoinInsuranceItemsData(ids);
+    }
+
+    @Override
+    public List<Map<String, Object>> getChoseStaffInsurances(String id) {
+        return salaryInsuranceDao.getChoseStaffInsurances(id);
+    }
+
+    @Override
+    public String updateStopInsurance(String id, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, String> map = list.get(i);
+            InsuranceItems items = get(InsuranceItems.class,
+                    Restrictions.eq("id", map.get("id")), Restrictions.eq("isDelete", 0));
+            if (items == null) {
+                throw new Exception("福利项目 " + map.get("name")+ "不存在，已经被删除");
+            }
+            items.setIsEnd(1);
+            items.setEndYear(Integer.valueOf(map.get("endYear")));
+            items.setEndMonth(Integer.valueOf(map.get("endMonth")));
+            items.setEndNote(map.get("endNote"));
+            insuranceItemsService.update(items);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getEmployeeBaseInfo(String id) {
+        return salaryInsuranceDao.getEmployeeBaseInfo(id);
+    }
+
+    @Override
+    public List<Map<String, Object>> getStaffCanBaoInfo(String id) {
+        return salaryInsuranceDao.getStaffCanBaoInfo(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String updateToJfJs(String id, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int j = 0, n = list.size(); j < n; j++) {
+            Map<String, String> map = list.get(j);
+            InsuranceItems items = get(InsuranceItems.class, Restrictions.eq("id", map.get("id")), Restrictions.eq("isDelete", 0));
+            if (items == null) {
+                throw new Exception("第"+(j+1)+"个福利项目不存在");
+            }
+            items.setJfAccount(map.get("jfAccount"));
+            items.setBaseCompany(map.get("baseCompany"));
+            items.setBasePersonal(map.get("basePersonal"));
+            items.setYear(Integer.valueOf(map.get("year")));
+            items.setMonth(Integer.valueOf(map.get("month")));
+            insuranceItemsService.update(items);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String ceilMath(DecimalFormat df, int rule, String xs, Double preValue) {
+        String changeValue = "";
+        switch (rule) {
+        case 1:// 四舍五入到精度
+            // 小数位数
+            if (Integer.valueOf(xs) == 0) {
+                df.applyPattern("0");
+            } else {
+                df.applyPattern("0."+String.format("%0"+ xs +"d%n", 0));
+            }
+            changeValue = df.format(preValue);
+            break;
+        case 2:// 进位到精度
+            BigDecimal bigDecimal = new BigDecimal(preValue);
+            BigDecimal bd = bigDecimal.setScale(Integer.valueOf(xs), BigDecimal.ROUND_UP);
+            changeValue = String.valueOf(bd.doubleValue());
+            break;
+        case 3:// 舍位到精度
+            bigDecimal = new BigDecimal(preValue);
+            bd = bigDecimal.setScale(Integer.valueOf(xs), BigDecimal.ROUND_DOWN);
+            changeValue = String.valueOf(bd.doubleValue());
+            break;
+        case 4:// 见分进角再四舍五入到元
+            bigDecimal = new BigDecimal(preValue);
+            bd = bigDecimal.setScale(1, BigDecimal.ROUND_UP);
+            df.applyPattern("0");
+            changeValue = df.format(bd.doubleValue());
+            break;
+        case 5:// 四舍五入到角再进位到元
+            bigDecimal = new BigDecimal(Double.valueOf(df.format(preValue)));
+            bd = bigDecimal.setScale(0, BigDecimal.ROUND_UP);
+            changeValue = String.valueOf(bd.doubleValue());
+            break;
+        default:
+            changeValue = "0";
+            break;
+        }
+
+        return changeValue.trim();
+    }
+
+    @Override
+    public Map<String, Object> getSlaryReportListData(String searchData, Pager pager) {
+        return salaryInsuranceDao.getSlaryReportListData(searchData, pager);
+    }
+
+    @Override
+    public Map<String, Object> getOffBankListData(String searchData, Pager pager) {
+        return salaryInsuranceDao.getOffBankListData(searchData, pager);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public void export(String searchData) {
+        try {
+            searchData = URLDecoder.decode(searchData, "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        String sql = salaryInsuranceDao.getSlaryReportSql(searchData);
+        List<?> list = findBySql(sql);
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        String[] itemNameIds = null;
+        String[] itemNames = null;
+        if (mapData != null) {
+            if (!StringUtils.isBlank(mapData.get("salaryItem"))) {
+                itemNameIds = mapData.get("salaryItem").split(",");
+                itemNames = mapData.get("itemName").split(",");
+            }
+        }
+        ArrayList<ArrayList> tableData = new ArrayList<ArrayList>();
+        for (int i = 0; i < list.size(); i++) {
+            ArrayList rowList=new ArrayList();
+            Object[] obj = (Object[]) list.get(i);
+            rowList.add(i+1);//序号
+            rowList.add(obj[2]);// 工号
+            rowList.add(obj[3]);// 姓名
+            rowList.add(obj[9]);// 公司
+            rowList.add(obj[10]);// 部门
+            rowList.add(obj[11]);// 薪酬期间
+            Object objItems = obj[4];
+            Object objCharges = obj[6];
+            if (itemNameIds != null) {
+                String[] nItems = null;
+                String[] charges = null;
+                if (objItems == null || objCharges == null) {
+                    nItems = new String[0];
+                    charges = new String[0];
+                } else {
+                    nItems = objItems.toString().split(",");
+                    charges = objCharges.toString().split(",");
+                }
+                for (int j = 0, l=itemNameIds.length; j < l; j++) {
+                    Object v = 0;
+                    for (int m = 0, n =nItems.length; m < n; m++) {
+                        if (itemNameIds[j].equals(nItems[m])) {
+                            v = charges[m];
+                            break;
+                        }
+                    }
+                    rowList.add(v);// 薪资项目对应的值
+                }
+            }
+            tableData.add(rowList);
+        }
+
+        //表格标题
+        String[] tableCaption ={"序号","工号","姓名","公司","部门","薪酬期间"};
+        if (list.size() > 0) {
+            int len1 = tableCaption.length;
+            if (itemNames != null) {
+                int len2 = itemNames.length;
+                
+                // 扩容第一个数组
+                tableCaption = Arrays.copyOf(tableCaption, len1 + len2);
+                System.arraycopy(itemNames, 0, tableCaption, len1, len2);
+            }
+        }
+
+        //表格脚部分
+        String dcr=ToolUtil.userName();
+        Date dcrq=new Date();
+        ArrayList footData=new ArrayList();
+        footData.add("导出人： "+ ExcelUtil.toString(dcr));
+        footData.add("导出日期： "+ ExcelUtil.toString(dcrq));
+        ExcelUtil.export("工资报表", null, tableCaption, tableData, footData);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public void exportForBank(String searchData) {
+        try {
+            searchData = URLDecoder.decode(searchData, "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        String sql = salaryInsuranceDao.getOffBankSql(searchData);
+        List<?> list = findBySql(sql);
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        String[] itemNameIds = null;
+        String[] itemNames = null;
+        if (mapData != null) {
+            if (!StringUtils.isBlank(mapData.get("salaryItem"))) {
+                itemNameIds = mapData.get("salaryItem").split(",");
+                itemNames = mapData.get("itemName").split(",");
+            }
+        }
+        ArrayList<ArrayList> tableData = new ArrayList<ArrayList>();
+        for (int i = 0; i < list.size(); i++) {
+            ArrayList rowList=new ArrayList();
+            Object[] obj = (Object[]) list.get(i);
+            rowList.add(i+1);//序号
+            rowList.add(obj[2]);// 工号
+            rowList.add(obj[3]);// 姓名
+            rowList.add(obj[12]);// 身份证号
+            rowList.add(obj[11]);// 薪酬期间
+            rowList.add(obj[9]);// 公司
+            rowList.add(obj[10]);// 部门
+            rowList.add(obj[13]);// 金融机构
+            rowList.add(obj[15]);// 账户
+            rowList.add(obj[16]);// 用户名
+            Object objItems = obj[4];
+            Object objCharges = obj[6];
+            if (itemNameIds != null) {
+                String[] nItems = null;
+                String[] charges = null;
+                if (objItems == null || objCharges == null) {
+                    nItems = new String[0];
+                    charges = new String[0];
+                } else {
+                    nItems = objItems.toString().split(",");
+                    charges = objCharges.toString().split(",");
+                }
+                for (int j = 0, l=itemNameIds.length; j < l; j++) {
+                    Object v = 0;
+                    for (int m = 0, n =nItems.length; m < n; m++) {
+                        if (itemNameIds[j].equals(nItems[m])) {
+                            v = charges[m];
+                            break;
+                        }
+                    }
+                    rowList.add(v);// 薪资项目对应的值
+                }
+            }
+            tableData.add(rowList);
+        }
+
+        //表格标题
+        String[] tableCaption ={"序号","工号","姓名","身份证号","薪酬期间","公司","部门","金融机构","账户","用户名"};
+        if (list.size() > 0) {
+            int len1 = tableCaption.length;
+            if (itemNames != null) {
+                int len2 = itemNames.length;
+                
+                // 扩容第一个数组
+                tableCaption = Arrays.copyOf(tableCaption, len1 + len2);
+                System.arraycopy(itemNames, 0, tableCaption, len1, len2);
+            }
+        }
+
+        //表格脚部分
+        String dcr=ToolUtil.userName();
+        Date dcrq=new Date();
+        ArrayList footData=new ArrayList();
+        footData.add("导出人： "+ ExcelUtil.toString(dcr));
+        footData.add("导出日期： "+ ExcelUtil.toString(dcrq));
+        ExcelUtil.export("报盘文件", null, tableCaption, tableData, footData);
+    }
+
+    @Override
+    public Map<String, Object> getInsuranceCheckListData(String companyId, String searchData, Pager pager) {
+        return salaryInsuranceDao.getInsuranceCheckListData(companyId, searchData, pager);
+    }
+
+    @Override
+    public Map<String, Object> getInsuranceStaffListData(String searchData, Pager pager) {
+        return salaryInsuranceDao.getInsuranceStaffListData(searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getCurCompanyInsurance(String depId, String effectiveYear, String effectiveMonth) {
+        return salaryInsuranceDao.getCurCompanyInsurance(depId, effectiveYear, effectiveMonth);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String beachCheck(String formdata, String endSuffix, File uploadFile) throws Exception {
+        // 查找是否存在保险人员
+        String findStaffSql = salaryInsuranceDao.getInsuranceStaffListDataSql(formdata);
+        List<?> findStaffData = findBySql(findStaffSql);
+        if (findStaffData.size() == 0) {
+            return "不存在可以核对的员工缴费信息";
+        }
+
+        // 判断保险类型
+        Map<String, String> baseInfo = JsonUtil.parseProperties(formdata);
+        String fuliId = baseInfo.get("insuranceId");
+        int effectiveYear = Integer.valueOf(baseInfo.get("effectiveYear"));
+        int effectiveMonth = Integer.valueOf(baseInfo.get("effectiveMonth"));
+        InsuranceBenefits benefits = get(InsuranceBenefits.class, Restrictions.eq("id", fuliId));
+        if (benefits == null) {
+            return "该保险项目不存在";
+        }
+        String model = benefits.getInsuranceModel();
+        if (StringUtils.isBlank(model)) {
+            return "该保险项目头模板数据不存在";
+        }
+
+        // 读取数据
+        List<String[]> list = ExcelUtil.readData(1, 2, endSuffix, uploadFile);
+
+        // 导入名单只有表头没有人员信息
+        if (list.size() == 2) {
+            return "文件导入失败：导入名单中不存在人员信息";
+        }
+
+        // 第一行内容
+        String[] firstRow = model.split(",");
+        // 单独把第一行抽取出来
+        String[] firstValues = list.get(1);
+
+        // 模板类型 1:只存在个人缴费（失业保险缴费） 2:存在【单位划入账户】
+        int typeModel = 0;
+        for (int i = 0, z = firstRow.length; i < z; i++) {
+            if (!firstRow[i].trim().equals(firstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + firstValues[i].trim() + "</font>列必须是 " + firstRow[i].trim();
+            }
+
+            // 存在个人缴费
+            if (firstRow[i].trim().equals("个人缴费")) {
+                typeModel += 1;
+            }
+            // 存在单位划入账户
+            else if (firstRow[i].trim().equals("单位划入账户")) {
+                typeModel += 1;
+            }
+        }
+
+        // 已经存在的删除
+        PaymentCheckMonth checkMonth = get(PaymentCheckMonth.class,
+                Restrictions.eq("companyId", baseInfo.get("depId")),
+                Restrictions.eq("effectiveYear", Integer.valueOf(baseInfo.get("effectiveYear"))),
+                Restrictions.eq("effectiveMonth", Integer.valueOf(baseInfo.get("effectiveMonth"))),
+                Restrictions.eq("insuranceId", baseInfo.get("insuranceId")),
+                Restrictions.eq("isDelete", 0));
+        if (checkMonth != null) {
+            deleteByCriteria(CheckMonthInfo.class, Restrictions.eq("paymentCheckMonthId", checkMonth.getId()));
+            deleteByCriteria(CheckMonthProperties.class, Restrictions.eq("paymentCheckMonthId", checkMonth.getId()));
+        } else {
+            checkMonth = new PaymentCheckMonth();
+            checkMonth.setCompanyId(baseInfo.get("depId"));
+            checkMonth.setEffectiveYear(Integer.valueOf(baseInfo.get("effectiveYear")));
+            checkMonth.setEffectiveMonth(Integer.valueOf(baseInfo.get("effectiveMonth")));
+            checkMonth.setInsuranceId(baseInfo.get("insuranceId"));
+            checkMonth.setIsDelete(0);
+            String chekMonthId = paymentCheckMonthService.save(checkMonth);
+            if (StringUtils.isBlank(chekMonthId)) {
+                throw new Exception("导入核对信息保存数据发生异常");
+            }
+        }
+        String chekMonthId = checkMonth.getId();
+
+        List<CheckMonthInfo> checkMonthInfos = new ArrayList<CheckMonthInfo>();
+        // 循环遍历存储的Excel值
+        for (int i = 2, z = list.size(); i < z; i++) {
+            // 组装列
+            String[] columns = new String[firstValues.length];
+            String[] values = list.get(i);
+            // 判断是否整行是空行
+            Boolean isEmpty= true;
+            for(int q=0;q<values.length;q++){
+                if (q < firstValues.length) {
+                    columns[q]=values[q].trim();
+                    if (!StringUtils.isBlank(columns[q])) {
+                        isEmpty = false;
+                    }
+                } else continue;
+            }
+
+            // 存在空白行
+            if (isEmpty) {
+                // 文档结束
+                break;
+            }
+            for(int k=values.length;k<firstValues.length;k++){// 补充剩余的列值
+                columns[k]="";
+            }
+
+            CheckMonthInfo monthInfo = new CheckMonthInfo();
+            monthInfo.setPaymentCheckMonthId(chekMonthId);
+
+            // 查找身份证对应的员工
+            monthInfo.setIdCard(columns[1]);
+            BasicInformation basicInformation = get(BasicInformation.class,
+                    Restrictions.eq("idNumber", monthInfo.getIdCard()),
+                    Restrictions.eq("isDelete", 0));
+            if (basicInformation != null) {
+                monthInfo.setStaffId(basicInformation.getId());
+            }
+            monthInfo.setGrbh(columns[0]);// 个人编号
+            monthInfo.setName(columns[2]);// 姓名
+
+            if (!StringUtils.isBlank(columns[3])) {// 缴费年月
+                Calendar cal = Calendar.getInstance();
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMM");
+                cal.setTime(format.parse(columns[3]));
+                monthInfo.setJfYear(cal.get(Calendar.YEAR));
+                monthInfo.setJfMonth(cal.get(Calendar.MONTH)+1);
+            }
+            if (!StringUtils.isBlank(columns[4])) {// 业务年月
+                Calendar cal = Calendar.getInstance();
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMM");
+                cal.setTime(format.parse(columns[4]));
+
+                // 判断是否补缴
+                if ((monthInfo.getJfYear() == cal.get(Calendar.YEAR)) &&
+                        (monthInfo.getJfMonth() == (cal.get(Calendar.MONTH)+1))) {
+                    monthInfo.setJfType(0);
+                } else {
+                    monthInfo.setJfType(1);
+                    monthInfo.setPayBackYear(cal.get(Calendar.YEAR));
+                    monthInfo.setPayBackMonth(cal.get(Calendar.MONTH)+1);
+                }
+            }
+
+            monthInfo.setJfjs(columns[6]);
+
+            // 不同模板不同的值(个人缴费)
+            String paymentPersonalColumn = "";
+            String paymentCompanyColumn = "";
+            String companyColumn = "";
+            if (typeModel == 0) {// --》工伤缴费/生育缴费
+                paymentCompanyColumn = columns[7];
+                companyColumn = columns[10];
+            } else if (typeModel == 1) {// 只存在【个人缴费】--》失业缴费明细
+                paymentPersonalColumn = columns[7];
+                paymentCompanyColumn = columns[8];
+                companyColumn = columns[11];
+            } else if (typeModel == 2) {// 存在【单位划入账户】--》养老缴费、医疗缴费
+                paymentPersonalColumn = columns[7];
+                paymentCompanyColumn = columns[8];
+                companyColumn = columns[12];
+            }
+            monthInfo.setPaymentPersonal(paymentPersonalColumn);
+            monthInfo.setPaymentCompany(paymentCompanyColumn);
+            monthInfo.setCompany(companyColumn);
+            monthInfo.setIsDelete(0);
+            checkMonthInfos.add(monthInfo);
+        }
+
+        if (checkMonthInfos.size() ==0) throw new Exception("导入文件不存在核对信息");
+        else checkMonthInfoService.saveBatch(checkMonthInfos);
+
+        // 核对两份数据
+        String checkSql = salaryInsuranceDao.getCheckInsuranceData(formdata);
+        List<?> checkData = findBySql(checkSql);
+        List<CheckMonthProperties> properties = new ArrayList<CheckMonthProperties>();
+        for (int i = 0, l = checkData.size(); i < l; i++) {
+            Object[] obj = (Object[]) checkData.get(i);
+            Object id = obj[0];
+            Object jobNumber = obj[1];// 工号
+            Object lastJobNumber = obj[2];// 上一条的工号
+            Object nextJobNumber = obj[3];// 下一条的工号
+            Object name = obj[4];// 姓名
+            Object lastName = obj[5];// 上一条的姓名
+            Object nextName = obj[6];// 下一条的姓名
+            int jfYear = Integer.valueOf(obj[7].toString());// 缴费年
+            int lastJfYear = Integer.valueOf(obj[8].toString());// 上一条的缴费年
+            int nextJfYear = Integer.valueOf(obj[9].toString());// 下一条的缴费年
+            int jfMonth = Integer.valueOf(obj[10].toString());// 缴费月
+            int lastJfMonth = Integer.valueOf(obj[11].toString());// 上一条的缴费月
+            int nextJfMonth = Integer.valueOf(obj[12].toString());// 下一条的缴费月
+            int isPayBack = Integer.valueOf(obj[13].toString());// 是否补缴
+            int lastIsPayBack = Integer.valueOf(obj[14].toString());// 上一条的是否补缴
+            int nextIsPayBack = Integer.valueOf(obj[15].toString());// 下一条的是否补缴
+            Object payBackYear = obj[16];// 补缴年
+            Object lastPayBackYear = obj[17];// 上一条的补缴年
+            Object nextPayBackYear = obj[18];// 下一条的补缴年
+            Object payBackMonth = obj[19];// 补缴月
+            Object lastPayBackMonth = obj[20];// 上一条的补缴月
+            Object nextPayBackMonth = obj[21];// 下一条的补缴月
+            Object insuranceId = obj[22];// 福利项目ID
+            Object jfCompany = obj[24];// 缴费单位
+            Object lastJfCompany = obj[25];// 上一条的缴费单位
+            Object nextJfCompany  = obj[26];// 下一条的缴费单位
+            Object basePersonal = obj[30];// 个人缴费基数
+            Object lastBasePersonal = obj[31];// 上一条的个人缴费基数
+            Object nextBasePersonal = obj[32];// 下一条的个人缴费基数
+            Object paymentCompany = obj[33];// 单位缴纳
+            Object lastPaymentCompany = obj[34];// 上一条的单位缴纳
+            Object nextPaymentCompany = obj[35];// 下一条的单位缴纳
+            Object paymentPersonal = obj[36];// 个人缴纳
+            Object lastPaymentPersonal = obj[37];// 上一条的个人缴纳
+            Object nextPaymentPersonal = obj[38];// 下一条的个人缴纳
+            Object staffId = obj[39];// 员工ID
+            Object idCard = obj[42];// 身份证
+            Object lastIdCard = obj[43];// 上一条的身份证
+            Object nextIdCard = obj[44];// 下一条的身份证
+            int kind = Integer.valueOf(obj[45].toString());// 得到数据来源
+            int lastKind = Integer.valueOf(obj[46].toString());// 上一条的数据来源
+            int nextKind = Integer.valueOf(obj[47].toString());// 下一条的数据来源
+
+            CheckMonthProperties monthProperties = new CheckMonthProperties();
+            monthProperties.setPaymentCheckMonthId(chekMonthId);
+            monthProperties.setCheckId(id==null?"":id.toString());
+            monthProperties.setStaffId(staffId==null?"":staffId.toString());
+            monthProperties.setInsuranceId(insuranceId==null?"":insuranceId.toString());
+            monthProperties.setEffectiveYear(effectiveYear);
+            monthProperties.setEffectiveMonth(effectiveMonth);
+            monthProperties.setIsDelete(0);
+
+            Map<String, String> prop = new HashMap<String, String>();
+            if (kind == 1) {// 保险缴费信息
+                // 当前是计算出来的保险信息，需要比较下一条信息
+                if (nextKind == 2) {// 下一条信息是社保信息
+                    if (jobNumber.equals(nextJobNumber)) {// 当前人
+                        if (jfYear != nextJfYear || jfMonth != nextJfMonth) {// 缴费年月
+                            prop.put("jfDate", "1");
+                        }
+                        if (!name.equals(nextName)) {// 姓名
+                            prop.put("name", "1");
+                        }
+                        if (isPayBack != nextIsPayBack) {// 是否补缴
+                            prop.put("isPayBack", "1");
+                        }
+                        if (!jfCompany.equals(nextJfCompany)) {// 缴费单位
+                            prop.put("COMD"+insuranceId, "1");
+                        }
+                        if (!basePersonal.equals(nextBasePersonal)) {// 个人缴费基数
+                            prop.put("PERB"+insuranceId, "1");
+                        }
+                        if (!paymentCompany.equals(nextPaymentCompany)) {// 单位缴费
+                            prop.put("COMJ"+insuranceId, "1");
+                        }
+                        if (!paymentPersonal.equals(nextPaymentPersonal)) {// 个人缴费
+                            prop.put("PERJ"+insuranceId, "1");
+                        }
+                        if (!idCard.equals(nextIdCard)) {// 身份证
+                            prop.put("idCard", "1");
+                        }
+                    } else {// 不存在社保信息
+                        prop.put("allLine", "1");
+                    }
+                } else {// 不存在社保信息
+                    prop.put("allLine", "1");
+                }
+            } else if (kind == 2) {// 社保信息
+                if (lastKind == 2 && nextKind == 1
+                        && jobNumber.equals(lastJobNumber)) {// 下一条是缴费信息,.当前工号与上一条是同一个工号
+                    if (jfYear != lastJfYear || jfMonth != lastJfMonth) {// 缴费年月
+                        prop.put("jfDate", "1");
+                    }
+                    if (!name.equals(lastName)) {// 姓名
+                        prop.put("name", "1");
+                    }
+                    if (isPayBack != lastIsPayBack) {// 是否补缴
+                        prop.put("isPayBack", "1");
+                    }
+                    if (!jfCompany.equals(lastJfCompany)) {// 缴费单位
+                        prop.put("COMD"+insuranceId, "1");
+                    }
+                    if (!basePersonal.equals(lastBasePersonal)) {// 个人缴费基数
+                        prop.put("PERB"+insuranceId, "1");
+                    }
+                    if (!paymentCompany.equals(lastPaymentCompany)) {// 单位缴费
+                        prop.put("COMJ"+insuranceId, "1");
+                    }
+                    if (!paymentPersonal.equals(lastPaymentPersonal)) {// 个人缴费
+                        prop.put("PERJ"+insuranceId, "1");
+                    }
+                    if (!idCard.equals(lastIdCard)) {// 身份证
+                        prop.put("idCard", "1");
+                    }
+                } else if (lastKind == -1 || !jobNumber.equals(lastJobNumber)) {
+                    prop.put("allLine", "2");
+                }
+            }
+            monthProperties.setNote(JsonUtil.Encode(prop));
+
+            properties.add(monthProperties);
+        }
+
+        if (properties.size() > 0) checkMonthPropertiesService.saveBatch(properties);
+
+        return "success";
+    }
+
+}

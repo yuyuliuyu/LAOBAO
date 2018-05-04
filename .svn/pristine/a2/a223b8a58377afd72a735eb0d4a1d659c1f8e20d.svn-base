@@ -1,0 +1,1006 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * BasicInformation entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "JC_BASIC_INFORMATION")
+public class BasicInformation extends BaseEntity implements java.io.Serializable {
+
+	private static final long serialVersionUID = -5703284697517639649L;
+	
+	private Integer isPractice;//实习生标志    1正在实习中，  0实习结束离开，2实习结束转正，null或者“”则不是实习学生
+	private String practiceNum;//实习生编号
+	private Date overPracticeDate;//结束实习日期
+	private String remark2;//结束实习原因
+	private Date zzDate;//转正成试岗期时间
+	private Date jssyDate;//结束试用期时间
+	private String imgpath;//头像url
+	
+	private Date zhuanzDate;//转正时间（正式工）
+	private Date lzDate;//离职时间
+	
+	private String jobNumber;//职工号
+	private String jobNumberJt;//集团职工号
+	private String age;//年龄
+	private String name;//姓名
+	private String idType;//证件类型
+	private String idNumber;//证件号码
+	private Integer sex;//性别
+	private Date borthDate;//出生日期
+	private String nation;//民族
+	private String nativePlace;//籍贯
+	private String borthPlace;//出生地
+	private Date setWorkDate;//开始工作日期
+	private String residencePlace;//户籍地址
+	private String politicsStatus;//政治面貌
+	private Integer isMarried;//婚姻状况
+	private Integer isLeader;//是否集团领导干部
+	private String lever;//职务级别
+	private String remark;//备注
+	private Integer isDelete;//删除状态
+	private Integer isSoldier;//是否是退伍军人
+	
+	private String checkNo;//考勤编号
+	private Integer isMonitor;//是否班长,1是0否
+	private Integer isSpecialHour;//是否特殊工时（0 否，1 是）
+	private Integer wageForm;//工资形式（0 计时， 1 计件）
+	private String classNo;//班号
+	private String checkUnitId;//考勤单位ID
+	
+	private String oldName;//曾用名
+	private String hobby;//特长，爱好
+	private String proQuaLevel;//国家职业资格等级
+	private String highestTitle;//国家序列最高职称
+	private String english;//外语等级
+	private String computerLevel;//计算机等级
+	private Integer empSource;//职工来源（例如：学生）
+	private String formerIdentity;//原身份（例如：项目经理）
+	private Integer empType;//员工状态、员工类型---0普通员工 ，1业务外包人员 ，2劳务外包人员
+	private Integer onJob;//在职状态-----0实习期，1试岗期，2正式工，3离职，4退休 5返聘  6.后备人才
+	private Integer onPost;//在岗状态-----数据字典
+	private String height;//身高
+	private String weight;//体重
+	private String blood;//血型
+	private String health;//健康状况
+	//通讯信息
+	private String officePhone;//办公电话
+	private String phone;//手机
+	private String officeEmail;//办公邮箱
+	private String email;//邮箱
+	private String address;//现住址
+	private String messageAddress;//通讯地址
+	private String urgentPeople;//紧急联系人
+	private String upPhone;//联系电话
+	private String upAddress;//联系地址
+	//岗位信息
+	private Date inCompanyTime;//入司时间
+	private Date inPortTime;//入港时间
+	private Date inCompanyTime2;//入司时间2
+	private Date inPortTime2;//入港时间2
+	private String laborCompany;//劳务公司
+	private String costOffice;//成本单位
+	private String costDep;//成本部门
+	private String module;//所属模块
+	private String classGroup;//班组
+	
+	private String filmId;//单位ID
+	private String filmName;//单位名字
+	private String departId;//部门ID
+	private String departName;//部门名字
+	private String postId;//标准岗位ID
+	private String post;//标准岗位
+	private String specificPostId;//具体岗位ID
+	private String specificPost;//具体岗位
+	
+	private Date beginTime;//开始时间
+	private String career;//任职年限
+	private String postType;//岗位类别
+	private String postNature;//岗位性质
+	private String jobLevel;//职务级别
+	private String jgbz;//机关编制
+	private Integer isSkilled;//是否技术工人
+	private Integer isSpecialty;//是否专业技术人员
+	
+	private Integer isEvection;//是否出差
+	private Integer evectionType;//出差类型
+	
+	private String insuranceNum;//社会保险账号
+	private String cpfNum;//公积金账号
+	private String openingBank;//开户行
+	private String bankNum;//银行卡号
+	private Double dutyFreeRatio;//免税比例
+	private Integer payType;//工资类型
+	private String annuityType;//年金职级类别
+	private String annuityState;//年金缴费状态
+	private String annuityCompany;//年金缴费单位
+
+	// 薪酬
+	private Date countrysideDate;// 下乡时间
+	 
+
+	// Property accessors
+	@Column(name = "DEPART_ID", length = 32)
+	public String getDepartId() {
+		return this.departId;
+	}
+
+	public void setDepartId(String departId) {
+		this.departId = departId;
+	}
+
+	@Column(name = "JOB_NUMBER", length = 32)
+	public String getJobNumber() {
+		return this.jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	@Column(name = "AGE")
+	public String getAge() {
+		return this.age;
+	}
+
+	public void setAge(String age) {
+		this.age = age;
+	}
+
+	@Column(name = "NAME", length = 32)
+	public String getName() {
+		return this.name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	@Column(name = "ID_TYPE", length = 30)
+	public String getIdType() {
+		return this.idType;
+	}
+
+	public void setIdType(String idType) {
+		this.idType = idType;
+	}
+
+	@Column(name = "ID_NUMBER", length = 20)
+	public String getIdNumber() {
+		return this.idNumber;
+	}
+
+	public void setIdNumber(String idNumber) {
+		this.idNumber = idNumber;
+	}
+
+	@Column(name = "SEX", precision = 1, scale = 0)
+	public Integer getSex() {
+		return this.sex;
+	}
+
+	public void setSex(Integer sex) {
+		this.sex = sex;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "BORTH_DATE", length = 7)
+	public Date getBorthDate() {
+		return this.borthDate;
+	}
+
+	public void setBorthDate(Date borthDate) {
+		this.borthDate = borthDate;
+	}
+
+	@Column(name = "NATION", length = 21)
+	public String getNation() {
+		return this.nation;
+	}
+
+	public void setNation(String nation) {
+		this.nation = nation;
+	}
+
+	@Column(name = "NATIVE_PLACE", length = 50)
+	public String getNativePlace() {
+		return this.nativePlace;
+	}
+
+	public void setNativePlace(String nativePlace) {
+		this.nativePlace = nativePlace;
+	}
+
+	@Column(name = "BORTH_PLACE", length = 32)
+	public String getBorthPlace() {
+		return this.borthPlace;
+	}
+
+	public void setBorthPlace(String borthPlace) {
+		this.borthPlace = borthPlace;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "SET_WORK_DATE", length = 7)
+	public Date getSetWorkDate() {
+		return this.setWorkDate;
+	}
+
+	public void setSetWorkDate(Date setWorkDate) {
+		this.setWorkDate = setWorkDate;
+	}
+
+	@Column(name = "RESIDENCE_PLACE", length = 50)
+	public String getResidencePlace() {
+		return this.residencePlace;
+	}
+
+	public void setResidencePlace(String residencePlace) {
+		this.residencePlace = residencePlace;
+	}
+
+	@Column(name = "POLITICS_STATUS", length = 6)
+	public String getPoliticsStatus() {
+		return this.politicsStatus;
+	}
+
+	public void setPoliticsStatus(String politicsStatus) {
+		this.politicsStatus = politicsStatus;
+	}
+
+	@Column(name = "IS_MARRIED")
+	public Integer getIsMarried() {
+		return this.isMarried;
+	}
+
+	public void setIsMarried(Integer isMarried) {
+		this.isMarried = isMarried;
+	}
+
+	@Column(name = "IS_LEADER")
+	public Integer getIsLeader() {
+		return this.isLeader;
+	}
+
+	public void setIsLeader(Integer isLeader) {
+		this.isLeader = isLeader;
+	}
+
+	@Column(name = "LEVER", length = 30)
+	public String getLever() {
+		return this.lever;
+	}
+
+	public void setLever(String lever) {
+		this.lever = lever;
+	}
+
+	@Column(name = "REMARK", length = 50)
+	public String getRemark() {
+		return this.remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+
+	@Column(name = "IS_DELETE")
+	public Integer getIsDelete() {
+		return this.isDelete;
+	}
+
+	public void setIsDelete(Integer isDelete) {
+		this.isDelete = isDelete;
+	}
+
+	@Column(name = "POST")
+	public String getPost() {
+		return this.post;
+	}
+
+	public void setPost(String post) {
+		this.post = post;
+	}
+
+	@Column(name = "CLASS_NO", length = 10)
+	public String getClassNo() {
+		return this.classNo;
+	}
+
+	public void setClassNo(String classNo) {
+		this.classNo = classNo;
+	}
+
+	@Column(name = "CHECK_NO", length = 10)
+	public String getCheckNo() {
+		return this.checkNo;
+	}
+
+	public void setCheckNo(String checkNo) {
+		this.checkNo = checkNo;
+	}
+
+	@Column(name = "IS_MONITOR")
+	public Integer getIsMonitor() {
+		return this.isMonitor;
+	}
+
+	public void setIsMonitor(Integer isMonitor) {
+		this.isMonitor = isMonitor;
+	}
+
+	@Column(name = "IS_SPECIAL_HOUR")
+	public Integer getIsSpecialHour() {
+		return this.isSpecialHour;
+	}
+
+	public void setIsSpecialHour(Integer isSpecialHour) {
+		this.isSpecialHour = isSpecialHour;
+	}
+
+	@Column(name = "WAGE_FORM")
+	public Integer getWageForm() {
+		return this.wageForm;
+	}
+
+	public void setWageForm(Integer wageForm) {
+		this.wageForm = wageForm;
+	}
+
+	@Column(name = "OLD_NAME", length = 32)
+	public String getOldName() {
+		return this.oldName;
+	}
+
+	public void setOldName(String oldName) {
+		this.oldName = oldName;
+	}
+
+	@Column(name = "HOBBY", length = 50)
+	public String getHobby() {
+		return this.hobby;
+	}
+
+	public void setHobby(String hobby) {
+		this.hobby = hobby;
+	}
+
+	@Column(name = "PRO_QUA_LEVEL", length = 10)
+	public String getProQuaLevel() {
+		return this.proQuaLevel;
+	}
+
+	public void setProQuaLevel(String proQuaLevel) {
+		this.proQuaLevel = proQuaLevel;
+	}
+
+	@Column(name = "HIGHEST_TITLE", length = 32)
+	public String getHighestTitle() {
+		return this.highestTitle;
+	}
+
+	public void setHighestTitle(String highestTitle) {
+		this.highestTitle = highestTitle;
+	}
+
+	@Column(name = "ENGLISH", length = 10)
+	public String getEnglish() {
+		return this.english;
+	}
+
+	public void setEnglish(String english) {
+		this.english = english;
+	}
+
+	@Column(name = "COMPUTER_LEVEL", length = 10)
+	public String getComputerLevel() {
+		return this.computerLevel;
+	}
+
+	public void setComputerLevel(String computerLevel) {
+		this.computerLevel = computerLevel;
+	}
+
+	@Column(name = "EMP_SOURCE")
+	public Integer getEmpSource() {
+		return this.empSource;
+	}
+
+	public void setEmpSource(Integer empSource) {
+		this.empSource = empSource;
+	}
+
+	@Column(name = "FORMER_IDENTITY", length = 10)
+	public String getFormerIdentity() {
+		return this.formerIdentity;
+	}
+
+	public void setFormerIdentity(String formerIdentity) {
+		this.formerIdentity = formerIdentity;
+	}
+
+	@Column(name = "EMP_TYPE")
+	public Integer getEmpType() {
+		return this.empType;
+	}
+
+	public void setEmpType(Integer empType) {
+		this.empType = empType;
+	}
+
+	@Column(name = "ON_JOB")
+	public Integer getOnJob() {
+		return this.onJob;
+	}
+
+	public void setOnJob(Integer onJob) {
+		this.onJob = onJob;
+	}
+
+	@Column(name = "ON_POST")
+	public Integer getOnPost() {
+		return this.onPost;
+	}
+
+	public void setOnPost(Integer onPost) {
+		this.onPost = onPost;
+	}
+
+	@Column(name = "HEIGHT", length = 10)
+	public String getHeight() {
+		return this.height;
+	}
+
+	public void setHeight(String height) {
+		this.height = height;
+	}
+
+	@Column(name = "WEIGHT", length = 10)
+	public String getWeight() {
+		return this.weight;
+	}
+
+	public void setWeight(String weight) {
+		this.weight = weight;
+	}
+
+	@Column(name = "BLOOD", length = 10)
+	public String getBlood() {
+		return this.blood;
+	}
+
+	public void setBlood(String blood) {
+		this.blood = blood;
+	}
+
+	@Column(name = "HEALTH", length = 10)
+	public String getHealth() {
+		return this.health;
+	}
+
+	public void setHealth(String health) {
+		this.health = health;
+	}
+
+	@Column(name = "OFFICE_PHONE", length = 15)
+	public String getOfficePhone() {
+		return this.officePhone;
+	}
+
+	public void setOfficePhone(String officePhone) {
+		this.officePhone = officePhone;
+	}
+
+	@Column(name = "PHONE", length = 15)
+	public String getPhone() {
+		return this.phone;
+	}
+
+	public void setPhone(String phone) {
+		this.phone = phone;
+	}
+
+	@Column(name = "OFFICE_EMAIL", length = 32)
+	public String getOfficeEmail() {
+		return this.officeEmail;
+	}
+
+	public void setOfficeEmail(String officeEmail) {
+		this.officeEmail = officeEmail;
+	}
+
+	@Column(name = "EMAIL", length = 32)
+	public String getEmail() {
+		return this.email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	@Column(name = "ADDRESS", length = 50)
+	public String getAddress() {
+		return this.address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	@Column(name = "MESSAGE_ADDRESS", length = 50)
+	public String getMessageAddress() {
+		return this.messageAddress;
+	}
+
+	public void setMessageAddress(String messageAddress) {
+		this.messageAddress = messageAddress;
+	}
+
+	@Column(name = "URGENT_PEOPLE", length = 32)
+	public String getUrgentPeople() {
+		return this.urgentPeople;
+	}
+
+	public void setUrgentPeople(String urgentPeople) {
+		this.urgentPeople = urgentPeople;
+	}
+
+	@Column(name = "UP_PHONE")
+	public String getUpPhone() {
+		return this.upPhone;
+	}
+
+	public void setUpPhone(String upPhone) {
+		this.upPhone = upPhone;
+	}
+
+	@Column(name = "UP_ADDRESS", length = 50)
+	public String getUpAddress() {
+		return this.upAddress;
+	}
+
+	public void setUpAddress(String upAddress) {
+		this.upAddress = upAddress;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "IN_PORT_TIME", length = 7)
+	public Date getInPortTime() {
+		return this.inPortTime;
+	}
+
+	public void setInPortTime(Date inPortTime) {
+		this.inPortTime = inPortTime;
+	}
+
+	@Column(name = "LABOR_COMPANY", length = 32)
+	public String getLaborCompany() {
+		return this.laborCompany;
+	}
+
+	public void setLaborCompany(String laborCompany) {
+		this.laborCompany = laborCompany;
+	}
+
+	@Column(name = "SPECIFIC_POST", length = 32)
+	public String getSpecificPost() {
+		return this.specificPost;
+	}
+
+	public void setSpecificPost(String specificPost) {
+		this.specificPost = specificPost;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "BEGIN_TIME", length = 7)
+	public Date getBeginTime() {
+		return this.beginTime;
+	}
+
+	public void setBeginTime(Date beginTime) {
+		this.beginTime = beginTime;
+	}
+
+	@Column(name = "CAREER", length = 10)
+	public String getCareer() {
+		return this.career;
+	}
+
+	public void setCareer(String career) {
+		this.career = career;
+	}
+
+	@Column(name = "POST_TYPE", length = 15)
+	public String getPostType() {
+		return this.postType;
+	}
+
+	public void setPostType(String postType) {
+		this.postType = postType;
+	}
+
+	@Column(name = "POST_NATURE", length = 15)
+	public String getPostNature() {
+		return this.postNature;
+	}
+
+	public void setPostNature(String postNature) {
+		this.postNature = postNature;
+	}
+
+	@Column(name = "JOB_LEVEL", length = 15)
+	public String getJobLevel() {
+		return this.jobLevel;
+	}
+
+	public void setJobLevel(String jobLevel) {
+		this.jobLevel = jobLevel;
+	}
+
+	@Column(name = "JGBZ", length = 15)
+	public String getJgbz() {
+		return this.jgbz;
+	}
+
+	public void setJgbz(String jgbz) {
+		this.jgbz = jgbz;
+	}
+
+	@Column(name = "INSURANCE_NUM", length = 15)
+	public String getInsuranceNum() {
+		return this.insuranceNum;
+	}
+
+	public void setInsuranceNum(String insuranceNum) {
+		this.insuranceNum = insuranceNum;
+	}
+
+	@Column(name = "CPF_NUM", length = 15)
+	public String getCpfNum() {
+		return this.cpfNum;
+	}
+
+	public void setCpfNum(String cpfNum) {
+		this.cpfNum = cpfNum;
+	}
+
+	@Column(name = "OPENING_BANK", length = 20)
+	public String getOpeningBank() {
+		return this.openingBank;
+	}
+
+	public void setOpeningBank(String openingBank) {
+		this.openingBank = openingBank;
+	}
+
+	@Column(name = "BANK_NUM", length = 20)
+	public String getBankNum() {
+		return this.bankNum;
+	}
+
+	public void setBankNum(String bankNum) {
+		this.bankNum = bankNum;
+	}
+
+	@Column(name = "DUTY_FREE_RATIO", precision = 5)
+	public Double getDutyFreeRatio() {
+		return this.dutyFreeRatio;
+	}
+
+	public void setDutyFreeRatio(Double dutyFreeRatio) {
+		this.dutyFreeRatio = dutyFreeRatio;
+	}
+
+	@Column(name = "PAY_TYPE")
+	public Integer getPayType() {
+		return this.payType;
+	}
+
+	public void setPayType(Integer payType) {
+		this.payType = payType;
+	}
+
+	@Column(name = "ANNUITY_TYPE", length = 10)
+	public String getAnnuityType() {
+		return this.annuityType;
+	}
+
+	public void setAnnuityType(String annuityType) {
+		this.annuityType = annuityType;
+	}
+
+	@Column(name = "ANNUITY_STATE", length = 10)
+	public String getAnnuityState() {
+		return this.annuityState;
+	}
+
+	public void setAnnuityState(String annuityState) {
+		this.annuityState = annuityState;
+	}
+
+	@Column(name = "ANNUITY_COMPANY", length = 20)
+	public String getAnnuityCompany() {
+		return this.annuityCompany;
+	}
+
+	public void setAnnuityCompany(String annuityCompany) {
+		this.annuityCompany = annuityCompany;
+	}
+	
+	@Column(name = "CHECK_UNIT_ID", length = 32)
+	public String getCheckUnitId() {
+		return checkUnitId;
+	}
+
+	public void setCheckUnitId(String checkUnitId) {
+		this.checkUnitId = checkUnitId;
+	}
+
+	@Column(name = "FILM_ID", length = 32)
+	public String getFilmId() {
+		return filmId;
+	}
+
+	public void setFilmId(String filmId) {
+		this.filmId = filmId;
+	}
+
+	@Column(name = "FILM_NAME", length = 50)
+	public String getFilmName() {
+		return filmName;
+	}
+
+	public void setFilmName(String filmName) {
+		this.filmName = filmName;
+	}
+
+	@Column(name = "DEPART_NAME", length = 50)
+	public String getDepartName() {
+		return departName;
+	}
+
+	public void setDepartName(String departName) {
+		this.departName = departName;
+	}
+
+	@Column(name = "POST_ID", length = 32)
+	public String getPostId() {
+		return postId;
+	}
+
+	public void setPostId(String postId) {
+		this.postId = postId;
+	}
+
+	@Column(name = "SPECIFIC_POST_ID", length = 32)
+	public String getSpecificPostId() {
+		return specificPostId;
+	}
+
+	public void setSpecificPostId(String specificPostId) {
+		this.specificPostId = specificPostId;
+	}
+
+	@Column(name = "IN_COMPANY_TIME")
+	public Date getInCompanyTime() {
+		return inCompanyTime;
+	}
+
+	public void setInCompanyTime(Date inCompanyTime) {
+		this.inCompanyTime = inCompanyTime;
+	}
+
+	@Column(name = "IN_COMPANY_TIME2")
+	public Date getInCompanyTime2() {
+		return inCompanyTime2;
+	}
+
+	public void setInCompanyTime2(Date inCompanyTime2) {
+		this.inCompanyTime2 = inCompanyTime2;
+	}
+
+	@Column(name = "IN_PORT_TIME2", length = 7)
+	public Date getInPortTime2() {
+		return inPortTime2;
+	}
+
+	public void setInPortTime2(Date inPortTime2) {
+		this.inPortTime2 = inPortTime2;
+	}
+
+	@Column(name = "COST_OFFICE")
+	public String getCostOffice() {
+		return costOffice;
+	}
+
+	public void setCostOffice(String costOffice) {
+		this.costOffice = costOffice;
+	}
+
+	@Column(name = "COST_DEP")
+	public String getCostDep() {
+		return costDep;
+	}
+
+	public void setCostDep(String costDep) {
+		this.costDep = costDep;
+	}
+
+	@Column(name = "MODULE")
+	public String getModule() {
+		return module;
+	}
+
+	public void setModule(String module) {
+		this.module = module;
+	}
+
+	@Column(name = "CLASS_GROUP")
+	public String getClassGroup() {
+		return classGroup;
+	}
+
+	public void setClassGroup(String classGroup) {
+		this.classGroup = classGroup;
+	}
+
+	@Column(name = "JOB_NUMBER_JT", length = 32)
+	public String getJobNumberJt() {
+		return jobNumberJt;
+	}
+
+	public void setJobNumberJt(String jobNumberJt) {
+		this.jobNumberJt = jobNumberJt;
+	}
+
+	@Column(name = "IS_SOLDIER")
+	public Integer getIsSoldier() {
+		return isSoldier;
+	}
+
+	public void setIsSoldier(Integer isSoldier) {
+		this.isSoldier = isSoldier;
+	}
+
+	@Column(name = "IS_SKILLED")
+	public Integer getIsSkilled() {
+		return isSkilled;
+	}
+
+	public void setIsSkilled(Integer isSkilled) {
+		this.isSkilled = isSkilled;
+	}
+
+	@Column(name = "IS_SPECIALTY")
+	public Integer getIsSpecialty() {
+		return isSpecialty;
+	}
+
+	public void setIsSpecialty(Integer isSpecialty) {
+		this.isSpecialty = isSpecialty;
+	}
+
+	@Column(name = "IS_PRACTICE")
+	public Integer getIsPractice() {
+		return isPractice;
+	}
+
+	public void setIsPractice(Integer isPractice) {
+		this.isPractice = isPractice;
+	}
+
+	@Column(name = "PRACTICE_NUM", length = 20)
+	public String getPracticeNum() {
+		return practiceNum;
+	}
+
+	public void setPracticeNum(String practiceNum) {
+		this.practiceNum = practiceNum;
+	}
+
+	@Column(name = "OVER_PRACTICE_DATE", length = 7)
+	public Date getOverPracticeDate() {
+		return overPracticeDate;
+	}
+
+	public void setOverPracticeDate(Date overPracticeDate) {
+		this.overPracticeDate = overPracticeDate;
+	}
+
+	@Column(name = "REMARK2", length = 50)
+	public String getRemark2() {
+		return remark2;
+	}
+
+	public void setRemark2(String remark2) {
+		this.remark2 = remark2;
+	}
+
+	@Column(name = "ZZ_DATE")
+	public Date getZzDate() {
+		return zzDate;
+	}
+
+	public void setZzDate(Date zzDate) {
+		this.zzDate = zzDate;
+	}
+
+	@Column(name = "ZHUANZ_DATE")
+	public Date getZhuanzDate() {
+		return zhuanzDate;
+	}
+
+	public void setZhuanzDate(Date zhuanzDate) {
+		this.zhuanzDate = zhuanzDate;
+	}
+
+	@Column(name = "LZ_DATE")
+	public Date getLzDate() {
+		return lzDate;
+	}
+
+	public void setLzDate(Date lzDate) {
+		this.lzDate = lzDate;
+	}
+
+    @Temporal(TemporalType.DATE)
+    @Column(name = "COUNTRYSID_DATE", length = 7)
+    public Date getCountrysideDate() {
+        return countrysideDate;
+    }
+
+    public void setCountrysideDate(Date countrysideDate) {
+        this.countrysideDate = countrysideDate;
+    }
+
+    @Column(name = "IS_EVECTION")
+	public Integer getIsEvection() {
+		return isEvection;
+	}
+
+	public void setIsEvection(Integer isEvection) {
+		this.isEvection = isEvection;
+	}
+
+	@Column(name = "EVECTION_TYPE")
+	public Integer getEvectionType() {
+		return evectionType;
+	}
+
+	public void setEvectionType(Integer evectionType) {
+		this.evectionType = evectionType;
+	}
+
+	@Column(name = "JSSY_DATE")
+	public Date getJssyDate() {
+		return jssyDate;
+	}
+
+	public void setJssyDate(Date jssyDate) {
+		this.jssyDate = jssyDate;
+	}
+
+	@Column(name = "IMGPATH")
+	public String getImgpath() {
+		return imgpath;
+	}
+
+	public void setImgpath(String imgpath) {
+		this.imgpath = imgpath;
+	}
+
+
+
+
+
+}

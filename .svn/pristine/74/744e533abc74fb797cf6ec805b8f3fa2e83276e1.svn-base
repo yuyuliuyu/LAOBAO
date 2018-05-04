@@ -1,0 +1,186 @@
+package com.lingnet.hcm.action.salary;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.hcm.service.salary.SalaryMonthService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 计算月平均工资
+ * @ClassName: SalaryMonthAction 
+ * @Description: 计算月平均工资
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryMonthAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private String companyId;// 公司ID
+    private SalaryMonth salaryMonth;
+
+    @Resource(name="salaryMonthService")
+    private SalaryMonthService salaryMonthService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        salaryMonth = salaryMonthService.get(SalaryMonth.class, Restrictions.eq("id", id));
+        return "add";
+    }
+
+    /**
+     * @Title: 员工选择页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String person() {
+        return "person";
+    }
+
+    /**
+     * @Title: 获取每月平均工资 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String getPerMonthSalary() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getPerMonthSalary(companyId, pager)));
+    }
+
+    /**
+     * @Title: 月平均工资 保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryMonthService.saveOrUpdate(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除月平均工资 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryMonthService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取关联到的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String getMonthItemForId() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getMonthItemForId(id)));
+    }
+
+    /**
+     * @Title: 重新计算平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String updateReloadCalculation() {
+        return ajax(Status.success, salaryMonthService.updateReloadCalculation(id));
+    }
+
+    /**
+     * @Title: 获取月平均工资的员工
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public String getMonthSalaryListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getMonthSalaryListData(id, pager)));
+    }
+
+    /**
+     * @Title: 获取需要计算平均工资的员工(正式工)
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public String getPersonalToAllocationListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getPersonalToAllocationListData(id)));
+    }
+
+    /**
+     * @Title: 增加或者更新除参加计算员工 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String saveOrUpdateToPerson() {
+        try {
+            return ajax(Status.success, salaryMonthService.saveOrUpdateToPerson(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public SalaryMonth getSalaryMonth() {
+        return salaryMonth;
+    }
+
+    public void setSalaryMonth(SalaryMonth salaryMonth) {
+        this.salaryMonth = salaryMonth;
+    }
+
+}

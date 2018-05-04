@@ -1,0 +1,102 @@
+package com.lingnet.hcm.dao.impl.empdata;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.empdata.EducationDao;
+import com.lingnet.hcm.entity.person.Education;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 人员岗位兼职Dao实现类
+ */
+@Repository("educationDao")
+public class EducationDaoImpl extends BaseDaoImpl<Education, String> implements EducationDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" SELECT BAS.JOB_NUMBER,BAS.NAME,BAS.FILM_NAME,BAS.DEPART_NAME,BAS.POST,BAS.SPECIFIC_POST,  ")
+		.append(" EDU.SCHOOL,EDU.PROFESSION,EDU.EDUCATION_LEVER,EDU.DEGREE,EDU.IS_ALLDAY, ")
+		.append(" EDU.DEGREE_TYPE,EDU.HIGHEST_DEGREE,EDU.HIGHEST_EDUCATION,EDU.ENTRANCE_DATE, ")
+		.append(" EDU.GRADUATE_DATE,EDU.STATUS,EDU.REMARK,EDU.ID ")
+		.append(" FROM JC_EDUCATION_EXPERRIENCE EDU ")
+		.append(" LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.ID=EDU.PERSON_ID  ")
+		.append(" WHERE 1=1 ")
+		;
+		
+		if(searchData!=null&&!"".equals(searchData)){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and BAS.JOB_NUMBER LIKE'%"+dataMap.get("jobNumber")+"%'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and BAS.NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("personId") != null && !"".equals(dataMap.get("personId"))){
+				sql.append(" and BAS.ID = '"+dataMap.get("personId")+"'");
+			}
+			if (dataMap.get("educationLever") != null && !"".equals(dataMap.get("educationLever"))){
+				sql.append(" and EDU.EDUCATION_LEVER = '"+dataMap.get("educationLever")+"'");
+			}
+			if (dataMap.get("degree") != null && !"".equals(dataMap.get("degree"))){
+				sql.append(" and EDU.DEGREE = '"+dataMap.get("degree")+"'");
+			}
+			
+		}
+		sql.append(" ORDER BY EDU.GRADUATE_DATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        SimpleDateFormat form =new SimpleDateFormat("yyyy-MM-dd");
+        String stamp = "";
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("school", obj[6]);
+			map.put("profession", obj[7]);//专业
+			map.put("educationLever", obj[8]);//学历等级
+			map.put("degree", obj[9]);//所得学位
+			map.put("isAllday", obj[10]);//学习方式
+			map.put("degreeType", obj[11]);//学位类别
+			map.put("highestDegree", obj[12]);//最高学位
+			map.put("highestEducation", obj[13]);//最高学历
+			
+			if(obj[14]!=null&&!"".equals(obj[14])){
+				stamp=form.format(obj[14]);
+				map.put("entranceDate", stamp);
+			}
+			if(obj[15]!=null&&!"".equals(obj[15])){
+				stamp=form.format(obj[15]);
+				map.put("graduateDate", stamp);
+			}
+			//map.put("entranceDate", obj[14]);
+			//map.put("graduateDate", obj[15]);
+			map.put("status", obj[16]);
+			map.put("remark", obj[17]);
+			map.put("id", obj[18]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

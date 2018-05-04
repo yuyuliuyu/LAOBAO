@@ -1,0 +1,1131 @@
+package com.lingnet.hcm.service.impl.check;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.CheckHisInfoDao;
+import com.lingnet.hcm.dao.check.CheckInfosDao;
+import com.lingnet.hcm.dao.check.ContentDao;
+import com.lingnet.hcm.dao.check.InstituteDao;
+import com.lingnet.hcm.dao.check.InstitutionDao;
+import com.lingnet.hcm.dao.check.TimerDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.entity.check.ChangeApply;
+import com.lingnet.hcm.entity.check.CkCheckHisInfo;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.hcm.entity.check.CkContent;
+import com.lingnet.hcm.entity.check.CkEmpInstitute;
+import com.lingnet.hcm.entity.check.CkTimer;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.check.ChangeApplyService;
+import com.lingnet.hcm.service.check.CheckInfosService;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+/**
+ * 
+ * @ClassName: CheckInfosServiceImpl 
+ * @Description: 考勤动态service实现类 
+ * @author wangqiang
+ * @date 2017年4月11日 下午4:36:14 
+ *
+ */
+@Service("checkInfosService")
+public class CheckInfosServiceImpl extends BaseServiceImpl<CkCheckInfo, String> implements CheckInfosService{
+		
+	@Resource(name = "checkInfosDao")
+	private CheckInfosDao checkInfosDao;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+	
+	@Resource(name="personnelDao")
+	private PersonnelDao personnelDao;
+	
+	@Resource(name = "instituteDao")
+	private InstituteDao instituteDao;
+	
+	@Resource(name = "institutionDao")
+	private InstitutionDao institutionDao;
+	
+	@Resource(name = "checkHisInfoDao")
+	private CheckHisInfoDao checkHisInfoDao;
+	
+	@Resource(name = "timerDao")
+	private TimerDao timerDao;
+	
+	@Resource(name = "contentDao")
+	private ContentDao contentDao;
+	
+	@Resource(name="changeapplyservice")
+	private ChangeApplyService changeservice;
+	
+	private ChangeApply changeapp;
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public Map<String, Object> getDataByCond(Pager pager, String searchData) throws Exception {
+		//获得当前用户的所有权限部门集合
+//	    QxUser userinfo=LingUtil.userinfo();
+//	    String empno=userinfo.getUsername();
+//	    BasicInformation info=this.get(BasicInformation.class,Restrictions.eq("jobNumber", empno));
+//	    if(info==null){
+//	        return null;
+//	    }
+//        String depIds = info.getDepartId();
+        String depIds = getAllDepIdStrs();
+		List<Map<String, Object>> datas = checkInfosDao.getInfoByCond(pager, searchData, depIds);
+		if (datas.size() > 0){
+			//获得所有考勤内容时间集合 
+//			String userId = toolUtil.getUserId();
+//			String checkUnitId = personnelDao.getCheckUnitIdById(userId);
+		    String checkUnitId = LingUtil.userinfo().getCid();
+			List<CkContent> contentList = contentDao.getContentListByDepId(checkUnitId, new ArrayList<String>());
+			Map<String, CkContent> contentMap = new HashMap<String, CkContent>();
+			if (contentList.size() > 0){
+				for (CkContent content:contentList){
+					contentMap.put(content.getContent(), content);
+				}
+			}
+			//获取人员员工号集合考勤号
+			List<String> jobNumbers = new ArrayList<String>();
+			String monthCalendar = datas.get(0).get("monthCalendar")+"";
+			for(Map<String, Object> map:datas){
+				jobNumbers.add(map.get("checkno")+"");
+			}
+			//获取人员考勤时间集合
+			List<CkTimer> timers = timerDao.getCheckTimesByJobNumbers(jobNumbers, monthCalendar);
+			Map<String, List<CkTimer>> timerMap = new HashMap<String, List<CkTimer>>();
+			String flag = "";
+			List<CkTimer> timerList = null;
+			if (timers.size() > 0){
+				timerList = new ArrayList<CkTimer>();
+				for (int i = 0; i <timers.size();i++){
+					CkTimer timer = timers.get(i);
+					if (i == 0){
+						timerList.add(timer);
+						flag = timer.getJobNumber();
+					} else {
+						if (flag.equals(timer.getJobNumber())){
+							timerList.add(timer);
+						} else {
+							timerMap.put(flag, timerList);
+							flag = timer.getJobNumber();
+							timerList = new ArrayList<CkTimer>();
+							timerList.add(timer);
+						}
+					}
+				}
+				if (!timerMap.containsKey(flag)){
+					timerMap.put(flag, timerList);
+				}
+			}
+			//循环判断
+			SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+			SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			SimpleDateFormat sdfday = new SimpleDateFormat("dd");
+			int flagDay = 0;
+			for (Map<String, Object> map:datas){
+                String checkno=(String) map.get("checkno");
+				List<CkTimer> ckTimers = timerMap.get(checkno);//员工的考勤时间集合
+//				if(ckTimers==null){
+//				    
+//				}
+                boolean cz=true;
+				for(int i=1; i<=31; i++){
+				    changeapp=new ChangeApply();
+				    if(checkno==null){
+                        map.put("day"+i, map.get("day"+i)+"red");
+                        continue;
+				    }
+					flagDay = i;
+					String sql="select * from ck_change_apply where month='"+monthCalendar+"' and day='"+i+"' and state=1 and chackno="+checkno;
+					List<ChangeApply> changeapplist= changeservice.findBySql(sql);
+                    if(changeapplist!=null&&changeapplist.size()>0){
+                        changeapp=new ChangeApply();
+                        changeapp.setId("2");
+                    }
+                    
+					if (contentMap.get(map.get("day"+i)) != null){
+						CkContent content = contentMap.get(map.get("day"+i));
+						String startTimeb1Str = sdf.format(content.getStartTimeb1());
+						String startTimef1Str = sdf.format(content.getStartTimef1());
+                        if("休".equals(content.getContent())){
+                            if(ckTimers != null && ckTimers.size() > 0){ 
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+                            }
+                            continue;
+                        }
+						Date startTimeb1 = null;
+						Date startTimef1 = null;
+						if (!"00:00:00".equals(startTimeb1Str)){
+							startTimeb1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+									+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimeb1Str);
+							startTimef1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+									+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimef1Str);
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+										cz=false;
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > startTimeb1.getTime() 
+												&& ct.getCheckTime().getTime() < startTimef1.getTime()){ 
+											map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+	                                        cz=false;
+											timeIter.remove();
+											break;
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+	                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+	                                        cz=false;
+											timeIter.remove();
+										}
+									} else {
+										continue;
+									}
+								}
+								if(cz){
+	                                if(changeapp!=null&&changeapp.getId()!=null){
+                                        map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+	                                    map.put("day"+i, map.get("day"+i)+"blue");
+	                                }else{
+	                                    map.put("day"+i, map.get("day"+i)+"red");
+	                                }
+								}
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+						String endTimeb1Str = sdf.format(content.getEndTimeb1());
+						String endTimef1Str = sdf.format(content.getEndTimef1());
+						Date endTimeb1 = null;
+						Date endTimef1 = null;
+						if (!"00:00:00".equals(endTimeb1Str)){
+							//判断隔天
+							if (sdf.parse(endTimeb1Str).getTime() < sdf.parse(startTimeb1Str).getTime()){
+								flagDay = (i+1);
+								endTimeb1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimeb1Str);
+								endTimef1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimef1Str);
+							} else {
+								endTimeb1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimeb1Str);
+								endTimef1 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimef1Str);
+							}
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();
+								cz=true;
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+										cz=false;
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > endTimeb1.getTime() 
+												&& ct.getCheckTime().getTime() < endTimef1.getTime()){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+											timeIter.remove();cz=false;
+											break;
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+                                                map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+											timeIter.remove();cz=false;
+										}
+									} else {
+									    continue;
+									}
+								} 
+                                if(cz){
+                                    if(changeapp!=null&&changeapp.getId()!=null){
+                                        map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                        map.put("day"+i, map.get("day"+i)+"blue");
+                                    }else{
+                                        map.put("day"+i, map.get("day"+i)+"red");
+                                    }
+                                }
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+						String startTimeb2Str = sdf.format(content.getStartTimeb2());
+						String startTimef2Str = sdf.format(content.getStartTimef2());
+						Date startTimeb2 = null;
+						Date startTimef2 = null;
+						if (!"00:00:00".equals(startTimeb2Str)){
+							//判断隔天
+							if (sdf.parse(startTimeb2Str).getTime() < sdf.parse(endTimeb1Str).getTime()){
+								flagDay = (i+1);
+								startTimeb2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+startTimeb2Str);
+								startTimef2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+startTimef2Str);
+							} else {
+								startTimeb2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimeb2Str);
+								startTimef2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimef2Str);
+							}
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();
+								cz=true;
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+										cz=false;
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > startTimeb2.getTime() 
+												&& ct.getCheckTime().getTime() < startTimef2.getTime()){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+											timeIter.remove();cz=false;
+											break; 
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+                                                map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+											timeIter.remove();cz=false;
+										}
+									} else {
+									    continue;
+									}
+								}
+                                if(cz){
+                                    if(changeapp!=null&&changeapp.getId()!=null){
+                                        map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                        map.put("day"+i, map.get("day"+i)+"blue");
+                                    }else{
+                                        map.put("day"+i, map.get("day"+i)+"red");
+                                    }
+                                }
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+						String endTimeb2Str = sdf.format(content.getEndTimeb2());
+						String endTimef2Str = sdf.format(content.getEndTimef2());
+						Date endTimeb2 = null;
+						Date endTimef2 = null;
+						if (!"00:00:00".equals(endTimeb2Str)){
+							//判断隔天
+							if (sdf.parse(endTimeb2Str).getTime() < sdf.parse(startTimeb2Str).getTime()){
+								flagDay = (i+1);
+								endTimeb2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimeb2Str);
+								endTimef2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimef2Str);
+							} else {
+								endTimeb2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimeb2Str);
+								endTimef2 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimef2Str);
+							}
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();
+								cz=true;
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+										cz=false;
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > endTimeb2.getTime() 
+												&& ct.getCheckTime().getTime() < endTimef2.getTime()){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+											timeIter.remove();cz=false;
+											break;
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+                                                map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+											timeIter.remove();cz=false;
+										}
+									} else {
+									    continue;
+									}
+								}
+                                if(cz){
+                                    if(changeapp!=null&&changeapp.getId()!=null){
+                                        map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                        map.put("day"+i, map.get("day"+i)+"blue");
+                                    }else{
+                                        map.put("day"+i, map.get("day"+i)+"red");
+                                    }
+                                }
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+						String startTimeb3Str = sdf.format(content.getStartTimeb3());
+						String startTimef3Str = sdf.format(content.getStartTimef3());
+						Date startTimeb3 = null;
+						Date startTimef3 = null;
+						if (!"00:00:00".equals(startTimeb3Str)){
+							//判断隔天
+							if (sdf.parse(startTimeb3Str).getTime() < sdf.parse(endTimeb2Str).getTime()){
+								flagDay = (i+1);
+								startTimeb3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+startTimeb3Str);
+								startTimef3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+startTimef3Str);
+							} else {
+								startTimeb3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimeb3Str);
+								startTimef3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+startTimef3Str);
+							}
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();cz=true;
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+                                        cz=false;
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > startTimeb3.getTime() 
+												&& ct.getCheckTime().getTime() < startTimef3.getTime()){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+											timeIter.remove();cz=false;
+											break;
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+                                                map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+											timeIter.remove();cz=false;
+										}
+									} else {
+									    continue;
+									}
+								}
+                                if(cz){
+                                    if(changeapp!=null&&changeapp.getId()!=null){
+                                        map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                        map.put("day"+i, map.get("day"+i)+"blue");
+                                    }else{
+                                        map.put("day"+i, map.get("day"+i)+"red");
+                                    }
+                                }
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+						String endTimeb3Str = sdf.format(content.getEndTimeb3());
+						String endTimef3Str = sdf.format(content.getEndTimef3());
+						Date endTimeb3 = null;
+						Date endTimef3 = null;
+						if (!"00:00:00".equals(endTimeb3Str)){
+							//判断隔天
+							if (sdf.parse(endTimeb3Str).getTime() < sdf.parse(startTimeb3Str).getTime()){
+								flagDay = (i+1);
+								endTimeb3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimeb3Str);
+								endTimef3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+(i+1)+" "+endTimef3Str);
+							} else {
+								endTimeb3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimeb3Str);
+								endTimef3 = sdf2.parse("20"+monthCalendar.substring(0, 2)+"-"
+										+monthCalendar.substring(2, 4)+"-0"+i+" "+endTimef3Str);
+							}
+							if (ckTimers != null && ckTimers.size() > 0){
+								Iterator<CkTimer> timeIter = ckTimers.iterator();
+								while (timeIter.hasNext()){
+									CkTimer ct = timeIter.next();
+									if (Integer.parseInt(sdfday.format(ct.getCheckTime())) > flagDay){ 
+		                                if(changeapp!=null&&changeapp.getId()!=null){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+		                                    map.put("day"+i, map.get("day"+i)+"blue");
+		                                }else{
+		                                    map.put("day"+i, map.get("day"+i)+"red");
+		                                }
+										break;
+									} else if(Integer.parseInt(sdfday.format(ct.getCheckTime())) == flagDay) {
+										if (ct.getCheckTime().getTime() > endTimeb3.getTime() 
+												&& ct.getCheckTime().getTime() < endTimef3.getTime()){
+                                            map.put("day"+i, map.get("day"+i).toString().replace("red", ""));
+											timeIter.remove();
+											break;
+										} else {
+			                                if(changeapp!=null&&changeapp.getId()!=null){
+                                                map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+			                                    map.put("day"+i, map.get("day"+i)+"blue");
+			                                }else{
+			                                    map.put("day"+i, map.get("day"+i)+"red");
+			                                }
+											timeIter.remove();
+										}
+									} else {
+									    continue;
+									}
+								}
+							} else {
+                                if(changeapp!=null&&changeapp.getId()!=null){
+                                    map.put("day"+i, map.get("day"+i).toString().replace("blue", ""));
+                                    map.put("day"+i, map.get("day"+i)+"blue");
+                                }else{
+                                    map.put("day"+i, map.get("day"+i)+"red");
+                                }
+							}
+						}
+					}
+				}
+				
+			}
+		}
+        HashMap result = new HashMap();
+        result.put("data", datas);
+        result.put("total", pager.getTotalCount());
+		return result;
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+        String depIds = "";
+        String userId = toolUtil.getUserId();
+        List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+                + "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+                + "WHERE B.IS_DELETE = 0 ");
+        if (data!=null&&data.size()>0){
+            for (int i=0;i<data.size();i++){
+                Object b = (Object)data.get(i);
+                depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+                //获取下级部门
+                List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+                    "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+                    "WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+                for (int k=0; k<dataP.size(); k++){
+                    Object[] dep=(Object[])dataP.get(k);
+                    String parent=dep[0]==null?"":dep[0].toString();
+                    if ("ROOT".equals(parent)){
+                        depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                    }else{
+                        depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                    }
+                }
+            }
+        }else{
+          List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+                  "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+                  "WHERE  D.IS_DELETE=0 ");
+              for (int k=0; k<dataP.size(); k++){
+                  Object[] dep=(Object[])dataP.get(k);
+                  String parent=dep[0]==null?"":dep[0].toString();
+                  if ("ROOT".equals(parent)){
+                      depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                  }else{
+                      depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+                  }
+              }
+        }
+        if (!"".equals(depIds)){
+            depIds = depIds.substring(0,depIds.length()-2);
+        }
+        return depIds;
+	}
+
+	@Override
+	public void syncCheckData() throws Exception {
+		String pathUrl = ToolUtil.getPropert("config.properties", "sync_path");
+		HttpPost httpPost = new HttpPost(pathUrl);//post提交信息
+		CloseableHttpClient client = HttpClients.createDefault();
+		String respContent = null;
+		//json方式传数据
+//		Map<String, String> infoMap = new HashMap<String, String>();
+//		JSONObject jsonParam = JSONObject.fromObject(infoMap);
+//		String sjon = jsonParam.toString();
+//		System.out.println(sjon);
+//		StringEntity entity = new StringEntity(sjon,"utf-8");//解决中文乱码问题
+//		entity.setContentEncoding("UTF-8");
+//		entity.setContentType("application/json");
+//		httpPost.setEntity(entity);
+		System.out.println("executing request:" + httpPost.getURI());
+		HttpResponse resp = client.execute(httpPost);
+		if(resp.getStatusLine().getStatusCode() == 200) {
+			HttpEntity he = resp.getEntity();
+			respContent = EntityUtils.toString(he,"UTF-8");
+			if (!"success".equals(respContent)){//若是不成功
+				throw new Exception();
+        	}
+		} else {
+			throw new Exception();
+		}
+	}
+
+	@Override
+	public void generateMonthTable(Date beginDate, String monthDate, String year, 
+			String month) throws Exception {
+		//获得当前用户的所有权限部门集合
+//        String depIds = getAllDepIdStrs();
+	  //获得当前用户的公司
+      String depIds =LingUtil.userinfo().getCid();
+        //获得部门下人员及班制集合
+       
+        List<Object[]> objList = personnelDao.getCheckInfosByDepIds(depIds);
+        //获得所有班制集合
+        List<CkEmpInstitute> instituteList = new ArrayList<CkEmpInstitute>();
+        try {
+            instituteList = instituteDao.find("FROM CkEmpInstitute where isDelete=0");
+            // instituteList = instituteDao.getList(Restrictions.eq("isDelete", 0));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ;
+        }
+        //获得白班的班制id
+        String dayId = institutionDao.getInstituteIdByName("白班");
+        //根据年月份获得当月的班制
+        List<CkEmpInstitute> institutes = new ArrayList<CkEmpInstitute>();
+        int totalDays = getDaysByYearMonth(Integer.parseInt(year), Integer.parseInt(month));
+        if (instituteList.size() > 0){
+        	for (CkEmpInstitute emp:instituteList){
+        		if (dayId.equals(emp.getInstituteId())){//如果是白班班制
+        			institutes.add(emp);
+        		} else {//循环班制
+        			int day = getDaysByDates(emp.getStartDate(), beginDate);//相差总天数
+        			int h = day%emp.getDays()+1;//按日循环起始位置
+        			int week = Integer.parseInt(getWeekOfDate(beginDate));//按星期循环起始位置
+        			CkEmpInstitute ckEmp = new CkEmpInstitute();
+        			ckEmp.setInstituteId(emp.getInstituteId());
+        			ckEmp.setStartDate(emp.getStartDate());
+        			ckEmp.setEndDate(emp.getEndDate());
+        			ckEmp.setCycleType(emp.getCycleType());
+        			ckEmp.setDays(emp.getDays());
+        			for (int i=1; i <=totalDays; i++){
+        				if (emp.getCycleType() == 3){//按星期循环
+        					ckEmp.getClass().getMethod("setDay"+i, String.class)
+        						.invoke(ckEmp, emp.getClass().getMethod("getWeek"+week).invoke(emp, null));
+        					if (week == 7){
+        						week = 1;
+        					} else {
+        						week++;
+        					}
+        				} else {//按日循环
+        					ckEmp.getClass().getMethod("setDay"+i, String.class)
+	        					.invoke(ckEmp, emp.getClass().getMethod("getDay"+h).invoke(emp, null));
+	        				if (h == emp.getDays()){
+	        					h = 1;
+	        				} else {
+	        					h++;
+	        				}
+        				}
+        			}
+        			institutes.add(ckEmp);
+        		}
+        	}
+        }
+        List<CkCheckInfo> infoList = new ArrayList<CkCheckInfo>();
+        for (Object[] obj:objList){
+        	CkCheckInfo checkInfo = new CkCheckInfo();
+        	checkInfo.setJobNumber(obj[0]+"");
+        	checkInfo.setMonthCalendar(monthDate);
+        	checkInfo.setMonthDays(totalDays);
+        	for (CkEmpInstitute emp:institutes){
+        		if ((obj[2]+"").equals(emp.getInstituteId())){
+        			checkInfo.setDay1(emp.getDay1());
+        			checkInfo.setDay2(emp.getDay2());
+        			checkInfo.setDay3(emp.getDay3());
+        			checkInfo.setDay4(emp.getDay4());
+        			checkInfo.setDay5(emp.getDay5());
+        			checkInfo.setDay6(emp.getDay6());
+        			checkInfo.setDay7(emp.getDay7());
+        			checkInfo.setDay8(emp.getDay8());
+        			checkInfo.setDay9(emp.getDay9());
+        			checkInfo.setDay10(emp.getDay10());
+        			checkInfo.setDay11(emp.getDay11());
+        			checkInfo.setDay12(emp.getDay12());
+        			checkInfo.setDay13(emp.getDay13());
+        			checkInfo.setDay14(emp.getDay14());
+        			checkInfo.setDay15(emp.getDay15());
+        			checkInfo.setDay16(emp.getDay16());
+        			checkInfo.setDay17(emp.getDay17());
+        			checkInfo.setDay18(emp.getDay18());
+        			checkInfo.setDay19(emp.getDay19());
+        			checkInfo.setDay20(emp.getDay20());
+        			checkInfo.setDay21(emp.getDay21());
+        			checkInfo.setDay22(emp.getDay22());
+        			checkInfo.setDay23(emp.getDay23());
+        			checkInfo.setDay24(emp.getDay24());
+        			checkInfo.setDay25(emp.getDay25());
+        			checkInfo.setDay26(emp.getDay26());
+        			checkInfo.setDay27(emp.getDay27());
+        			checkInfo.setDay28(emp.getDay28());
+        			checkInfo.setDay29(emp.getDay29());
+        			checkInfo.setDay30(emp.getDay30());
+        			checkInfo.setDay31(emp.getDay31());
+        		}
+        	}
+        	checkInfo.setIsDelete(0);
+        	infoList.add(checkInfo);
+        }
+        checkInfosDao.saveBatch(infoList);//批量保存
+        //原来考勤表信息转历史
+        List<Object[]> infos = checkInfosDao.getOldDataByCond(monthDate);
+        List<CkCheckHisInfo> hisList = changeObjectToList(infos);
+        if (hisList.size() > 0){
+        	checkHisInfoDao.saveBatch(hisList);
+        }
+        //删除原来考勤的数据
+        checkInfosDao.removeByCond(monthDate);
+	}
+	
+	/**
+	 * 获取两个日期之间的天数
+	 * @Title: getDaysByDates 
+	 * @param date1
+	 * @param date2
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月17日 V 1.0
+	 */
+	public int getDaysByDates(Date date1, Date date2){
+		//将转换的两个时间对象转换成Calendard对象
+        Calendar can1 = Calendar.getInstance();
+        can1.setTime(date1);
+        Calendar can2 = Calendar.getInstance();
+        can2.setTime(date2);
+        //拿出两个年份
+        int year1 = can1.get(Calendar.YEAR);
+        int year2 = can2.get(Calendar.YEAR);
+        //天数
+        int days = 0;
+        Calendar can = null;
+        //如果can1 < can2
+        //减去小的时间在这一年已经过了的天数
+        //加上大的时间已过的天数
+        if(can1.before(can2)){
+            days -= can1.get(Calendar.DAY_OF_YEAR);
+            days += can2.get(Calendar.DAY_OF_YEAR);
+            can = can1;
+        }else{
+            days -= can2.get(Calendar.DAY_OF_YEAR);
+            days += can1.get(Calendar.DAY_OF_YEAR);
+            can = can2;
+        }
+        for (int i = 0; i < Math.abs(year2-year1); i++) {
+            //获取小的时间当前年的总天数
+            days += can.getActualMaximum(Calendar.DAY_OF_YEAR);
+            //再计算下一年。
+            can.add(Calendar.YEAR, 1);
+        }
+        return days;
+	}
+	
+	public static int getDaysByYearMonth(int year, int month) {  
+        Calendar a = Calendar.getInstance();  
+        a.set(Calendar.YEAR, year);  
+        a.set(Calendar.MONTH, month - 1);  
+        a.set(Calendar.DATE, 1);  
+        a.roll(Calendar.DATE, -1);  
+        int maxDate = a.get(Calendar.DATE);  
+        return maxDate;  
+    } 
+	
+	public static String getWeekOfDate(Date date) {
+    	String[] weekDaysCode = { "7", "1", "2", "3", "4", "5", "6" };
+    	Calendar calendar = Calendar.getInstance();
+    	calendar.setTime(date);
+    	int intWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1;
+    	return weekDaysCode[intWeek];
+	} 
+	
+	public List<CkCheckHisInfo> changeObjectToList(List<Object[]> infos){
+		List<CkCheckHisInfo> hisList = new ArrayList<CkCheckHisInfo>();
+		if (infos.size() > 0){
+			for (Object[] object:infos){
+        		CkCheckHisInfo hisInfo = new CkCheckHisInfo();
+        		hisInfo.setJobNumber(object[0]+"");
+        		hisInfo.setClassName(object[1]+"");
+        		hisInfo.setName(object[2]+"");
+        		if (object[3] != null){
+        			hisInfo.setPostName(object[3]+"");
+        		}
+        		if (object[4] != null){
+        			hisInfo.setPostState(object[4]+"");
+        		}
+        		if  (object[5] != null){
+        			hisInfo.setIsHeader(object[5]+"");
+        		}
+        		hisInfo.setMonthCalendar(object[6]+"");
+        		hisInfo.setMonthDays(Integer.parseInt(object[7]+""));
+        		hisInfo.setDay1(object[8]+"");
+        		hisInfo.setDay2(object[9]+"");
+        		hisInfo.setDay3(object[10]+"");
+        		hisInfo.setDay4(object[11]+"");
+        		hisInfo.setDay5(object[12]+"");
+        		hisInfo.setDay6(object[13]+"");
+        		hisInfo.setDay7(object[14]+"");
+        		hisInfo.setDay8(object[15]+"");
+        		hisInfo.setDay9(object[16]+"");
+        		hisInfo.setDay10(object[17]+"");
+        		hisInfo.setDay11(object[18]+"");
+        		hisInfo.setDay12(object[19]+"");
+        		hisInfo.setDay13(object[20]+"");
+        		hisInfo.setDay14(object[21]+"");
+        		hisInfo.setDay15(object[22]+"");
+        		hisInfo.setDay16(object[23]+"");
+        		hisInfo.setDay17(object[24]+"");
+        		hisInfo.setDay18(object[25]+"");
+        		hisInfo.setDay19(object[26]+"");
+        		hisInfo.setDay20(object[27]+"");
+        		hisInfo.setDay21(object[28]+"");
+        		hisInfo.setDay22(object[29]+"");
+        		hisInfo.setDay23(object[30]+"");
+        		hisInfo.setDay24(object[31]+"");
+        		hisInfo.setDay25(object[32]+"");
+        		hisInfo.setDay26(object[33]+"");
+        		hisInfo.setDay27(object[34]+"");
+        		hisInfo.setDay28(object[35]+"");
+        		if (object[36] != null){
+        			hisInfo.setDay29(object[36]+"");
+        		}
+        		if (object[37] != null){
+        			hisInfo.setDay30(object[37]+"");
+        		}
+        		if (object[38] != null){
+        			hisInfo.setDay31(object[38]+"");
+        		}
+        		hisInfo.setOvertime1(Integer.parseInt(object[39]+""));
+        		hisInfo.setOvertime2(Integer.parseInt(object[40]+""));
+        		hisInfo.setOvertime3(Integer.parseInt(object[41]+""));
+        		hisInfo.setOvertime4(Integer.parseInt(object[42]+""));
+        		hisInfo.setOvertime5(Integer.parseInt(object[43]+""));
+        		hisInfo.setOvertime6(Integer.parseInt(object[44]+""));
+        		hisInfo.setOvertime7(Integer.parseInt(object[45]+""));
+        		hisInfo.setOvertime8(Integer.parseInt(object[46]+""));
+        		hisInfo.setOvertime9(Integer.parseInt(object[47]+""));
+        		hisInfo.setOvertime10(Integer.parseInt(object[48]+""));
+        		hisInfo.setOvertime11(Integer.parseInt(object[49]+""));
+        		hisInfo.setOvertime12(Integer.parseInt(object[50]+""));
+        		hisInfo.setOvertime13(Integer.parseInt(object[51]+""));
+        		hisInfo.setOvertime14(Integer.parseInt(object[52]+""));
+        		hisInfo.setOvertime15(Integer.parseInt(object[53]+""));
+        		hisInfo.setOvertime16(Integer.parseInt(object[54]+""));
+        		hisInfo.setOvertime17(Integer.parseInt(object[55]+""));
+        		hisInfo.setOvertime18(Integer.parseInt(object[56]+""));
+        		hisInfo.setOvertime19(Integer.parseInt(object[57]+""));
+        		hisInfo.setOvertime20(Integer.parseInt(object[58]+""));
+        		hisInfo.setOvertime21(Integer.parseInt(object[59]+""));
+        		hisInfo.setOvertime22(Integer.parseInt(object[60]+""));
+        		hisInfo.setOvertime23(Integer.parseInt(object[61]+""));
+        		hisInfo.setOvertime24(Integer.parseInt(object[62]+""));
+        		hisInfo.setOvertime25(Integer.parseInt(object[63]+""));
+        		hisInfo.setOvertime26(Integer.parseInt(object[64]+""));
+        		hisInfo.setOvertime27(Integer.parseInt(object[65]+""));
+        		hisInfo.setOvertime28(Integer.parseInt(object[66]+""));
+        		hisInfo.setOvertime29(Integer.parseInt(object[67]+""));
+        		hisInfo.setOvertime30(Integer.parseInt(object[68]+""));
+        		hisInfo.setOvertime31(Integer.parseInt(object[69]+""));
+        		if (object[70] != null){
+        			hisInfo.setRemark(object[70]+"");
+        		}
+        		hisInfo.setCheckDepId(object[71]+"");
+        		hisInfo.setIsDelete(0);
+        		hisList.add(hisInfo);
+        	}
+		}
+		return hisList;
+	}
+
+	@Override
+	public void updateCheckInfo(String formdata) throws Exception {
+		Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		String id = dataMap.get("id");
+		CkCheckInfo checkInfo = checkInfosDao.get(id);
+		if (checkInfo != null){
+			checkInfo.setDay1(dataMap.get("day1"));
+			checkInfo.setDay2(dataMap.get("day2"));
+			checkInfo.setDay3(dataMap.get("day3"));
+			checkInfo.setDay4(dataMap.get("day4"));
+			checkInfo.setDay5(dataMap.get("day5"));
+			checkInfo.setDay6(dataMap.get("day6"));
+			checkInfo.setDay7(dataMap.get("day7"));
+			checkInfo.setDay8(dataMap.get("day8"));
+			checkInfo.setDay9(dataMap.get("day9"));
+			checkInfo.setDay10(dataMap.get("day10"));
+			checkInfo.setDay11(dataMap.get("day11"));
+			checkInfo.setDay12(dataMap.get("day12"));
+			checkInfo.setDay13(dataMap.get("day13"));
+			checkInfo.setDay14(dataMap.get("day14"));
+			checkInfo.setDay15(dataMap.get("day15"));
+			checkInfo.setDay16(dataMap.get("day16"));
+			checkInfo.setDay17(dataMap.get("day17"));
+			checkInfo.setDay18(dataMap.get("day18"));
+			checkInfo.setDay19(dataMap.get("day19"));
+			checkInfo.setDay20(dataMap.get("day20"));
+			checkInfo.setDay21(dataMap.get("day21"));
+			checkInfo.setDay22(dataMap.get("day22"));
+			checkInfo.setDay23(dataMap.get("day23"));
+			checkInfo.setDay24(dataMap.get("day24"));
+			checkInfo.setDay25(dataMap.get("day25"));
+			checkInfo.setDay26(dataMap.get("day26"));
+			checkInfo.setDay27(dataMap.get("day27"));
+			checkInfo.setDay28(dataMap.get("day28"));
+			if (dataMap.get("day29") != null){
+				checkInfo.setDay29(dataMap.get("day29"));
+			}
+			if (dataMap.get("day30") != null){
+				checkInfo.setDay30(dataMap.get("day30"));
+			}
+			if (dataMap.get("day31") != null){
+				checkInfo.setDay31(dataMap.get("day31"));
+			}
+			checkInfo.setOvertime1(Integer.parseInt(dataMap.get("overtime1")));
+			checkInfo.setOvertime2(Integer.parseInt(dataMap.get("overtime2")));
+			checkInfo.setOvertime3(Integer.parseInt(dataMap.get("overtime3")));
+			checkInfo.setOvertime4(Integer.parseInt(dataMap.get("overtime4")));
+			checkInfo.setOvertime5(Integer.parseInt(dataMap.get("overtime5")));
+			checkInfo.setOvertime6(Integer.parseInt(dataMap.get("overtime6")));
+			checkInfo.setOvertime7(Integer.parseInt(dataMap.get("overtime7")));
+			checkInfo.setOvertime8(Integer.parseInt(dataMap.get("overtime8")));
+			checkInfo.setOvertime9(Integer.parseInt(dataMap.get("overtime9")));
+			checkInfo.setOvertime10(Integer.parseInt(dataMap.get("overtime10")));
+			checkInfo.setOvertime11(Integer.parseInt(dataMap.get("overtime11")));
+			checkInfo.setOvertime12(Integer.parseInt(dataMap.get("overtime12")));
+			checkInfo.setOvertime13(Integer.parseInt(dataMap.get("overtime13")));
+			checkInfo.setOvertime14(Integer.parseInt(dataMap.get("overtime14")));
+			checkInfo.setOvertime15(Integer.parseInt(dataMap.get("overtime15")));
+			checkInfo.setOvertime16(Integer.parseInt(dataMap.get("overtime16")));
+			checkInfo.setOvertime17(Integer.parseInt(dataMap.get("overtime17")));
+			checkInfo.setOvertime18(Integer.parseInt(dataMap.get("overtime18")));
+			checkInfo.setOvertime19(Integer.parseInt(dataMap.get("overtime19")));
+			checkInfo.setOvertime20(Integer.parseInt(dataMap.get("overtime20")));
+			checkInfo.setOvertime21(Integer.parseInt(dataMap.get("overtime21")));
+			checkInfo.setOvertime22(Integer.parseInt(dataMap.get("overtime22")));
+			checkInfo.setOvertime23(Integer.parseInt(dataMap.get("overtime23")));
+			checkInfo.setOvertime24(Integer.parseInt(dataMap.get("overtime24")));
+			checkInfo.setOvertime25(Integer.parseInt(dataMap.get("overtime25")));
+			checkInfo.setOvertime26(Integer.parseInt(dataMap.get("overtime26")));
+			checkInfo.setOvertime27(Integer.parseInt(dataMap.get("overtime27")));
+			checkInfo.setOvertime28(Integer.parseInt(dataMap.get("overtime28")));
+			checkInfo.setOvertime29(Integer.parseInt(dataMap.get("overtime29")));
+			checkInfo.setOvertime30(Integer.parseInt(dataMap.get("overtime30")));
+			checkInfo.setOvertime31(Integer.parseInt(dataMap.get("overtime31")));
+			checkInfo.setRemark(dataMap.get("remark"));
+			checkInfosDao.update(checkInfo);
+		}
+	}
+
+	@Override
+	public Map<String, Object> findMonthDaysAndYearMonth() {
+		return checkInfosDao.getMonthDaysAndYearMonth();
+	}
+
+	@Override
+	public List<Map<String, String>> getDataByEmpIds(Pager pager,
+			List<String> empIdLists) {
+		return checkInfosDao.getDataByEmpIds(pager, empIdLists);
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public Map<String, Object> getDayDataByCond(Pager pager, String searchData) {
+		List<Map<String, Object>> datas = new ArrayList<Map<String, Object>>();
+		String depIds = "";
+		String day = "1";//默认查询1号
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			day = dataMap.get("day");
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						depIds += ("'" + depIdArrs[i] + "', ");
+					}
+				}
+				depIds = depIds.substring(0, depIds.length()-2);
+			} else {
+				//获得当前用户的所有权限部门集合
+		        depIds = getAllDepIdStrs();
+			}
+		} else {
+			//获得当前用户的所有权限部门集合
+	        depIds = getAllDepIdStrs();
+		}
+		//获得部门下员工号字符串集合
+        String jobNumbers = personnelDao.getJobNumbersByDepIds(depIds);
+        String checknos = personnelDao.getChecknoByDepIds(depIds);
+        if (!"".equals(jobNumbers)){
+        	datas = checkInfosDao.getDayInfoByCond(pager, day, jobNumbers);
+    		if (datas.size() > 0){
+    			String monthCalendar = datas.get(0).get("monthCalendar")+"";//年月份
+    			String startTime = "20"+monthCalendar.subSequence(0, 2)+"-"
+    					+monthCalendar.subSequence(2, 4)+"-"+(day.length()==1?"0"+day:day)+" 00:00:00";
+    			String endTime = "20"+monthCalendar.subSequence(0, 2)+"-"
+    					+monthCalendar.subSequence(2, 4)+"-"+ (day.length()==1?"0"+day:day)+" 23:59:59";
+    			//获得员工考勤时间集合
+    			List<Map<String, Object>> checkTimes = timerDao.getTimesByJobNumbers(checknos, startTime, endTime);
+    			//去员工每日考勤的最早最晚时间
+    			if (checkTimes.size() > 0){
+    				for (int i=0; i<datas.size(); i++){
+    					int flag = 0;//标记
+    					Map<String, Object> empMap = datas.get(i);
+    					for (int j=0; j<checkTimes.size(); j++){
+    						Map<String, Object> timeMap = checkTimes.get(j);
+    						if (empMap.get("checkno").equals(timeMap.get("jobNumber"))){
+    							if (flag == 0){
+    								empMap.put("startTime", timeMap.get("checkTime"));
+    							} else {
+    								empMap.put("endTime", timeMap.get("checkTime"));
+    							}
+    							flag++;
+    						}
+    					}
+    				}
+    			}
+    		}
+        }
+        HashMap result = new HashMap();
+        result.put("data", datas);
+        result.put("total", pager.getTotalCount());
+		return result;
+	}
+
+	@Override
+	public Map<String, String> getInfoById(String id, String day) {
+		return checkInfosDao.getInfoById(id, day);
+	}
+
+	@Override
+	public void updateCheckInfoByDate(String instituteName, Date startDate,
+			Date endDate, String jobNumber) throws Exception {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
+		SimpleDateFormat sdfDay = new SimpleDateFormat("dd");
+		List<String> dayList = new ArrayList<String>();
+		int start = Integer.parseInt(sdfDay.format(startDate));
+		int end = Integer.parseInt(sdfDay.format(endDate));
+		if (!sdf.format(startDate).equals(sdf.format(endDate))){
+			end = getDaysByYearMonth(Integer.parseInt(sdf.format(startDate).substring(0, 4)), 
+						Integer.parseInt(sdf.format(startDate).substring(4, 6)));
+		}
+		for (int i=start; i <= end; i++){
+			dayList.add(i+"");
+		}
+		checkInfosDao.updateCheckInfoByDate(instituteName, dayList, jobNumber, sdf.format(startDate).substring(2, 6));
+	}
+
+	@Override
+	public void updateOverTimeByDate(String overtime, Date startDate,
+			Date endDate, String jobNumber) throws Exception {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMM");
+		SimpleDateFormat sdfDay = new SimpleDateFormat("dd");
+		List<String> dayList = new ArrayList<String>();
+		int start = Integer.parseInt(sdfDay.format(startDate));
+		int end = Integer.parseInt(sdfDay.format(endDate));
+		if (!sdf.format(startDate).equals(sdf.format(endDate))){
+			end = getDaysByYearMonth(Integer.parseInt(sdf.format(startDate).substring(0, 4)), 
+						Integer.parseInt(sdf.format(startDate).substring(4, 6)));
+		}
+		for (int i=start; i <= end; i++){
+			dayList.add(i+"");
+		}
+		checkInfosDao.updateOverTimeByDate(overtime, dayList, jobNumber, sdf.format(startDate).substring(2, 6));
+	}
+	
+}

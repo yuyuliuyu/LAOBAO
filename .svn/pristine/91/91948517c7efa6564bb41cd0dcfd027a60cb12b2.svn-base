@@ -1,0 +1,16 @@
+package com.lingnet.hcm.service.salary;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryAgain;
+
+/**
+ * 二次分配总量主表
+ * @ClassName: SalaryAgainService 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:12:45 
+ *
+ */
+public interface SalaryAgainService extends BaseService<SalaryAgain, String> {
+
+}

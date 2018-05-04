@@ -1,0 +1,70 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryTotalAmountDao;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 总量
+ * @ClassName: SalaryTotalAmountDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月19日 上午7:57:22 
+ *
+ */
+@Repository("salaryTotalAmountDao")
+public class SalaryTotalAmountDaoImpl extends BaseDaoImplInit<SalaryTotalAmount, String> implements SalaryTotalAmountDao {
+
+    @Override
+    public Map<String, Object> getAmountListData(String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                              ");
+        sql.append("     PERIODDATA.NAME PAYPERIOD         ");
+        sql.append("   FROM XC_SALARY_ASSIGNATION SA       ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PERIODDATA  ");
+        sql.append("   ON SA.SALARY_PERIOD = PERIODDATA.ID ");
+        sql.append("   WHERE SA.IS_DELETE  = 0             ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 薪酬期间
+            if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                sql.append("   AND PERIODDATA.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'                                        ");
+            }
+        }
+        sql.append("   GROUP BY PERIODDATA.NAME            ");
+        sql.append("   ORDER BY PERIODDATA.NAME DESC       ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object obj = list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("payPeriod", obj);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getAmountForPeriodListData(String period, Pager pager) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+}

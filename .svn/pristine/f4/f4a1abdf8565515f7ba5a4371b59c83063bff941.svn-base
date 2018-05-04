@@ -1,0 +1,107 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪资组工资套
+ * @ClassName: SalaryGroupWageService 
+ * @Description: 薪资组工资套 
+ * @author zhanghj
+ * @date 2017年4月5日 下午4:30:53 
+ *
+ */
+public interface SalaryGroupWageService extends BaseService<SalaryGroupWage, String> {
+
+    /**
+     * @Title: 获取薪资组工资套 
+     * @param id
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月5日 V 1.0
+     */
+    public Map<String, Object> getSalaryGroupWageListData(String id, String searchData, Pager pager);
+
+    /**
+     * @Title: 保存薪资组工资套 
+     * @param formdata
+     * @param griddata
+     * @param gridData
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月6日 V 1.0
+     */
+    public String saveOrUpdateItems(String formdata, String griddata, String gridData) throws Exception;
+
+    /**
+     * @Title: 删除薪资组工资套 
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月6日 V 1.0
+     */
+    public String remove(String ids);
+
+    /**
+     * @Title: 获取薪资组工资套与薪资项目关联数据 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月6日 V 1.0
+     */
+    public Map<String, Object> getGroupWageTypeListData(String id, int sign);
+
+    /**
+     * @Title: 根据薪资组获取对应的工资套
+     * @param companyId 公司ID
+     * @param groupId 薪资组ID
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public List<Map<String, Object>> getGroupWageListData(String companyId, String groupId);
+
+    /**
+     * @Title: 获取值为0时不发送工资条的薪资项目
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月10日 V 1.0
+     */
+    public List<Map<String, Object>> getValueIsZeroNoSendRecords(String id);
+
+    /**
+     * @Title: 查找薪资组工资套是否存在工资分配中以及为完成发放
+     * @param salaryWageId
+     * @param companyId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月12日 V 1.0
+     */
+    public String checkWageStatus(String salaryWageId, String companyId);
+
+    /**
+     * @Title: 薪资组工资套公式分析
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年9月18日 V 1.0
+     */
+    public String saveDeploy(String id) throws Exception;
+
+}

@@ -1,0 +1,6 @@
+file_path=http\://localhost\:8080/h
+real_path=D\:/hcm
+sync_path=http\://10.35.18.198\:8080/hcmcheck/system/sync_check\!syncCheckInfos.action
+
+#\u9ed8\u8ba4\u53ef\u67e5\u770b\u5de5\u8d44\u5355\u7684\u85aa\u916c\u671f\u95f4\u4e2a\u6570
+payroll = 3

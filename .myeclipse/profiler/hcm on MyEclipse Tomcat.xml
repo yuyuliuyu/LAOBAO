@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<entry key="profiler.settings.instrument.empty.methods">true</entry>
+<entry key="ProfilerCPUSettings_profile_runnables">true</entry>
+<entry key="ProfilerCPUSettings_filter_type">2</entry>
+<entry key="ProfilerMemorySettings_track_every">10</entry>
+<entry key="ProfilerMemorySettings_mode">4</entry>
+<entry key="ProfilerCPUSettings_root_classes">com.lingnet.common.**
+com.lingnet.hcm.action.branch.**
+com.lingnet.hcm.action.check.**
+com.lingnet.hcm.action.contract.**
+com.lingnet.hcm.action.empdata.**
+com.lingnet.hcm.action.laobao.**
+com.lingnet.hcm.action.organiz.**
+com.lingnet.hcm.action.pact.**
+com.lingnet.hcm.action.personnel.**
+com.lingnet.hcm.action.post.**
+com.lingnet.hcm.action.recruit.**
+com.lingnet.hcm.action.salary.**
+com.lingnet.hcm.action.train.**
+com.lingnet.hcm.dao.branch.**
+com.lingnet.hcm.dao.check.**
+com.lingnet.hcm.dao.contract.**
+com.lingnet.hcm.dao.empdata.**
+com.lingnet.hcm.dao.impl.branch.**
+com.lingnet.hcm.dao.impl.check.**
+com.lingnet.hcm.dao.impl.contract.**
+com.lingnet.hcm.dao.impl.empdata.**
+com.lingnet.hcm.dao.impl.laobao.**
+com.lingnet.hcm.dao.impl.personnel.**
+com.lingnet.hcm.dao.impl.post.**
+com.lingnet.hcm.dao.impl.salary.**
+com.lingnet.hcm.dao.laobao.**
+com.lingnet.hcm.dao.personnel.**
+com.lingnet.hcm.dao.post.**
+com.lingnet.hcm.dao.salary.**
+com.lingnet.hcm.entity.**
+com.lingnet.hcm.service.**
+com.lingnet.qxgl.action.basis.**
+com.lingnet.qxgl.action.depart.**
+com.lingnet.qxgl.action.dictionary.**
+com.lingnet.qxgl.action.resource.**
+com.lingnet.qxgl.action.system.**
+com.lingnet.qxgl.dao.**
+com.lingnet.qxgl.entity.**
+com.lingnet.qxgl.filter.**
+com.lingnet.qxgl.interceptor.**
+com.lingnet.qxgl.security.authentication.details.**
+com.lingnet.qxgl.security.authentication.filter.**
+com.lingnet.qxgl.security.authentication.handler.**
+com.lingnet.qxgl.security.authentication.provider.**
+com.lingnet.qxgl.security.authentication.token.**
+com.lingnet.qxgl.security.login.**
+com.lingnet.qxgl.security.logout.**
+com.lingnet.qxgl.security.manage.decide.**
+com.lingnet.qxgl.security.manage.filter.**
+com.lingnet.qxgl.security.manage.metadata.**
+com.lingnet.qxgl.security.perm.**
+com.lingnet.qxgl.security.shared.**
+com.lingnet.qxgl.service.**
+com.lingnet.util.**
+</entry>
+<entry key="ProfilerCPUSettings_filter_value">com.lingnet.common.*,
+com.lingnet.hcm.action.branch.*,
+com.lingnet.hcm.action.check.*,
+com.lingnet.hcm.action.contract.*,
+com.lingnet.hcm.action.empdata.*,
+com.lingnet.hcm.action.laobao.*,
+com.lingnet.hcm.action.organiz.*,
+com.lingnet.hcm.action.pact.*,
+com.lingnet.hcm.action.personnel.*,
+com.lingnet.hcm.action.post.*,
+com.lingnet.hcm.action.recruit.*,
+com.lingnet.hcm.action.salary.*,
+com.lingnet.hcm.action.train.*,
+com.lingnet.hcm.dao.branch.*,
+com.lingnet.hcm.dao.check.*,
+com.lingnet.hcm.dao.contract.*,
+com.lingnet.hcm.dao.empdata.*,
+com.lingnet.hcm.dao.impl.branch.*,
+com.lingnet.hcm.dao.impl.check.*,
+com.lingnet.hcm.dao.impl.contract.*,
+com.lingnet.hcm.dao.impl.empdata.*,
+com.lingnet.hcm.dao.impl.laobao.*,
+com.lingnet.hcm.dao.impl.personnel.*,
+com.lingnet.hcm.dao.impl.post.*,
+com.lingnet.hcm.dao.impl.salary.*,
+com.lingnet.hcm.dao.laobao.*,
+com.lingnet.hcm.dao.personnel.*,
+com.lingnet.hcm.dao.post.*,
+com.lingnet.hcm.dao.salary.*,
+com.lingnet.hcm.entity.*,
+com.lingnet.hcm.service.*,
+com.lingnet.qxgl.action.basis.*,
+com.lingnet.qxgl.action.depart.*,
+com.lingnet.qxgl.action.dictionary.*,
+com.lingnet.qxgl.action.resource.*,
+com.lingnet.qxgl.action.system.*,
+com.lingnet.qxgl.dao.*,
+com.lingnet.qxgl.entity.*,
+com.lingnet.qxgl.filter.*,
+com.lingnet.qxgl.interceptor.*,
+com.lingnet.qxgl.security.authentication.details.*,
+com.lingnet.qxgl.security.authentication.filter.*,
+com.lingnet.qxgl.security.authentication.handler.*,
+com.lingnet.qxgl.security.authentication.provider.*,
+com.lingnet.qxgl.security.authentication.token.*,
+com.lingnet.qxgl.security.login.*,
+com.lingnet.qxgl.security.logout.*,
+com.lingnet.qxgl.security.manage.decide.*,
+com.lingnet.qxgl.security.manage.filter.*,
+com.lingnet.qxgl.security.manage.metadata.*,
+com.lingnet.qxgl.security.perm.*,
+com.lingnet.qxgl.security.shared.*,
+com.lingnet.qxgl.service.*,
+com.lingnet.util.*</entry>
+<entry key="profiler.settings.istrument.getter.setter.methods">true</entry>
+<entry key="myeclipse.profiling.mode">0</entry>
+<entry key="ProfilerMemorySettings_stacktraces">-1</entry>
+</properties>

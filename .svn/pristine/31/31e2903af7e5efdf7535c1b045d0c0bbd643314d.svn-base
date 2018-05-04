@@ -1,0 +1,15 @@
+js/css等前端放到/template/plugin里面
+
+public文件夹为公共js文件
+
+dpocx 播放js
+
+echarts 表格控件
+
+picbox 图片轮播
+
+print  打印lodop控件
+
+qrCode 二维码条码控件
+
+webuploader 图片上传控件

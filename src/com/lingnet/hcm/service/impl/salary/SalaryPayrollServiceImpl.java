@@ -1,0 +1,210 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.salary.SalaryPayroll;
+import com.lingnet.hcm.service.salary.SalaryPayrollService;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 工资单可查看月份表
+ * @ClassName: SalaryPayrollServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年7月21日 上午9:10:18 
+ *
+ */
+@Service("salaryPayrollService")
+public class SalaryPayrollServiceImpl extends BaseServiceImpl<SalaryPayroll, String>
+              implements SalaryPayrollService {
+
+    @Override
+    public String saveOrUpdate(String formdata) {
+        SalaryPayroll payroll = JsonUtil.toObject(formdata, SalaryPayroll.class);
+        Map<String, String> map = JsonUtil.parseProperties(formdata);
+        if (payroll.getWatchType() == 2 || payroll.getWatchType() == 3) {
+            payroll.setTypeValue(map.get("hidenTypeValue"));
+        }
+        QxUser qxUser = get(QxUser.class,
+                Restrictions.eq("username", payroll.getUserName()),
+                Restrictions.eq("isDelete", 0));
+        if (qxUser == null) return "该账号"+payroll.getUserName()+"不存在";
+        if (StringUtils.isBlank(payroll.getId())) {
+            // 查看是否该账号是否已经存在
+            SalaryPayroll payrollNew = get(SalaryPayroll.class,
+                    Restrictions.eq("userName", payroll.getUserName()),
+                    Restrictions.eq("isDelete", 0));
+            if (payrollNew != null) return "该账号"+payroll.getUserName()+"已经存在";
+            payroll.setIsDelete(0);
+            String id = save(payroll);
+            if (StringUtils.isBlank(id)) return "保存失败";
+        } else {
+            // 查看是否该账号是否已经存在
+            SalaryPayroll pay = get(SalaryPayroll.class,
+                    Restrictions.ne("id", payroll.getId()),
+                    Restrictions.eq("userName", payroll.getUserName()),
+                    Restrictions.eq("isDelete", 0));
+            if (pay != null) return "该账号"+payroll.getUserName()+"已经存在";
+            SalaryPayroll payrollNew = get(SalaryPayroll.class,
+                    Restrictions.eq("id", payroll.getId()),
+                    Restrictions.eq("isDelete", 0));
+            if (payrollNew == null) return "该账号"+payroll.getUserName()+"不存在";
+            payrollNew.copyFrom(payroll);
+            update(payrollNew);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idsArr = ids.split(",");
+        List<SalaryPayroll> list = new ArrayList<SalaryPayroll>();
+        for (int i = 0; i < idsArr.length; i++) {
+            SalaryPayroll payroll = get(SalaryPayroll.class,
+                    Restrictions.eq("id", idsArr[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (null != payroll) {
+                payroll.setIsDelete(1);
+                list.add(payroll);
+            }
+        }
+        saveBatch(list);
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getPayRollsData(String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                                     ");
+        sql.append("       TMPDATA.ID,MIN(TMPDATA.USER_NAME) USER_NAME, MIN(TMPDATA.WATCH_TYPE) WATCH_TYPE,       ");
+        sql.append("       LISTAGG(TMPDATA.TYPE_VALUE, ',') WITHIN GROUP (ORDER BY PD.START_DATE ASC) TYPE_VALUE, ");
+        sql.append("       CASE WHEN MIN(TMPDATA.WATCH_TYPE) = 1 THEN MIN(TMPDATA.TYPE_VALUE)                  ");
+        sql.append("       WHEN NVL(MIN(PD.NAME), -1) != -1 THEN LISTAGG(PD.NAME, ',') WITHIN GROUP (ORDER BY PD.START_DATE ASC)                  ");
+        sql.append("       ELSE LISTAGG(P.YEAR, ',') WITHIN GROUP (ORDER BY P.YEAR ASC) END VALUE_NAME,                    ");
+        sql.append("       MIN(TMPDATA.FZX) companyName,MIN(TMPDATA.NAME) NAME, MIN(TMPDATA.STAFFNAME) STAFFNAME  ");
+        sql.append("   FROM (                                                                                     ");
+        sql.append("     SELECT SP.ID,                                                                            ");
+        sql.append("       SP.USER_NAME,SP.WATCH_TYPE,                                                            ");
+        sql.append("       REGEXP_SUBSTR(SP.TYPE_VALUE,'[^,]+',1,LEVEL) TYPE_VALUE,                               ");
+        sql.append("       SP.CREATEDATE, SP.IS_DELETE,B.FZX, QD.NAME,JBI.NAME staffName                          ");
+        sql.append("     FROM XC_SALARY_PAYROLL SP                                                                ");
+        sql.append("     LEFT JOIN JC_BASIC_INFORMATION JBI                                                       ");
+        sql.append("     ON SP.USER_NAME = JBI.JOB_NUMBER                                                         ");
+        sql.append("     LEFT JOIN XC_SALARY_RECORD SR                                                            ");
+        sql.append("     ON SR.STAFF_ID = JBI.ID                                                                  ");
+        sql.append("     LEFT JOIN BRANCH B                                                                       ");
+        sql.append("     ON B.ID = SR.FILM_NAME                                                                   ");
+        sql.append("     LEFT JOIN QX_DEPARTMENT QD                                                               ");
+        sql.append("     ON QD.ID           = SR.DEPTNAME                                                         ");
+        sql.append("     WHERE SP.IS_DELETE = 0                                                                   ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        StringBuilder searchSql = new StringBuilder();
+        String depSql = "";
+        if (null != mapData) {
+            // 账号
+            if (!StringUtils.isBlank(mapData.get("userName"))) {
+                searchSql.append("   AND TMPDATA.USER_NAME LIKE '%"+mapData.get("userName").trim()+"%' ");
+            }
+            // 姓名
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                searchSql.append("   AND TMPDATA.STAFFNAME LIKE '%"+mapData.get("name").trim()+"%' ");
+            }
+            // 部门
+//            if (!StringUtils.isBlank(mapData.get("depId"))) {
+                String[] depIds = mapData.get("depId").split(",");
+                depSql = "   AND SR.DEPTNAME IN ('"+StringUtils.join(depIds, "','")+"') ";
+//            }
+        }
+
+        sql.append(depSql);
+        sql.append("     CONNECT BY REGEXP_SUBSTR(SP.TYPE_VALUE,'[^,]+',1,LEVEL) IS NOT NULL                      ");
+        sql.append("   ) TMPDATA                                                                                  ");
+        sql.append("   LEFT JOIN XC_PERIODDATA  PD                                                                ");
+        sql.append("   ON TMPDATA.TYPE_VALUE = PD.ID                                                              ");
+        sql.append("   LEFT JOIN XC_PERIOD P                                                                ");
+        sql.append("   ON TMPDATA.TYPE_VALUE = P.ID                                                           ");
+        sql.append("   WHERE TMPDATA.IS_DELETE = 0                                                                ");
+        sql.append(searchSql);
+        sql.append("   GROUP BY TMPDATA.ID                                                                        ");
+        sql.append("   ORDER BY MIN(TMPDATA.CREATEDATE) DESC                                                      ");
+
+        pager = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String,Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("userName", obj[1]);
+            map.put("watchType", obj[2]);
+            map.put("typeValue", obj[3]);
+            map.put("typeValueName", obj[4]);
+            map.put("companyName", obj[5]);
+            map.put("deptName", obj[6]);
+            map.put("staffName", obj[7]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryPayRollData(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT TMPDATA.ID,                                                                        ");
+        sql.append("     MIN(TMPDATA.USER_NAME) USER_NAME,MIN(TMPDATA.WATCH_TYPE) WATCH_TYPE,                      ");
+        sql.append("     LISTAGG(TMPDATA.TYPE_VALUE, ',') WITHIN GROUP (ORDER BY PD.START_DATE ASC) TYPE_VALUE,  ");
+        sql.append("     CASE WHEN MIN(TMPDATA.WATCH_TYPE) = 1 THEN MIN(TMPDATA.TYPE_VALUE)                    ");
+        sql.append("     WHEN NVL(MIN(PD.NAME), -1) != -1 THEN LISTAGG(PD.NAME, ',') WITHIN GROUP (ORDER BY PD.START_DATE ASC)                    ");
+        sql.append("     ELSE LISTAGG(P.YEAR, ',') WITHIN GROUP (ORDER BY P.YEAR ASC) END VALUE_NAME                    ");
+        sql.append("   FROM                                                                                      ");
+        sql.append("     (SELECT SP.ID,                                                                          ");
+        sql.append("       SP.USER_NAME,                                                                         ");
+        sql.append("       SP.WATCH_TYPE,                                                                         ");
+        sql.append("       REGEXP_SUBSTR(SP.TYPE_VALUE,'[^,]+',1,LEVEL) TYPE_VALUE,                              ");
+        sql.append("       SP.CREATEDATE,                                                                        ");
+        sql.append("       SP.IS_DELETE                                                                          ");
+        sql.append("     FROM XC_SALARY_PAYROLL SP                                                               ");
+        sql.append("     WHERE SP.IS_DELETE = 0                                                                  ");
+        sql.append("     AND SP.ID = '"+id+"'                                                                    ");
+        sql.append("     CONNECT BY REGEXP_SUBSTR(SP.TYPE_VALUE,'[^,]+',1,LEVEL) IS NOT NULL                     ");
+        sql.append("     ) TMPDATA                                                                               ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PD                                                                ");
+        sql.append("   ON TMPDATA.TYPE_VALUE   = PD.ID                                                           ");
+        sql.append("   LEFT JOIN XC_PERIOD P                                                                ");
+        sql.append("   ON TMPDATA.TYPE_VALUE = P.ID                                                           ");
+        sql.append("   WHERE TMPDATA.IS_DELETE = 0                                                               ");
+        sql.append("   GROUP BY TMPDATA.ID                                                                       ");
+        sql.append("   ORDER BY MIN(TMPDATA.CREATEDATE) DESC                                                     ");
+
+        List<?> list = findBySql(sql.toString());
+        Map<String, Object> map = new HashMap<String, Object>();
+        if (list.size() > 0) {
+            Object[] obj = (Object[]) list.get(0);
+            map.put("id", obj[0]);
+            map.put("userName", obj[1]);
+            map.put("watchType", obj[2]);
+            map.put("typeValue", obj[3]);
+            map.put("typeValueName", obj[4]);
+        }
+
+        return map;
+    }
+
+}

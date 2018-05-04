@@ -1,0 +1,251 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * Punish entity. 
+ * @author MyEclipse Persistence Tools
+ * 员工处罚
+ */
+@Entity
+@Table(name = "JC_PUNISH")
+public class Punish extends BaseEntity implements java.io.Serializable {
+
+	// Fields
+	private static final long serialVersionUID = 1L;
+	
+	private String jobNumber;
+	private String punishName;//惩处名称
+	private Date punishdate;//惩处日期
+	private String approveNum;//惩处文号
+	private String approveOffice;//批准单位
+	private Integer punishClass;//惩处种类
+	private Integer punishType;//惩罚方式
+	private Integer punishLevel;//惩处级别
+	private String punishCause;//惩处原因
+	private String punishStep;//惩处措施
+	private String punishAmount;//惩罚金额
+	private Date begindate;//
+	private Date enddate;//
+	private Integer isRecall;//是否撤销
+	private String recallOffice;//撤销单位
+	private String recallNum;//撤销文号
+	private Date recalldate;//撤销时间
+	private String fileNum;//
+	private String fileName;//
+	private String url;//
+	private String remark;//
+	private Integer isPractice;//是否是实习生 1是，0或者空不是
+
+	// Property accessors
+	@Column(name = "JOB_NUMBER", length = 32)
+	public String getJobNumber() {
+		return this.jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	@Column(name = "PUNISH_NAME", length = 50)
+	public String getPunishName() {
+		return this.punishName;
+	}
+
+	public void setPunishName(String punishName) {
+		this.punishName = punishName;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "PUNISHDATE", length = 7)
+	public Date getPunishdate() {
+		return this.punishdate;
+	}
+
+	public void setPunishdate(Date punishdate) {
+		this.punishdate = punishdate;
+	}
+
+	@Column(name = "APPROVE_NUM", length = 32)
+	public String getApproveNum() {
+		return this.approveNum;
+	}
+
+	public void setApproveNum(String approveNum) {
+		this.approveNum = approveNum;
+	}
+
+	@Column(name = "APPROVE_OFFICE", length = 50)
+	public String getApproveOffice() {
+		return this.approveOffice;
+	}
+
+	public void setApproveOffice(String approveOffice) {
+		this.approveOffice = approveOffice;
+	}
+
+	@Column(name = "PUNISH_CLASS", precision = 1, scale = 0)
+	public Integer getPunishClass() {
+		return this.punishClass;
+	}
+
+	public void setPunishClass(Integer punishClass) {
+		this.punishClass = punishClass;
+	}
+
+	@Column(name = "PUNISH_TYPE", precision = 1, scale = 0)
+	public Integer getPunishType() {
+		return this.punishType;
+	}
+
+	public void setPunishType(Integer punishType) {
+		this.punishType = punishType;
+	}
+
+	@Column(name = "PUNISH_LEVEL", precision = 1, scale = 0)
+	public Integer getPunishLevel() {
+		return this.punishLevel;
+	}
+
+	public void setPunishLevel(Integer punishLevel) {
+		this.punishLevel = punishLevel;
+	}
+
+	@Column(name = "PUNISH_CAUSE", length = 100)
+	public String getPunishCause() {
+		return this.punishCause;
+	}
+
+	public void setPunishCause(String punishCause) {
+		this.punishCause = punishCause;
+	}
+
+	@Column(name = "PUNISH_STEP", length = 50)
+	public String getPunishStep() {
+		return this.punishStep;
+	}
+
+	public void setPunishStep(String punishStep) {
+		this.punishStep = punishStep;
+	}
+
+	@Column(name = "PUNISH_AMOUNT", length = 40)
+	public String getPunishAmount() {
+		return this.punishAmount;
+	}
+
+	public void setPunishAmount(String punishAmount) {
+		this.punishAmount = punishAmount;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "BEGINDATE", length = 7)
+	public Date getBegindate() {
+		return this.begindate;
+	}
+
+	public void setBegindate(Date begindate) {
+		this.begindate = begindate;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "ENDDATE", length = 7)
+	public Date getEnddate() {
+		return this.enddate;
+	}
+
+	public void setEnddate(Date enddate) {
+		this.enddate = enddate;
+	}
+
+	@Column(name = "IS_RECALL", precision = 1, scale = 0)
+	public Integer getIsRecall() {
+		return this.isRecall;
+	}
+
+	public void setIsRecall(Integer isRecall) {
+		this.isRecall = isRecall;
+	}
+
+	@Column(name = "RECALL_OFFICE", length = 50)
+	public String getRecallOffice() {
+		return this.recallOffice;
+	}
+
+	public void setRecallOffice(String recallOffice) {
+		this.recallOffice = recallOffice;
+	}
+
+	@Column(name = "RECALL_NUM", length = 50)
+	public String getRecallNum() {
+		return this.recallNum;
+	}
+
+	public void setRecallNum(String recallNum) {
+		this.recallNum = recallNum;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "RECALLDATE", length = 7)
+	public Date getRecalldate() {
+		return this.recalldate;
+	}
+
+	public void setRecalldate(Date recalldate) {
+		this.recalldate = recalldate;
+	}
+
+	@Column(name = "FILE_NUM", length = 32)
+	public String getFileNum() {
+		return this.fileNum;
+	}
+
+	public void setFileNum(String fileNum) {
+		this.fileNum = fileNum;
+	}
+
+	@Column(name = "FILE_NAME", length = 50)
+	public String getFileName() {
+		return this.fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+	@Column(name = "URL", length = 50)
+	public String getUrl() {
+		return this.url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	@Column(name = "REMARK", length = 50)
+	public String getRemark() {
+		return this.remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	
+	@Column(name = "IS_PRACTICE")
+	public Integer getIsPractice() {
+		return isPractice;
+	}
+
+	public void setIsPractice(Integer isPractice) {
+		this.isPractice = isPractice;
+	}
+
+}

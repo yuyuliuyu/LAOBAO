@@ -1,0 +1,28 @@
+package com.lingnet.hcm.service.impl.personnel;
+
+import java.util.HashMap;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.personnel.ChangeDao;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.service.personnel.ChangeService;
+import com.lingnet.util.Pager;
+
+/**
+ * 出国service实现类
+ */
+@Service("changeService")
+public class ChangeServiceImpl extends BaseServiceImpl<Change, String> implements ChangeService{
+	
+	@Resource(name = "changeDao")
+	private ChangeDao changeDao;
+	
+	@Override
+	public HashMap getListData(Pager pager, String searchData) {
+		return changeDao.getListData(pager,searchData);
+	}
+}

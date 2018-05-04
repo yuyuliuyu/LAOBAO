@@ -1,0 +1,107 @@
+package com.lingnet.hcm.action.personnel;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.entity.person.Education;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.empdata.EducationService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 员工公司内部流动，以及上岗，待岗长病假，内退等岗位操作action
+ * @ClassName: BranchAction 
+ * @Description: TODO 
+ * @author lsp
+ * @date 2016-8-3 下午1:50:42 
+ *
+ */
+@Controller
+public class ChangeAction extends BaseAction{
+    
+	private static final long serialVersionUID = 5453221435881869026L;
+
+	@Resource(name="personnelService")
+    private PersonnelService personnelService;
+	
+    private BasicInformation information;
+    private String formdata;//添加数据的JSON串
+    private String flag;//标志位
+    private String departId;//部门ID
+    private String departName;//部门
+    private String filmId;//单位ID
+    private String filmName;
+    private String jobNumber;//
+
+    //所有人员list页面
+    public String list(){
+        return "list";
+    }
+    
+    public String add(){
+        return "add";
+    }
+    
+    
+//////////////////////////////////////////////////////////////////////////
+
+    public String getFormdata() {
+        return formdata;
+    }
+    public void setFormdata(String formdata) {
+        this.formdata = formdata;
+    }
+
+	public String getFlag() {
+		return flag;
+	}
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public BasicInformation getInformation() {
+		return information;
+	}
+	public void setInformation(BasicInformation information) {
+		this.information = information;
+	}
+	public String getDepartId() {
+		return departId;
+	}
+	public void setDepartId(String departId) {
+		this.departId = departId;
+	}
+	public String getJobNumber() {
+		return jobNumber;
+	}
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+	public String getDepartName() {
+		return departName;
+	}
+	public String getFilmId() {
+		return filmId;
+	}
+	public void setFilmId(String filmId) {
+		this.filmId = filmId;
+	}
+	public void setDepartName(String departName) {
+		this.departName = departName;
+	}
+	public String getFilmName() {
+		return filmName;
+	}
+	public void setFilmName(String filmName) {
+		this.filmName = filmName;
+	}
+
+
+  
+}

@@ -1,0 +1,103 @@
+package com.lingnet.hcm.dao.impl.personnel;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.empdata.RelationDao;
+import com.lingnet.hcm.dao.personnel.StayOutDao;
+import com.lingnet.hcm.entity.person.Relation;
+import com.lingnet.hcm.entity.person.StayOut;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 驻外Dao实现类
+ */
+@Repository("stayOutDao")
+public class StayOutDaoImpl extends BaseDaoImpl<StayOut, String> implements StayOutDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData,String depIds) {
+		StringBuilder sql=new StringBuilder()
+		.append("  SELECT BAS.JOB_NUMBER,BAS.NAME PERNAME,BAS.FILM_NAME,BAS.DEPART_NAME,BAS.POST,BAS.SPECIFIC_POST,    ")
+		.append("  JSO.ID,JSO.THE_FIRM,JSO.THE_DEP,JSO.THE_SPAPOST,JSO.THE_POST,JSO.THE_DUTY,JSO.WORK_CONTENT, ")
+		.append("  TO_CHAR(JSO.BEGINDATE,'YYYY-MM-DD'),TO_CHAR(JSO.PLANENDDATE,'YYYY-MM-DD'),TO_CHAR(JSO.ENDDATE,'YYYY-MM-DD'),  ")
+		.append("  JSO.STATUS,JSO.REMARK,JSO.OUT_TYPE ")
+		.append("  FROM JC_STAY_OUT JSO   ")
+		.append("  LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.JOB_NUMBER=JSO.JOB_NUMBER      ")
+		.append("  WHERE 1=1   ")
+		;
+		if(searchData!=null&&!"".equals(searchData)){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and BAS.DEPART_ID in("+resql+")");
+				
+			} else {
+				sql.append(" AND BAS.DEPART_ID IN("+ depIds+") ");
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and BAS.JOB_NUMBER LIKE'%"+dataMap.get("jobNumber")+"%'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and BAS.NAME like '%"+dataMap.get("name")+"%'");
+			}
+			
+		}else {
+			sql.append(" AND BAS.DEPART_ID IN("+ depIds+") ");
+		}
+		sql.append("   ORDER BY JSO.BEGINDATE DESC  ");
+		pager=this.findPagerBySql(pager, sql.toString());
+		
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        SimpleDateFormat form =new SimpleDateFormat("yyyy-MM-dd");
+        String stamp = "";
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("id", obj[6]);
+			map.put("theFirm", obj[7]);
+			map.put("theDep", obj[8]);
+			map.put("theSpapost", obj[9]);
+			map.put("thePost", obj[10]);
+			map.put("theDuty", obj[11]);
+			map.put("workContent", obj[12]);
+			map.put("begindate", obj[13]);
+			map.put("planenddate", obj[14]);
+			map.put("enddate", obj[15]);
+			map.put("status", obj[16]);
+			map.put("remark", obj[17]);
+			map.put("outType", obj[18]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

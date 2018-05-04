@@ -1,0 +1,276 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.salary.Period;
+import com.lingnet.hcm.entity.salary.Perioddata;
+import com.lingnet.hcm.service.salary.PeriodDataService;
+import com.lingnet.hcm.service.salary.PeriodService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬期间主表
+ * @ClassName: SalaryManageService 
+ * @Description: 薪酬期间主表 
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+@Service("periodService")
+public class PeriodServiceImpl extends BaseServiceImpl<Period, String>
+              implements PeriodService {
+
+    @Resource(name="periodDataService")
+    private PeriodDataService periodDataService;
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata, String gridData) throws Exception {
+        Period period = JsonUtil.toObject(formdata, Period.class);
+        if (period != null) {
+            String id = period.getId();
+            if (StringUtils.isBlank(id)) {
+                period.setIsDelete(0);
+                id = this.save(period);
+                if (StringUtils.isBlank(id))
+                    throw new Exception("保存失败");
+            } else {
+                Period periodNew  = get(Period.class, Restrictions.eq("id", period.getId()), Restrictions.eq("isDelete", 0));
+                if (periodNew == null) {
+                    throw new Exception("该薪酬区间不存在，已经被删除");
+                }
+                periodNew.copyFrom(period);
+                this.update(periodNew);
+                id = period.getId();
+            }
+            List<Map<String, String>> list = JsonUtil.getMapList(gridData);
+            List<Perioddata> perioddatas = new ArrayList<Perioddata>();
+            for (int i =0, l = list.size(); i < l; i++) {
+                Map<String, String> m = list.get(i);
+                Perioddata bean = JsonUtil.toObject(JsonUtil.Encode(m), Perioddata.class);
+                bean.setPeriodId(id);
+                if ("removed".equals(m.get("_state"))) {
+                    Perioddata perioddata = get(Perioddata.class, Restrictions.eq("periodId", id), Restrictions.eq("id", m.get("id")));
+                    if (perioddata != null) {
+                        periodDataService.delete(perioddata);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    Perioddata perioddata = get(Perioddata.class, Restrictions.eq("periodId", id), Restrictions.eq("id", m.get("id")));
+                    if (perioddata != null) {
+                        perioddata.copyFrom(bean);
+                        Map<String, String> reInfo = compareDate(perioddatas, perioddata);
+                        if (reInfo.get("success").equals("false")) {
+                            throw new Exception(reInfo.get("info"));
+                        }
+                        periodDataService.update(perioddata);
+                    } else throw new Exception("发生异常");
+                    perioddatas.add(perioddata);
+                } else if ("added".equals(m.get("_state"))) {
+                    Map<String, String> reInfo = compareDate(perioddatas, bean);
+                    if (reInfo.get("success").equals("false")) {
+                        throw new Exception(reInfo.get("info"));
+                    }
+                    if (StringUtils.isBlank(periodDataService.save(bean))) {
+                        throw new Exception("保存失败");
+                    }
+                    perioddatas.add(bean);
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public Map getSalaryPeriodListData(String depId, String searchData, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+        if (!StringUtils.isBlank(searchData)) {
+            Map<String, String> map = JsonUtil.parseProperties(searchData);
+            if (map != null) {
+                // 年度
+                if (!StringUtils.isBlank(map.get("year"))) {
+                    and.add(Restrictions.eq("year", Integer.valueOf(map.get("year"))));
+                }
+                // 发薪频率
+                if (!StringUtils.isBlank(map.get("payPerid"))) {
+                    and.add(Restrictions.eq("payPerid", Integer.valueOf(map.get("payPerid"))));
+                }
+            }
+        }
+        if (StringUtils.isBlank(depId)) {
+            pager = findPagerByOrder(Period.class, pager, Order.desc("year"), Restrictions.eq("isDelete", 0), and);
+        } else {
+            pager = findPagerByOrder(Period.class, pager, Order.desc("year"), Restrictions.eq("depId", depId), Restrictions.eq("isDelete", 0), and);
+        }
+        HashMap<String, Object> data = new HashMap<String, Object>();
+        data.put("data", pager.getResult());
+        data.put("total", pager.getTotalCount());
+
+        return data;
+    }
+
+    @Override
+    public List<Map<String, String>> getSalaryPeriodListDatas(String depId) {
+        List<Period> list = getList(Period.class, Restrictions.eq("isDelete", 0));
+        List<Map<String, String>> dataList = new ArrayList<Map<String,String>>();
+        for (Period period : list) {
+            Map<String, String> map = new HashMap<String, String>();
+            map.put("id", period.getId());
+            Branch branch = get(Branch.class, Restrictions.eq("id", period.getDepId()));
+            map.put("displayName", (branch == null? "" : branch.getFzx()) + "_" + period.getYear());
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Perioddata> periodDataService(String id) {
+        List<Perioddata> perioddatas = getOrderList(Perioddata.class, Order.asc("startDate"), Restrictions.eq("periodId", id));
+
+        return perioddatas;
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String remove(String ids, String depId) throws Exception {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            Period period = get(Period.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (period != null) {
+                period.setIsDelete(1);
+                update(period);
+            } else {
+                throw new Exception("选择的第"+(i+1)+"个薪酬区间不存在，已经被删除");
+            }
+        }
+
+        return "success";
+    }
+
+    /**
+     * @Title: 每组薪酬期间比较 
+     * @param list
+     * @param perioddata
+     * @return 
+     * Map<String,String> 
+     * @author zhanghj
+     * @since 2017年3月23日 V 1.0
+     */
+    private Map<String, String> compareDate(List<Perioddata> list, Perioddata perioddata) {
+        Map<String, String> map = new HashMap<String, String>();
+        for (Perioddata per : list) {
+            if ((perioddata.getStartDate().getTime() >= per.getStartDate().getTime()
+                    && perioddata.getStartDate().getTime() <= per.getEndDate().getTime())
+                    || (perioddata.getEndDate().getTime() >= per.getStartDate().getTime()
+                            && perioddata.getEndDate().getTime() <= per.getEndDate().getTime())
+                || (per.getStartDate().getTime() >= perioddata.getStartDate().getTime()
+                        && per.getStartDate().getTime() <= perioddata.getEndDate().getTime())
+                        || (per.getEndDate().getTime() >= perioddata.getStartDate().getTime()
+                                && per.getEndDate().getTime() <= perioddata.getEndDate().getTime())) {
+                map.put("success", "false");
+                map.put("info", perioddata.getName() + " 与 " + per.getName() + " 的薪酬期间存在重叠");
+
+                return map;
+            }
+        }
+        map.put("success", "true");
+        map.put("info", "true");
+        
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getCurComAllPeriod(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                 ");
+        sql.append("     P.ID,PD.ID PDID,PD.NAME,PD.START_DATE, PD.END_DATE,P.YEAR,B.FZX   ");
+        sql.append("   FROM XC_PERIOD P                                       ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PD                             ");
+        sql.append("   ON P.ID = PD.PERIOD_ID                                 ");
+        sql.append("   LEFT JOIN BRANCH B                                 ");
+        sql.append("   ON P.DEP_ID = B.ID                                 ");
+        sql.append("   WHERE P.IS_DELETE = 0                                  ");
+        sql.append("   AND P.DEP_ID = '"+id+"'                                ");
+        sql.append("   ORDER BY P.YEAR DESC,PD.START_DATE ASC                 ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("peridId", obj[1]);
+            map.put("name", obj[2]);
+            map.put("startDate", obj[3]);
+            map.put("endDate", obj[4]);
+            map.put("year", obj[5]);
+            map.put("companyName", obj[6]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSpeialMonthPeriod(String year, String depId, int count, String typeValue, int type) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                 ");
+        sql.append("     PD.ID,PD.NAME,PD.START_DATE, PD.END_DATE   ");
+        sql.append("   FROM XC_PERIOD P                                       ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PD                             ");
+        sql.append("   ON P.ID = PD.PERIOD_ID                                 ");
+        sql.append("   WHERE P.IS_DELETE = 0                                  ");
+
+        switch (type) {
+        case 1:// 连续薪酬期间个数
+            sql.append("   AND P.DEP_ID = '"+depId+"'                                ");
+            sql.append("   AND P.YEAR = "+year+"                                ");
+            sql.append("   AND ROWNUM <= "+count+"                               ");
+            break;
+        case 2:// 可查看年份
+            String[] years = year.split(",");
+            sql.append("   AND P.ID IN ('"+StringUtils.join(years, "','")+"') ");
+            break;
+        case 3:// 可查看哪几个薪酬期间
+            String[] perids = typeValue.split(",");
+            sql.append("   AND PD.ID IN ('"+StringUtils.join(perids, "','")+"') ");
+            break;
+        default:
+            break;
+        }
+        sql.append("   ORDER BY PD.START_DATE ASC                 ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("startDate", obj[2]);
+            map.put("endDate", obj[3]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+}

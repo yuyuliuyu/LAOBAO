@@ -1,0 +1,329 @@
+package com.lingnet.hcm.action.personnel;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.contract.ContractManager;
+import com.lingnet.hcm.entity.person.BackWork;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.entity.person.EmpDimission;
+import com.lingnet.hcm.entity.person.EmpRetire;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.hcm.service.personnel.PtJobService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 
+ * @ClassName: DepartureAction 
+ * @Description: Action 离职/退休管理
+ * @author zrl
+ * @date 2017年3月10日 上午10:56:46 
+ *
+ */
+@Controller
+public class DepartureAction extends BaseAction{
+
+    private static final long serialVersionUID = -4533377460351784579L;
+    
+    @Resource(name="personnelService")
+    private PersonnelService personnelService;
+    
+    @Resource(name="ptJobService")
+    private PtJobService ptJobService;
+    
+    private String formdata;//添加数据的JSON串
+    private String flag;//标志位
+    private BasicInformation information;//基本表
+    private ContractManager contract;
+    private EmpDimission dimi;//离职表
+    private EmpRetire retire;//退休
+    private BackWork backwork;//返聘
+    private String type;//员工类型标志位
+    private String jobNumber;//
+    private String personId;//
+    
+    /**
+     * 试岗期离职处理页面
+     */
+    public String addLz(){
+		information=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", personId));
+		return "addlz";
+		
+    }
+    //离职保存数据
+    public String lizhiUpdate() {
+    	if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	dimi=JsonUtil.toObject(formdata, EmpDimission.class);
+        }
+    	BasicInformation oldInfo=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("jobNumber", dimi.getJobNumber()));
+    	if (oldInfo == null) {
+    		return ajax(Status.success,"该条记录不存在!");
+        }
+        try {
+	        //离职表
+        	dimi.setPersonId(oldInfo.getId());
+	        this.save(dimi);
+	        contract =this.getBeanByCriteria(ContractManager.class,Restrictions.eq("userid", oldInfo.getId()));
+	        if(contract==null){
+	        	return ajax(Status.success,"合同不存在！");
+	        }
+	        contract.setContractstate("2");
+	        this.update(contract);
+	        //异动表中插入数据
+	        Change change=new Change();
+	        change.setChangeType(5);
+	        change.setPersonId(oldInfo.getId());
+	        change.setFilm(oldInfo.getFilmName());
+	        change.setDep(oldInfo.getDepartName());
+	        change.setSpanPost(oldInfo.getPost());
+	        change.setSpPost(oldInfo.getSpecificPost());
+	        change.setEmpType(oldInfo.getEmpType());
+	        change.setOnJob(oldInfo.getOnJob());
+	        change.setOnPost(oldInfo.getOnPost());
+	        change.setJobLevel(oldInfo.getJobLevel());
+	        change.setOnJob2(3);
+	        change.setChangedate(dimi.getLeaveDate());//异动时间
+	        this.save(change);
+	        
+	        //职业履历中，上衣职位的结束时间就是此次职位的开始时间
+    		List<Career> listcareer=this.getOrderBeanListByCriteria(Career.class,Order.desc("begindate"),Restrictions.eq("personId", oldInfo.getId()));
+    		Career career1=listcareer.get(0);
+    		career1.setEnddate(change.getChangedate());
+    		this.update(career1);
+	        //基本信息
+	        oldInfo.setJobNumber(null);
+	        oldInfo.setOnPost(null);
+	        oldInfo.setEmpType(null);
+        	oldInfo.setLzDate(dimi.getLeaveDate());
+	    	oldInfo.setOnJob(3);
+	    	oldInfo.setCheckUnitId(null);
+	        this.update(oldInfo);
+	        //兼职表删除数据
+	        PtJob ptJob= this.getBeanByCriteria(PtJob.class, Restrictions.eq("personId", oldInfo.getId()),
+				Restrictions.eq("isHostPost", 1));
+			
+	        if(ptJob!=null&&!"".equals(ptJob)){
+	        	ptJobService.delete(ptJob);
+    		}
+	        
+        } catch (Exception e) {
+            return ajax(Status.success,"操作失败！");
+        }
+        return ajax(Status.success,"success");
+    }
+    /**
+     * 退休添加页面
+     */
+    public String addTx(){
+    	information=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", personId));
+        return "addtx";
+    }
+    //退休保存数据
+    public String tuixiuUpdate() {
+    	if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	retire=JsonUtil.toObject(formdata, EmpRetire.class);
+        }
+    	BasicInformation oldInfo=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", retire.getPersonId()));
+    	if (oldInfo == null) {
+    		return ajax(Status.success,"该条记录不存在!");
+        }
+        try { 
+	    	
+	        //退休表
+	        this.save(retire);
+	        //合同
+	        contract =this.getBeanByCriteria(ContractManager.class,Restrictions.eq("userid", oldInfo.getId()));
+	        if(contract==null){
+	        	return ajax(Status.success,"合同不存在！");
+	        }
+	        contract.setContractstate("2");
+	        this.update(contract);
+	        //异动表中插入数据
+	        Change change=new Change();
+	        change.setChangeType(6);
+	        change.setPersonId(oldInfo.getId());
+	        change.setFilm(retire.getPreFirm());
+	        change.setDep(retire.getPreDep());
+	        change.setSpanPost(oldInfo.getPost());
+	        change.setSpPost(oldInfo.getSpecificPost());
+	        change.setEmpType(oldInfo.getEmpType());
+	        change.setOnJob(oldInfo.getOnJob());
+	        change.setOnPost(oldInfo.getOnPost());
+	        change.setJobLevel(oldInfo.getJobLevel());
+	        change.setChangedate(retire.getLeaveDate());//异动时间
+	        change.setOnJob2(4);
+	        this.save(change);
+	        //职业履历中，上衣职位的结束时间就是此次职位的开始时间
+    		List<Career> listcareer=this.getOrderBeanListByCriteria(Career.class,Order.desc("begindate"),Restrictions.eq("personId", oldInfo.getId()));
+    		Career career1=listcareer.get(0);
+    		career1.setEnddate(change.getChangedate());
+    		this.update(career1);
+	        oldInfo.setOnPost(null);
+	        oldInfo.setOnJob(4);
+	        oldInfo.setCheckUnitId(null);
+	        this.update(oldInfo);
+	        //兼职表删除数据
+	        PtJob ptJob= this.getBeanByCriteria(PtJob.class, Restrictions.eq("personId", oldInfo.getId()),
+				Restrictions.eq("isHostPost", 1));
+			
+	        if(ptJob!=null&&!"".equals(ptJob)){
+	        	ptJobService.delete(ptJob);
+    		}
+	        
+        } catch (Exception e) {
+            return ajax(Status.success,"操作失败！");
+        }
+        return ajax(Status.success,"success");
+    }
+    
+    //返聘页面
+    public String fanpin(){
+    	information=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", personId));
+        return "fanpin";
+    }
+    //返聘信息保存
+    public String saveOrUpdateFanpin(){
+
+    	if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	backwork=JsonUtil.toObject(formdata, BackWork.class);
+        }
+    	BasicInformation oldInfo=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", backwork.getPersonId()));
+    	if (oldInfo == null) {
+    		return ajax(Status.success,"该条记录不存在!");
+        }
+        try { 
+        	Change change=JsonUtil.toObject(formdata, Change.class);
+	        //返聘表
+	        Integer repost=backwork.getIsRepost();
+	        if(repost==1){
+	        	
+	        	backwork.setBackDep(oldInfo.getDepartId());
+	        	backwork.setBackFirm(oldInfo.getFilmId());
+	        	backwork.setBackPost(oldInfo.getPostId());
+	        	backwork.setBackSpPost(oldInfo.getSpecificPostId());
+	        	
+	        	change.setFilmName2(oldInfo.getFilmName());
+	        	change.setDepName2(oldInfo.getDepartName());
+	        	change.setSpanPostName2(oldInfo.getPost());
+	        	change.setSpPostName2(oldInfo.getSpecificPost());
+	        	change.setJobLevel2(oldInfo.getJobLevel());
+	        	
+	        }else{
+	        	oldInfo.setFilmId(backwork.getBackFirm());
+	        	oldInfo.setFilmName(change.getFilmName2());
+	        	oldInfo.setDepartId(backwork.getBackDep());
+	        	oldInfo.setDepartName(change.getDepName2());
+	        	oldInfo.setPost(change.getSpPost2());
+	        	oldInfo.setPostId(backwork.getBackPost());
+	        	oldInfo.setSpecificPostId(backwork.getBackSpPost());
+	        	oldInfo.setSpecificPost(change.getSpanPost2());
+	        	
+	        }
+	        
+	        //基本表
+	        oldInfo.setOnPost(0);
+	        oldInfo.setCheckUnitId(oldInfo.getDepartId());
+	        oldInfo.setOnJob(5);
+	        this.update(oldInfo);
+	        
+	        this.save(backwork);
+	        //异动表中插入数据
+	        change.setChangeType(13);
+	        change.setChangedate(backwork.getBeginDate());//异动时间
+	        /*change.setFilm(oldInfo.getFilmId());
+	        change.setSpanPost(oldInfo.getPostId());
+	        change.setSpPost(oldInfo.getSpecificPostId());*/
+	        change.setEmpType2(oldInfo.getEmpType());
+	        change.setOnJob2(oldInfo.getOnJob());
+	        change.setOnPost2(oldInfo.getOnPost());
+	        
+	        change.setChBeginDate(backwork.getBeginDate());
+	        change.setChEndDate(backwork.getEndDate());
+	        this.save(change);
+	        
+        } catch (Exception e) {
+            return ajax(Status.success,"操作失败！");
+        }
+        return ajax(Status.success,"success");
+    
+    }
+    
+    //*******************************************//
+	public String getFormdata() {
+		return formdata;
+	}
+	public void setFormdata(String formdata) {
+		this.formdata = formdata;
+	}
+	public String getFlag() {
+		return flag;
+	}
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public BasicInformation getInformation() {
+		return information;
+	}
+	public void setInformation(BasicInformation information) {
+		this.information = information;
+	}
+	public String getType() {
+		return type;
+	}
+	public void setType(String type) {
+		this.type = type;
+	}
+	public String getJobNumber() {
+		return jobNumber;
+	}
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+	public EmpDimission getDimi() {
+		return dimi;
+	}
+	public void setDimi(EmpDimission dimi) {
+		this.dimi = dimi;
+	}
+	public EmpRetire getRetire() {
+		return retire;
+	}
+	public void setRetire(EmpRetire retire) {
+		this.retire = retire;
+	}
+	public BackWork getBackwork() {
+		return backwork;
+	}
+	public void setBackwork(BackWork backwork) {
+		this.backwork = backwork;
+	}
+	public String getPersonId() {
+		return personId;
+	}
+	public void setPersonId(String personId) {
+		this.personId = personId;
+	}
+	public ContractManager getContract() {
+		return contract;
+	}
+	public void setContract(ContractManager contract) {
+		this.contract = contract;
+	}
+    
+
+}

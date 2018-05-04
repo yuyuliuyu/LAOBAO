@@ -1,0 +1,107 @@
+package com.lingnet.hcm.service.check;
+
+import java.util.Map;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.entity.check.CkMonthStatistics;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: MonthStatisticsService 
+ * @Description: 月度考勤统计service 
+ * @author wangqiang
+ * @date 2017年5月15日 下午1:53:27 
+ *
+ */
+public interface MonthStatisticsService extends BaseService<CkMonthStatistics, String>{
+
+	/**
+	 * 保存月度考勤统计信息
+	 * @Title: saveMonthStatistics 
+	 * @param ckInfo 
+	 * @author wangqiang
+	 * @since 2017年5月15日 V 1.0
+	 */
+	public void saveMonthStatistics(CkInfoCommit ckInfo);
+	
+	/**
+	 * 根据条件获得员工月度考勤统计信息
+	 * @Title: getStatisticsInfoData 
+	 * @param pager
+	 * @param searchData
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月16日 V 1.0
+	 */
+	public Map<String, Object> getStatisticsInfoData(Pager pager, String searchData);
+	
+	/**
+	 * 修改员工考勤统计信息
+	 * @Title: updateStatisInfos 
+	 * @param formdata
+	 * @throws Exception 
+	 * @author wangqiang
+	 * @since 2017年5月16日 V 1.0
+	 */
+	public void updateStatisInfos(String formdata) throws Exception;
+	
+	/**
+	 * 根据条件导出员工月度考勤统计信息
+	 * @Title: exportStatisticsInfo 
+	 * @param yearMonth
+	 * @param jobNumber
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月16日 V 1.0
+	 */
+	public HSSFWorkbook exportStatisticsInfo(String yearMonth, String jobNumber, String depIds);
+	
+	/**
+	 * 根据条件获取月度考勤表信息
+	 * @Title: getReportDataByCond 
+	 * @param pager
+	 * @param searchData
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月19日 V 1.0
+	 */
+	public Map<String, Object> getReportDataByCond(Pager pager, String searchData);
+	
+	/**
+	 * 
+	 * @Title: exportMonthCheckInfo 
+	 * @param yearMonth
+	 * @param jobNumber
+	 * @param depIds
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月19日 V 1.0
+	 */
+	public HSSFWorkbook exportMonthCheckInfo(String yearMonth, String jobNumber, String depIds);
+	
+	/**
+	 * 获得缺勤全月统计报表信息
+	 * @Title: getAbsenceReportByCond 
+	 * @param pager
+	 * @param searchData
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月20日 V 1.0
+	 */
+	public Map<String, Object> getAbsenceReportByCond(Pager pager, String searchData);
+    /**
+     * 根据条件导出 缺勤全月考勤信息
+     * @Title: exportStatisticsInfo 
+     * @param yearMonth
+     * @param jobNumber
+     * @param depIds
+     * @return 
+     * @author wangqiang
+     * @since 2017年5月16日 V 1.0
+     */
+    public HSSFWorkbook exportAbsenceCheckInfo(String yearMonth, String jobNumber, String depIds);
+}

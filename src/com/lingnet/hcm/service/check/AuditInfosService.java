@@ -1,0 +1,67 @@
+package com.lingnet.hcm.service.check;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+/**
+ * 
+ * @ClassName: AuditInfosService 
+ * @Description: 员工考勤审核记录Service 
+ * @author wangqiang
+ * @date 2017年4月19日 上午11:27:15 
+ *
+ */
+public interface AuditInfosService extends BaseService<CkInfoCommit, String>{
+	
+	/**
+	 * 保存上报记录信息
+	 * @Title: saveReportInfos  
+	 * @author wangqiang
+	 * @since 2017年4月19日 V 1.0
+	 */
+	public Map<String, String> saveReportInfos(String yearMonth, String commitId) throws Exception;
+	
+	/**
+	 * 根据年月份获取员工审核状态
+	 * @Title: getAuditStatusByYearMonth 
+	 * @param yearMonth
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月19日 V 1.0
+	 */
+	public Map<String, String> getAuditStatusByYearMonth(String yearMonth);
+	
+	/**
+	 * 根据条件查询员工上报信息
+	 * @Title: getDataByCond 
+	 * @param pager
+	 * @param searchData
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月19日 V 1.0
+	 */
+	public List<Map<String, String>> getDataByCond(String searchData) ;
+	
+	/**
+	 * 根据条件查询审核状态
+	 * @Title: getAuditStatusByCond 
+	 * @param depId
+	 * @param yearMonth
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月21日 V 1.0
+	 */
+	public Map<String, String> getAuditStatusByCond(String depId, String yearMonth);
+	
+	/**
+	 * 根据年月份查询上报信息
+	 * @Title: getInfoByYearMonth 
+	 * @param yearMonth
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月21日 V 1.0
+	 */
+	public CkInfoCommit getInfoByYearMonth(String yearMonth);
+}

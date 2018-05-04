@@ -1,0 +1,191 @@
+package com.lingnet.hcm.action.salary;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.SalaryGroup;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.hcm.entity.salary.SalaryPart;
+import com.lingnet.hcm.service.salary.SalaryGroupService;
+import com.lingnet.hcm.service.salary.SalaryGroupWageService;
+import com.lingnet.hcm.service.salary.SalaryPartService;
+import com.lingnet.hcm.service.salary.SalaryWageService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+
+/**
+ * 工资条
+ * @ClassName: SalaryWagesAction 
+ * @Description: 工资条
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryWagesAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private String groupName;// 薪资组名称
+    private String wageName;// 工资套名称
+    private SalaryPart salaryPart;
+    private String companyId;// 公司ID
+    private String groupWageAndTypeId;// 薪资组工资套与薪资项目关联表ID
+
+    @Resource(name="salaryGroupService")
+    private SalaryGroupService salaryGroupService;
+    @Resource(name="salaryWageService")
+    private SalaryWageService salaryWageService;
+    @Resource(name="salaryGroupWageService")
+    private SalaryGroupWageService salaryGroupWageService;
+    @Resource(name="salaryPartService")
+    private SalaryPartService salaryPartService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        SalaryGroupWage groupWage = salaryGroupWageService.get(SalaryGroupWage.class, Restrictions.eq("id", id));
+        if (groupWage != null) {
+            wageName = groupWage.getName();
+            // 薪资组
+            SalaryGroup salaryGroup = salaryGroupService.get(SalaryGroup.class,
+                    Restrictions.eq("id", groupWage.getSalaryGroupId()),
+                    Restrictions.eq("isDelete", 0));
+            if (salaryGroup != null) groupName = salaryGroup.getName();
+        }
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        // 获取选中公司以及上级公司
+        depId = salaryWageService.getItemsCompanys(companyId, LingUtil.userinfo().getId());
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        salaryPart = salaryWageService.get(SalaryPart.class, Restrictions.eq("id", id));
+
+        // 获取选中公司以及上级公司
+        depId = salaryWageService.getItemsCompanys(companyId, LingUtil.userinfo().getId());
+        return "add";
+    }
+
+    /**
+     * @Title: 获取工资条
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryWageListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryPartService.getSalaryWageListData(id, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取工资条关联薪资项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月29日 V 1.0
+     */
+    public String getSalaryWageItemsListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryPartService.getSalaryWageItemsListData(id, searchData)));
+    }
+
+    /**
+     * @Title: 工资条增加或者更新
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryPartService.saveOrUpdate(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 设置默认 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String saveDefault() {
+        return ajax(Status.success, salaryPartService.saveDefault(id));
+    }
+
+    /**
+     * @Title: 删除工资条中间表
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryPartService.remove(ids));
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public String getWageName() {
+        return wageName;
+    }
+
+    public void setWageName(String wageName) {
+        this.wageName = wageName;
+    }
+
+    public SalaryPart getSalaryPart() {
+        return salaryPart;
+    }
+
+    public void setSalaryPart(SalaryPart salaryPart) {
+        this.salaryPart = salaryPart;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public String getGroupWageAndTypeId() {
+        return groupWageAndTypeId;
+    }
+
+    public void setGroupWageAndTypeId(String groupWageAndTypeId) {
+        this.groupWageAndTypeId = groupWageAndTypeId;
+    }
+
+}

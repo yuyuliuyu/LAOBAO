@@ -1,0 +1,139 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * JcEmpRetire entity. 
+ * @author MyEclipse Persistence Tools
+ * 返聘实体类
+ */
+@Entity
+@Table(name = "JC_EMP_BACK_WORK")
+public class BackWork extends BaseEntity implements java.io.Serializable {
+
+    // Fields
+	private static final long serialVersionUID = 4674733589444799799L;
+	private String jobNumber;//工号
+	private Integer isReback;//是否返聘
+    private Integer isRepost;//是否原岗位
+    private String backFirm;//返聘公司
+    private String backDep;//返聘部门
+    private String backSpaPost;//返聘标准岗位
+    private String backPost;//返聘部门岗位
+    private String fileNum;//批准文号
+    private String url;//文件地址
+    private String fileName;//文件名称
+    private String remark;//
+
+    @Column(name = "JOB_NUMBER", length = 20)
+    public String getJobNumber() {
+        return this.jobNumber;
+    }
+
+    public void setJobNumber(String jobNumber) {
+        this.jobNumber = jobNumber;
+    }
+
+
+    @Column(name = "FILE_NUM", length = 20)
+    public String getFileNum() {
+        return this.fileNum;
+    }
+
+    public void setFileNum(String fileNum) {
+        this.fileNum = fileNum;
+    }
+
+    @Column(name = "URL", length = 50)
+    public String getUrl() {
+        return this.url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
+    }
+
+    @Column(name = "FILE_NAME", length = 10)
+    public String getFileName() {
+        return this.fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    @Column(name = "REMARK", length = 50)
+    public String getRemark() {
+        return this.remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
+    }
+
+    
+    
+    
+    @Column(name = "IS_REBACK")
+	public Integer getIsReback() {
+		return isReback;
+	}
+
+	public void setIsReback(Integer isReback) {
+		this.isReback = isReback;
+	}
+
+	@Column(name = "IS_REPOST")
+	public Integer getIsRepost() {
+		return isRepost;
+	}
+
+	public void setIsRepost(Integer isRepost) {
+		this.isRepost = isRepost;
+	}
+
+	@Column(name = "BACK_FIRM")
+	public String getBackFirm() {
+		return backFirm;
+	}
+
+	public void setBackFirm(String backFirm) {
+		this.backFirm = backFirm;
+	}
+
+	@Column(name = "IS_DEP")
+	public String getBackDep() {
+		return backDep;
+	}
+
+	public void setBackDep(String backDep) {
+		this.backDep = backDep;
+	}
+
+	@Column(name = "BACK_SPA_POST")
+	public String getBackSpaPost() {
+		return backSpaPost;
+	}
+
+	public void setBackSpaPost(String backSpaPost) {
+		this.backSpaPost = backSpaPost;
+	}
+
+	@Column(name = "BACK_POST")
+	public String getBackPost() {
+		return backPost;
+	}
+
+	public void setBackPost(String backPost) {
+		this.backPost = backPost;
+	}
+
+}

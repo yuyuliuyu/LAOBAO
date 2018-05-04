@@ -1,0 +1,205 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.MonthStatisticsDao;
+import com.lingnet.hcm.entity.check.CkMonthStatistics;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: MonthStatisticsDaoImpl 
+ * @Description: 员工月度考勤统计Dao 
+ * @author wangqiang
+ * @date 2017年5月15日 下午1:43:48 
+ *
+ */
+@Repository("monthStatisticsDao")
+public class MonthStatisticsDaoImpl extends BaseDaoImpl<CkMonthStatistics, String> 
+	implements MonthStatisticsDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getStatisticsInfoByCond(Pager pager,
+			String yearMonth, String depId, String jobNumber) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select ID, JOB_NUMBER, YEAR_MONTH, NAME, OUT_DUTY, CENTRE, NIGHT, OVERTIME_MODULUS, "
+				+ "VACATION_MODULUS, DELAYED_MODULUS, PIECE, YEARS, FLIP, CHANGES, THING, DISEASE, FREE, INJURY, "
+				+ "MARRY, LOST, EXPLORE, GIVE, STAY, OTHER, OUT_WORK, BIG_CLASS, SMALL_CLASS, BIG_NIGHT, "
+				+ "SMALL_NIGHT, ALLS, LATENCY, TAKE_WORK, REMARK, POST_NAME, EMP_TYPE, INSTITUTE_NAME, "
+				+ "WAGE_FORM, DAYTIME, OFF_DUTY, REST, TAKE, STUDY, VERY, BUSINESS, EVECTION, TEAM, BORROW, "
+				+ "RETREAT, DICTION, LEAVE, TOTALS, ATTENDANCE_DAYS, NIGHT_DAYS, OVERSEAS "
+				+ "from ck_month_statistics "
+				+ "where IS_DELETE = '0' ";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+			sql += "and DEP_ID in("+depId+") ";
+		}
+		if (!"".equals(yearMonth)){
+			sql += "and YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += "order by YEAR_MONTH desc, JOB_NUMBER asc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> objList = (List<Object[]>) pageInfo.getResult();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("yearMonth", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("outDuty", objs[4]+"");
+				map.put("centre", objs[5]+"");
+				map.put("night", objs[6]+"");
+				map.put("overtime", objs[7]+"");
+				map.put("vacation", objs[8]+"");
+				map.put("delayed", objs[9]+"");
+				map.put("piece", objs[10]+"");
+				map.put("years", objs[11]+"");
+				map.put("flip", objs[12]+"");
+				map.put("changes", objs[13]+"");
+				map.put("thing", objs[14]+"");
+				map.put("disease", objs[15]+"");
+				map.put("free", objs[16]+"");
+				map.put("injury", objs[17]+"");
+				map.put("marry", objs[18]+"");
+				map.put("lost", objs[19]+"");
+				map.put("explore", objs[20]+"");
+				map.put("give", objs[21]+"");
+				map.put("stay", objs[22]+"");
+				map.put("other", objs[23]+"");
+				map.put("outWork", objs[24]+"");
+				map.put("bigClass", objs[25]+"");
+				map.put("smallClass", objs[26]+"");
+				map.put("bigNight", objs[27]+"");
+				map.put("smallNight", objs[28]+"");
+				map.put("alls", objs[29]+"");
+				map.put("latency", objs[30]+"");
+				map.put("takeWork", objs[31]+"");
+				if (objs[32] != null){
+					map.put("remark", objs[32]+"");
+				} else {
+					map.put("remark", "");
+				}
+				if (objs[33] == null){
+					map.put("postName", "");
+				} else {
+					map.put("postName", objs[33]+"");
+				}
+				map.put("empType", objs[34]+"");
+				map.put("instituteName", objs[35]+"");
+				map.put("wageForm", objs[36]+"");
+				map.put("daytime", objs[37]+"");
+				map.put("offDuty", objs[38]+"");
+				map.put("rest", objs[39]+"");
+				map.put("take", objs[40]+"");
+				map.put("study", objs[41]+"");
+				map.put("very", objs[42]+"");
+				map.put("business", objs[43]+"");
+				map.put("evection", objs[44]+"");
+				map.put("team", objs[45]+"");
+				map.put("borrow", objs[46]+"");
+				map.put("retreat", objs[47]+"");
+				map.put("diction", objs[48]+"");
+				map.put("leave", objs[49]+"");
+				map.put("totals", objs[50]+"");
+				map.put("attendanceDays", objs[51]+"");
+				map.put("nightDays", objs[52]+"");
+				map.put("overseas", objs[53]+"");
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getStatisInfoBySearchs(String yearMonth,
+			String depIds, String jobNumber) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select ID, JOB_NUMBER, YEAR_MONTH, NAME, OUT_DUTY, CENTRE, NIGHT, OVERTIME_MODULUS, "
+				+ "VACATION_MODULUS, DELAYED_MODULUS, PIECE, YEARS, FLIP, CHANGES, THING, DISEASE, FREE, INJURY, "
+				+ "MARRY, LOST, EXPLORE, GIVE, STAY, OTHER, OUT_WORK, BIG_CLASS, SMALL_CLASS, BIG_NIGHT, "
+				+ "SMALL_NIGHT, ALLS, LATENCY, TAKE_WORK, REMARK from ck_month_statistics where IS_DELETE = '0' ";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+			sql += "and DEP_ID in("+depIds+") ";
+		}
+		if (!"".equals(yearMonth)){
+			sql += "and YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += "order by YEAR_MONTH desc, JOB_NUMBER asc";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("yearMonth", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("outDuty", objs[4]+"");
+				map.put("centre", objs[5]+"");
+				map.put("night", objs[6]+"");
+				map.put("overtime", objs[7]+"");
+				map.put("vacation", objs[8]+"");
+				map.put("delayed", objs[9]+"");
+				map.put("piece", objs[10]+"");
+				map.put("years", objs[11]+"");
+				map.put("flip", objs[12]+"");
+				map.put("changes", objs[13]+"");
+				map.put("thing", objs[14]+"");
+				map.put("disease", objs[15]+"");
+				map.put("free", objs[16]+"");
+				map.put("injury", objs[17]+"");
+				map.put("marry", objs[18]+"");
+				map.put("lost", objs[19]+"");
+				map.put("explore", objs[20]+"");
+				map.put("give", objs[21]+"");
+				map.put("stay", objs[22]+"");
+				map.put("other", objs[23]+"");
+				map.put("outWork", objs[24]+"");
+				map.put("bigClass", objs[25]+"");
+				map.put("smallClass", objs[26]+"");
+				map.put("bigNight", objs[27]+"");
+				map.put("smallNight", objs[28]+"");
+				map.put("alls", objs[29]+"");
+				map.put("latency", objs[30]+"");
+				map.put("takeWork", objs[31]+"");
+				if (objs[32] != null){
+					map.put("remark", objs[32]+"");
+				} else {
+					map.put("remark", "");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getLastLatencyInfos(String depId,
+			String yearMonth) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select JOB_NUMBER, LATENCY from ck_month_statistics where IS_DELETE = '0' "
+				+ "and YEAR_MONTH ='" + yearMonth + "' and DEP_ID='"+depId+"'";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", objs[0]+"");
+				map.put("latency", objs[1]+"");
+				list.add(map);
+			}
+		}
+		return list;
+	}
+	
+}

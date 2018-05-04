@@ -1,0 +1,275 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.SQLQuery;
+import org.hibernate.criterion.CriteriaSpecification;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryGroupWageDao;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪资组工资套
+ * @ClassName: SalaryGroupWageDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年3月23日 下午5:12:18 
+ *
+ */
+@Repository("salaryGroupWageDao")
+public class SalaryGroupWageDaoImpl extends BaseDaoImplInit<SalaryGroupWage, String> implements SalaryGroupWageDao {
+
+    @Override
+    public Map<String, Object> getSalaryGroupWageListData(String id, String searchData, Pager pager) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                                         ");
+        builder.append("   SGW.ID,SGW.NAME,SGW.SIGN,SG.ID SG_ID, SG.NAME SG_NAME,SGW.TYPE,SGW.EFFECT_DATE,      ");
+        builder.append("   SGW.COMPANY_ID,SGW.SALARY_GROUP_ID      ");
+        builder.append("   FROM XC_SALARY_GROUP_WAGE SGW                                  ");
+        builder.append("   LEFT JOIN XC_SALARY_WAGE SW                                    ");
+        builder.append("   ON SGW.SALARY_WAGE_ID= SW.ID                                  ");
+        builder.append("   LEFT JOIN XC_SALARY_GROUP SG                                   ");
+        builder.append("   ON SGW.SALARY_GROUP_ID= SG.ID                                  ");
+        builder.append("   WHERE SGW.IS_DELETE = 0                                        ");
+//        if (!StringUtils.isBlank(id)) {
+            builder.append("  AND SGW.COMPANY_ID IN ('"+StringUtils.join(id.split(","), "','")+"') ");
+//        }
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 工资套名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                builder.append("   AND SGW.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+            // 工资套名称
+            if (!StringUtils.isBlank(mapData.get("sign"))) {
+                builder.append("   AND SGW.SIGN = "+mapData.get("sign")+"                                        ");
+            }
+            // 生效日期
+            if (!StringUtils.isBlank(mapData.get("startTime"))) {
+                builder.append("  AND TO_CHAR(SGW.EFFECT_DATE,'YYYY\"年\"MM\"月\"DD\"日\"') >= '" + mapData.get("startTime").trim()+"'");
+                builder.append("  AND TO_CHAR(SGW.EFFECT_DATE,'YYYY\"年\"MM\"月\"DD\"日\"') <= '" + mapData.get("startTime").trim()+"'");
+            }
+            // 薪资组
+            if (!StringUtils.isBlank(mapData.get("salaryGroupId"))) {
+                builder.append("   AND SGW.SALARY_GROUP_ID = '"+mapData.get("salaryGroupId")+"'                                        ");
+            }
+        }
+        builder.append("   ORDER BY SGW.CREATEDATE DESC                                        ");
+
+        pager  = findPagerBySql(pager, builder.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            map.put("sign", obj[2]);
+            map.put("sgId", obj[3]);
+            map.put("sgName", obj[4]);
+            map.put("type", obj[5]);
+            map.put("effectDate", obj[6]);
+            map.put("companyId", obj[7]);
+            map.put("salaryGroupId", obj[8]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getGroupWageListData(String companyId, String groupId) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                                         ");
+        builder.append("   SGW.ID,SGW.NAME,SGW.SIGN,SG.ID SG_ID, SG.NAME SG_NAME,SGW.TYPE,SGW.EFFECT_DATE,      ");
+        builder.append("   SGW.COMPANY_ID,SGW.SALARY_GROUP_ID      ");
+        builder.append("   FROM XC_SALARY_GROUP_WAGE SGW                                  ");
+        builder.append("   LEFT JOIN XC_SALARY_WAGE SW                                    ");
+        builder.append("   ON SGW.SALARY_WAGE_ID= SW.ID                                  ");
+        builder.append("   LEFT JOIN XC_SALARY_GROUP SG                                   ");
+        builder.append("   ON SGW.SALARY_GROUP_ID= SG.ID                                  ");
+        builder.append("   WHERE SGW.IS_DELETE = 0                                        ");
+        if (!StringUtils.isBlank(companyId)) {
+            builder.append("   AND SGW.COMPANY_ID = '"+companyId+"'                                        ");
+        }
+        builder.append("   AND SG.ID = '"+groupId+"'                                        ");
+        builder.append("   ORDER BY SGW.CREATEDATE DESC                                        ");
+
+        List<?> list = findBySql(builder.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getGroupWageTypeListData(String id, int sign) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                                                                                 ");
+        builder.append("   WAT.ID,MIN(WAT.WAGE_ID) WAGE_ID,MIN(ITEMS.NAME) NAME,MIN(WAT.SX) SX,MIN(WAT.HIGH) HIGH,MIN(WAT.LOW) LOW,MIN(WAT.IS_ER) IS_ER, ");
+        builder.append("   MIN(WAT.IS_DISPLAY) IS_DISPLAY,MIN(WAT.IS_DELETE) IS_DELETE,MIN(WAT.TYPE) TYPE,  ");
+        builder.append("   MIN(ITEMS.ITEM_TYPE) ITEM_TYPE,MIN(WAT.ITEM_ID) ITEM_ID,MIN(WAT.SALARY_WAGE_ID) SALARY_WAGE_ID, MIN(ITEMS.IS_NUMBER) IS_NUMBER, COUNT(SF.ID) SFID  ");
+        builder.append("   FROM XC_SALARY_GROUP_WAGE WAGE                                                                               ");
+        builder.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE WAT                                                                  ");
+        builder.append("   ON WAGE.ID = WAT.WAGE_ID                                                                               ");
+        builder.append("   LEFT JOIN XC_SALARY_ITEMS ITEMS                                                                        ");
+        builder.append("   ON ITEMS.ID = WAT.ITEM_ID                                                                              ");
+        builder.append("   LEFT JOIN XC_SALARY_FORMULA SF                                                                        ");
+        if (sign == 1) {
+            builder.append("   ON WAT.SALARY_WAGE_ID = SF.BIND_ID                                                                              ");
+        } else {
+            builder.append("   ON WAT.ID = SF.BIND_ID                                                                              ");
+        }
+        builder.append("   WHERE WAGE.ID = '"+id+"' AND WAGE.IS_DELETE=0                                                           ");
+        builder.append("        AND WAT.IS_DELETE=0                                                           ");
+        builder.append("        AND WAT.SIGN="+sign+"                                                           ");
+        builder.append("   GROUP BY WAT.ID                                                                                    ");
+        builder.append("   ORDER BY MIN(WAT.SX) ASC                                                                                    ");
+
+        List<?> list = this.findBySql(builder.toString());
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("wageId", obj[1]);
+            map.put("name", obj[2]);
+            map.put("sx", obj[3]);
+            map.put("high", obj[4]);
+            map.put("low", obj[5]);
+            map.put("isEr", obj[6]);
+            map.put("isDisplay", obj[7]);
+            map.put("type", obj[9]);
+            map.put("itemType", obj[10]);
+            map.put("itemId", obj[11]);
+            map.put("salaryWageId", obj[12]);
+            map.put("isNumber", obj[13]);
+            map.put("formulaCount", obj[14]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+
+        return map;
+    }
+
+    @Override
+    public List<Map<String, Object>> getValueIsZeroNoSendRecords(String id) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("  SELECT                             ");
+        sql.append("    PS.ITEM_ID, MIN(SI.NAME) NAME    ");
+        sql.append("  FROM XC_SALARY_PART SP             ");
+        sql.append("  LEFT JOIN XC_PART_SALARY PS        ");
+        sql.append("  ON SP.ID = PS.PART_ID              ");
+        sql.append("  LEFT JOIN XC_SALARY_ITEMS SI       ");
+        sql.append("  ON PS.ITEM_ID = SI.ID              ");
+        sql.append("  WHERE SP.IS_DELETE = 0             ");
+        sql.append("  AND PS.IS_DELETE = 0               ");
+        sql.append("  AND SP.GROUP_WAGE_AND_TYPE_ID = '"+id+"' ");
+        sql.append("  GROUP BY PS.ITEM_ID                ");
+        sql.append("  ORDER BY MIN(PS.SX) ASC            ");
+
+        List<?> list = this.findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("name", obj[1]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryGroupListData(String companyId, String searchData, Pager pager) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("   SELECT                                                 ");
+        builder.append("     SG.ID, B.FZX,SG.NAME, QD.NAME DEPTNAME, SG.SALARY_PERIOD,   ");
+        builder.append("     SG.SALARY_DATE,SG.EFFECT_DATE,SG.TYPE                ");
+        builder.append("   FROM XC_SALARY_GROUP SG                                ");
+        builder.append("   LEFT JOIN BRANCH B                                     ");
+        builder.append("   ON SG.COMPANY_ID = B.ID                                ");
+        builder.append("   LEFT JOIN QX_DEPARTMENT QD                             ");
+        builder.append("   ON SG.DEP_ID = QD.ID                                   ");
+        builder.append("   WHERE SG.IS_DELETE = 0                                 ");
+        if (!StringUtils.isBlank(companyId)) {
+            builder.append("   AND SG.COMPANY_ID = '"+companyId+"'                                        ");
+        }
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 公司名称
+            if (!StringUtils.isBlank(mapData.get("companyName"))) {
+                builder.append("   AND B.FZX LIKE '%"+mapData.get("companyName").trim()+"%'                                        ");
+            }
+            // 工资套名称
+            if (!StringUtils.isBlank(mapData.get("name"))) {
+                builder.append("   AND SG.NAME LIKE '%"+mapData.get("name").trim()+"%'                                        ");
+            }
+            // 发薪频率
+            if (!StringUtils.isBlank(mapData.get("salaryPeriod"))) {
+                builder.append("   AND SG.SALARY_PERIOD = "+mapData.get("salaryPeriod")+"                                        ");
+            }
+            // 状态
+            if (!StringUtils.isBlank(mapData.get("type"))) {
+                builder.append("   AND SG.TYPE = "+mapData.get("type")+"                                        ");
+            }
+        }
+        builder.append("   ORDER BY SG.CREATEDATE ASC                             ");
+
+        pager  = findPagerBySql(pager, builder.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("companyName", obj[1]);
+            map.put("name", obj[2]);
+            map.put("deptName", obj[3]);
+            map.put("salaryPeriod", obj[4]);
+            map.put("salaryDate", obj[5]);
+            map.put("effectDate", obj[6]);
+            map.put("type", obj[7]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Map<String, Object> getCustomizeListData(String sql) {
+        SQLQuery summaryQuery = getSession().createSQLQuery(sql);
+        summaryQuery.setResultTransformer(CriteriaSpecification.ALIAS_TO_ENTITY_MAP);
+        List<Map<String, Object>> summaryList = summaryQuery.list();
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", summaryList);
+        map.put("total", summaryList.size());
+
+        return map;
+    }
+
+}

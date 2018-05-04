@@ -1,0 +1,589 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+    String flag=request.getParameter("flag");
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>增加循环排班信息</title>
+<link href="${base}template/system/css/base.css" rel="stylesheet" type="text/css" />
+<script src="${base}template/miniui/boot.js" type="text/javascript"></script>
+<script src="../template/plugin/public/add.js" type="text/javascript"></script>
+<link href= "../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+<!--引入皮肤样式-->
+<link href="${base}/template/miniui/themes/blue/skin.css" rel="stylesheet" type="text/css" />
+<style type="text/css">
+    html, body
+    {
+        font-size:12px;
+        padding:0;
+        margin:0;
+        border:0;
+        height:100%;
+        overflow:hidden;
+    }
+ </style>
+</head>
+<body>
+    <form id="form1" method="post">
+        <input class="mini-hidden" name="id" id="id" value="${ckEmpInstitute.id}" style="display:none;"/>
+        <input type="hidden" id="daysFlag" value="${daysFlag }" />
+        <div>
+        	<table id="searchTb" cellpadding="0" cellspacing="0" border="0" class="addtable" width="98%" style="margin:auto;">
+        		<tr>
+            		<td class="list_right_box" width="14%" style="BACKGROUND: #f6f6f6;">班制名称：</td>
+                    <td class="list_right_box" width="22%">
+                    	<input name="instituteId" id="instituteId" required="true" 
+							class="mini-combobox" textField="text" valueField="id" emptyText="请选择..."  
+							width="140px" value="${ckEmpInstitute.instituteId}" 
+							url="../check/institution!getInstitutionList.action?dayFlag=N"/>
+                    </td>
+                    <td class="list_right_box" width="11%" style="BACKGROUND: #f6f6f6;">
+                    	开始日期：
+                    </td>
+                    <td class="list_right_box" width="19%">
+                    	<input id="startDate" name="startDate" class="mini-datepicker" allowInput="false" 
+					      	style="width:140px;" format="yyyy-MM-dd" required="true" 
+					      	value="${ckEmpInstitute.startDate }"/>
+                    </td>
+                    <td class="list_right_box" width="4%" style="BACKGROUND: #f6f6f6;">至</td>
+                    <td class="list_right_box" width="11%" style="BACKGROUND: #f6f6f6;">
+                    	结束日期：
+                    </td>
+                    <td class="list_right_box" width="19%">
+                    	<input id="endDate" name="endDate" class="mini-datepicker" allowInput="false" 
+					      	style="width:140px;" format="yyyy-MM-dd" required="true" 
+					      	value="${ckEmpInstitute.endDate }"/>
+                    </td>
+            	</tr>
+            	<tr>
+            		<td class="list_right_box" style="BACKGROUND: #f6f6f6;">循环类型：</td>
+            		<td class="list_right_box">
+            			<input name="cycleType" id="cycleType" required="true" repeatItems="4" 
+							class="mini-radiobuttonlist" textField="text" valueField="id" 
+							width="140px" value="${ckEmpInstitute.cycleType}" url="../template/circulation.txt"/>
+            		</td>
+            		<td class="list_right_box" style="BACKGROUND: #f6f6f6;" id="cycleDiv">循环周期：</td>
+            		<td class="list_right_box" id="cycleTd">
+            			<input name="days" id="days" class="mini-combobox" textField="text"
+							valueField="id" emptyText="请选择..." width="140px" value="${ckEmpInstitute.days}" 
+							url="../template/days.txt"/>
+            		</td>
+            	</tr>
+        	</table>
+            <table id="dayTb" cellpadding="0" cellspacing="0" border="0" class="addtable" width="94%" style="margin:auto;padding-top:20px;">
+                <tr>
+                    <td class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">1：</td>
+                    <td class="list_right_box" width="13%">
+                        <input field="day1" name="day1" id="day1" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day1}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">2：</td>
+                    <td class="list_right_box" width="13%">
+                        <input field="day2" name="day2" id="day2" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day2}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">3：</td>
+                    <td class="list_right_box" width="13%">
+                        <input field="day3" name="day3" id="day3" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day3}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">4：</td>
+                    <td class="list_right_box" width="13%">
+                        <input field="day4" name="day4" id="day4" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day4}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">5：</td>
+                    <td class="list_right_box" width="13%">
+                        <input field="day5" name="day5" id="day5" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day5}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr10">
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">6：</td>
+                    <td class="list_right_box">
+                        <input field="day6" name="day6" id="day6" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day6}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">7：</td>
+                    <td class="list_right_box">
+                        <input field="day7" name="day7" id="day7" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day7}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">8：</td>
+                    <td class="list_right_box">
+                        <input field="day8" name="day8" id="day8" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day8}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">9：</td>
+                    <td class="list_right_box">
+                        <input field="day9" name="day9" id="day9" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day9}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">10：</td>
+                    <td class="list_right_box">
+                        <input field="day10" name="day10" id="day10" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day10}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr15">
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">11：</td>
+                    <td class="list_right_box">
+                        <input field="day11" name="day11" id="day11" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day11}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">12：</td>
+                    <td class="list_right_box">
+                        <input field="day12" name="day12" id="day12" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day12}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">13：</td>
+                    <td class="list_right_box">
+                        <input field="day13" name="day13" id="day13" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day13}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">14：</td>
+                    <td class="list_right_box">
+                        <input field="day14" name="day14" id="day14" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day14}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">15：</td>
+                    <td class="list_right_box">
+                        <input field="day15" name="day15" id="day15" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day15}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr20">
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">16：</td>
+                    <td class="list_right_box">
+                        <input field="day16" name="day16" id="day16" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day16}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">17：</td>
+                    <td class="list_right_box">
+                        <input field="day17" name="day17" id="day17" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day17}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">18：</td>
+                    <td class="list_right_box">
+                        <input field="day18" name="day18" id="day18"  
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day18}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">19：</td>
+                    <td class="list_right_box">
+                        <input field="day19" name="day19" id="day19" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day19}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">20：</td>
+                    <td class="list_right_box">
+                        <input field="day20" name="day20" id="day20" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day20}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr25">
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">21：</td>
+                    <td class="list_right_box">
+                        <input field="day21" name="day21" id="day21" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day21}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">22：</td>
+                    <td class="list_right_box">
+                        <input field="day22" name="day22" id="day22" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day22}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">23：</td>
+                    <td class="list_right_box">
+                        <input field="day23" name="day23" id="day23" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day23}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">24：</td>
+                    <td class="list_right_box">
+                        <input field="day24" name="day24" id="day24" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day24}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">25：</td>
+                    <td class="list_right_box">
+                        <input field="day25" name="day25" id="day25" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day25}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr30">
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">26：</td>
+                    <td class="list_right_box">
+                        <input field="day26" name="day26" id="day26" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day26}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">27：</td>
+                    <td class="list_right_box">
+                        <input field="day27" name="day27" id="day27" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day27}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">28：</td>
+                    <td class="list_right_box">
+                        <input field="day28" name="day28" id="day28"  
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day28}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd29" class="list_right_box" style="BACKGROUND: #f6f6f6;">29：</td>
+                    <td id="dayDiv29" class="list_right_box">
+                        <input field="day29" name="day29" id="day29" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day29}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd30" class="list_right_box" style="BACKGROUND: #f6f6f6;">30：</td>
+                    <td id="dayDiv30" class="list_right_box">
+                        <input field="day30" name="day30" id="day30" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day30}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr35">
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">31：</td>
+                    <td class="list_right_box">
+                        <input field="day31" name="day31" id="day31" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day31}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd32" class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">32：</td>
+                    <td id="dayDiv32" class="list_right_box" width="13%">
+                        <input field="day32" name="day32" id="day32"  
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day32}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd33" class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">33：</td>
+                    <td id="dayDiv33" class="list_right_box" width="13%">
+                        <input field="day33" name="day33" id="day33" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day33}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd34" class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">34：</td>
+                    <td id="dayDiv34" class="list_right_box" width="13%">
+                        <input field="day34" name="day34" id="day34" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day34}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td id="dayTd35" class="list_right_box" width="7%" style="BACKGROUND: #f6f6f6;">35：</td>
+                    <td id="dayDiv35" class="list_right_box" width="13%">
+                        <input field="day35" name="day35" id="day35" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day35}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr id="dayTr40">
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">36：</td>
+                    <td class="list_right_box">
+                        <input field="day36" name="day36" id="day36"  
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day36}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">37：</td>
+                    <td class="list_right_box">
+                        <input field="day37" name="day37" id="day37" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day37}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">38：</td>
+                    <td class="list_right_box">
+                        <input field="day38" name="day38" id="day38" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day38}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">39：</td>
+                    <td class="list_right_box">
+                        <input field="day39" name="day39" id="day39" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day39}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">40：</td>
+                    <td class="list_right_box">
+                        <input field="day40" name="day40" id="day40" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.day40}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+            </table>
+            <table id="weekTb" cellpadding="0" cellspacing="0" border="0" class="addtable" width="94%" style="margin:auto;padding-top:20px;">
+                <tr>
+                    <td class="list_right_box" width="9%" style="BACKGROUND: #f6f6f6;">星期1:</td>
+                    <td class="list_right_box" width="11%">
+                        <input field="week1" name="week1" id="week1" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week1}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="9%" style="BACKGROUND: #f6f6f6;">星期2:</td>
+                    <td class="list_right_box" width="11%">
+                        <input field="week2" name="week2" id="week2" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week2}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="9%" style="BACKGROUND: #f6f6f6;">星期3:</td>
+                    <td class="list_right_box" width="11%">
+                        <input field="week3" name="week3" id="week3" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week3}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="9%" style="BACKGROUND: #f6f6f6;">星期4:</td>
+                    <td class="list_right_box" width="11%">
+                        <input field="week4" name="week4" id="week4" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week4}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" width="9%" style="BACKGROUND: #f6f6f6;">星期5:</td>
+                    <td class="list_right_box" width="11%">
+                        <input field="week5" name="week5" id="week5" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week5}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+                <tr>
+                	<td class="list_right_box" style="BACKGROUND: #f6f6f6;">星期6:</td>
+                    <td class="list_right_box">
+                        <input field="week6" name="week6" id="week6" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..."  
+							width="70px" value="${ckEmpInstitute.week6}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                    <td class="list_right_box" style="BACKGROUND: #f6f6f6;">星期7:</td>
+                    <td class="list_right_box">
+                        <input field="week7" name="week7" id="week7" 
+							class="mini-combobox" textField="text" valueField="text" emptyText="请选择..." 
+							width="70px" value="${ckEmpInstitute.week7}" 
+							url="../check/content!getContentList.action"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;position: fixed;bottom: 0;width: 100%;" borderStyle="border:0;">
+            <a class="mini-button" id="ok" onclick="onOk" iconCls="icon-save" style="width:60px;margin-right:20px;"iconCls="icon-save">保存</a> 
+            <a class="mini-button" onclick="onReload" id="cz" style="width:60px;margin-right:20px;" iconCls="icon-reload">重置</a>
+            <a class="mini-button" onclick="onCancel" iconCls="icon-close" style="width:60px;" iconCls="icon-close">关闭</a> 
+        </div>
+    </form>
+    
+    <script type="text/javascript">
+    	var id = $("#id").val();
+    	if (id == ""){
+    		$("#weekTb").hide();//初始隐藏星期table
+    	} else {
+    		$("#instituteId").attr("enabled", false);
+    		var daysFlag = $("#daysFlag").val();
+    		if (daysFlag == "3"){
+    			$("#cycleDiv").hide();
+	        	$("#cycleTd").hide();
+    			$("#dayTb").hide();//初始隐藏天数table
+    			$("#weekTb").show();//初始展示星期table
+    		}
+    	}
+    	
+        mini.parse();
+		var id = mini.get("id").getValue();//enabled="false"
+		
+		//监听循环类型的值
+		var cycleType = mini.get("cycleType");
+	    cycleType.on("valuechanged", function (e) {
+	        if(this.getValue() == "1"){//天
+	        	$("#weekTb").hide();//隐藏星期table
+	        	$("#dayTb").show();//展示天数table
+	        	$("#cycleDiv").show();
+	        	$("#cycleTd").show();
+	        	$("#dayTr40").show();
+	        	changeShows(40);
+	        	cleanWeeks();
+	        } else if (this.getValue() == "2"){//月
+	        	$("#cycleDiv").hide();
+	        	$("#cycleTd").hide();
+	        	mini.get("days").setText("");
+	        	$("#weekTb").hide();//隐藏星期table
+	        	$("#dayTb").show();//展示天数table
+	        	changeShows(31);
+	        	cleanWeeks();
+	        } else if (this.getValue() == "3"){//周
+	        	$("#cycleDiv").hide();
+	        	$("#cycleTd").hide();
+	        	mini.get("days").setText("");
+	        	$("#dayTb").hide();//隐藏天数table
+	        	$("#weekTb").show();//展示星期table
+	        }
+	    });
+	    
+        //监听循环周期的值
+		var days = mini.get("days");
+	    days.on("valuechanged", function (e) {
+	    	var num = this.getValue();
+	    	//操作列
+	    	changeShows(num);
+	    });
+	    
+	    //隐藏与展示
+	    function changeShows(num){
+	    	var xht = $("#dayTb td");
+	    	for (var i=1; i<=xht.length; i++){
+	    		//操作列
+		    	if ((i > (num*2))){
+		    		$("#dayTb td").eq(i-1).hide();
+		    		if (i%2 == 0){
+		    			var resultNum = i/2;
+		    			var dayId = "day"+ resultNum;
+		    			mini.get(dayId).setText("");
+		    		}
+		    	} else {
+		    		$("#dayTb td").eq(i-1).show();
+		    	}
+	    	}
+	    }
+	    
+	    //周考勤内容清空
+	    function cleanWeeks(){
+	    	mini.get("days").setText("");
+	    	var xht = $("#weekTb input");
+	    	for (var i = 0; i <xht.length; i++){
+	    		var weekId = "week" + (i+1);
+	    		mini.get(weekId).setText("");
+	    	}
+	    }
+        
+        //保存
+        function onOk(){ 
+            var form = new mini.Form("form1"); 
+            form.validate(); 
+            if (form.isValid() == false) return; 
+            //验证日期天数
+            var cycleTypeVal = mini.get("cycleType").getValue(); 
+			if (cycleTypeVal == "1"){//若选择天
+				var daysVal = mini.get("days").getValue();
+				if (daysVal == ""){
+					mini.alert("请选择循环周期！");
+					return;
+				}
+			} 
+            var data = form.getData();
+            var json = mini.encode(data);  
+            //strut令牌
+            window.parent.loading();
+            $.ajax({
+                url: "../check/institute!saveOrUpdate.action",
+                data:{
+                	formdata:json
+                },
+                success: function (text) {
+                    window.parent.unmask();
+                    if (text == "success") {
+                        mini.showMessageBox({
+                            title: "提醒",
+                            width: 250,
+                            iconCls: "mini-messagebox-warning",
+                            buttons: ["ok"],
+                            message: "保存成功！",
+                            callback: function (action) {
+                                CloseWindow("ok");
+                            }
+                        }); 
+                    } else {
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                } 
+            });
+        }
+        
+        function onCancel(e) {
+             CloseWindow("cancel");
+        }
+        
+        function onReload() {
+            document.location.reload();
+        }
+        
+        function CloseWindow(action) {
+            if (action == "close" && form.isChanged()) {
+                if (confirm("数据被修改了，是否先保存？")) {
+                    return false;
+                }
+            }
+            if (window.CloseOwnerWindow) return window.CloseOwnerWindow(action);
+            else window.close();
+        }    
+    </script>
+</body>
+</html>

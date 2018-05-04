@@ -1,0 +1,212 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.SQLQuery;
+import org.hibernate.criterion.CriteriaSpecification;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryTotalAmountDao;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 总量
+ * @ClassName: SalaryTotalAmountDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月19日 上午7:57:22 
+ *
+ */
+@Repository("salaryTotalAmountDao")
+public class SalaryTotalAmountDaoImpl extends BaseDaoImplInit<SalaryTotalAmount, String> implements SalaryTotalAmountDao {
+
+    @Override
+    public Map<String, Object> getAmountListData(String searchData, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                              ");
+        sql.append("     WM_CONCAT(PERIODDATA.ID) ID, PERIODDATA.NAME PAYPERIOD         ");
+        sql.append("   FROM XC_SALARY_ASSIGNATION SA       ");
+        sql.append("   LEFT JOIN XC_PERIODDATA PERIODDATA  ");
+        sql.append("   ON SA.SALARY_PERIOD = PERIODDATA.ID ");
+        sql.append("   WHERE SA.IS_DELETE  = 0             ");
+
+        Map<String, String> mapData = JsonUtil.parseProperties(searchData);
+        if (mapData != null) {
+            // 薪酬期间
+            if (!StringUtils.isBlank(mapData.get("payPeriod"))) {
+                sql.append("   AND PERIODDATA.NAME LIKE '%"+mapData.get("payPeriod").trim()+"%'                                        ");
+            }
+        }
+        sql.append("   GROUP BY PERIODDATA.NAME            ");
+        sql.append("   ORDER BY PERIODDATA.NAME DESC       ");
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<HashMap<String, Object>> dataList = new ArrayList<HashMap<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            map.put("payPeriod", obj[1]);
+            dataList.add(map);
+        }
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Map<String, Object> getAmountForPeriodListData(String period, Pager pager) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                           ");    
+        sql.append("     TT.COMPANY_ID,                                                 ");
+        sql.append("     MIN(TT.COMPANY) COMPANY,                                       ");
+        sql.append("     MIN(TT.PEOPLECOUNT) PEOPLECOUNT,                               ");
+        sql.append("     MIN(TT.LAST_MONTH_AMOUNT) LAST_MONTH_AMOUNT,                   ");
+        sql.append("     MIN(TT.BYJXLDKH) BYJXLDKH,                                     ");
+        sql.append("     MIN(TT.SPECIAL_REWARD) SPECIAL_REWARD,                         ");
+        sql.append("     MIN(TT.OTHER_REWARD) OTHER_REWARD,                             ");
+        sql.append("     MIN(TT.REWARD_TOTAL) REWARD_TOTAL,                             ");
+        sql.append("     MIN(TT.BYKFPZL) BYKFPZL,                                       ");
+        sql.append("     MIN(TT.CUR_MONTH_AMOUNT) CUR_MONTH_AMOUNT,                     ");
+        sql.append("     MIN(TT.NOTE) NOTE,                                             ");
+        sql.append("     WM_CONCAT(TT.ITEMID) ITEMID,                                   ");
+        sql.append("     WM_CONCAT(TT.STATIC_VALUE) STATIC_VALUE                        ");
+        sql.append("   FROM (SELECT STA.COMPANY_ID,                                     ");
+        sql.append("       MIN(BRANCH.FZX) COMPANY,                                     ");
+        sql.append("       COUNT(ASTAFF.ID) PEOPLECOUNT,                           ");
+        sql.append("       MIN(STA.LAST_MONTH_AMOUNT) LAST_MONTH_AMOUNT,                ");
+        sql.append("       MIN(STA.BYJXLDKH) BYJXLDKH,                                  ");
+        sql.append("       MIN(STA.SPECIAL_REWARD) SPECIAL_REWARD,                      ");
+        sql.append("       MIN(STA.OTHER_REWARD) OTHER_REWARD,                          ");
+        sql.append("       MIN(STA.REWARD_TOTAL) REWARD_TOTAL,                          ");
+        sql.append("       MIN(STA.BYKFPZL) BYKFPZL,                                    ");
+        sql.append("       MIN(STA.CUR_MONTH_AMOUNT) CUR_MONTH_AMOUNT,                  ");
+        sql.append("       MIN(STA.NOTE) NOTE,                                          ");
+        sql.append("       MIN(STA.CREATEDATE) CREATEDATE,                              ");
+        sql.append("       MIN(NVL(GWAY.ITEM_ID, ' ')) ITEMID,                          ");
+        sql.append("       SUM(TO_NUMBER(NVL(SV.STATIC_VALUE, 0))) STATIC_VALUE,        ");
+        sql.append("       MIN(STA.IS_DELETE) IS_DELETE,         ");
+        sql.append("       MIN(SR.FPQX) FPQX         ");
+        sql.append("     FROM XC_SALARY_TOTAL_AMOUNT STA                                ");
+        sql.append("     LEFT JOIN BRANCH                                               ");
+        sql.append("     ON STA.COMPANY_ID = BRANCH.ID                                  ");
+        sql.append("     LEFT JOIN XC_SALARY_ASSIGNATION SA                             ");
+        sql.append("     ON STA.FP_DATE = SA.SALARY_PERIOD                              ");
+        sql.append("     LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF                          ");
+        sql.append("     ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID                        ");
+        sql.append("     LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS                      ");
+        sql.append("     ON ASTAFF.ID      = ASS.ASSIGNATION_STAFF_ID                   ");
+        sql.append("     AND ASS.IS_DELETE = 0                                          ");
+        sql.append("     LEFT JOIN XC_SALARY_ITEMS SI                                   ");
+        sql.append("     ON ASS.IBF_ID = SI.ID                                          ");
+        sql.append("     LEFT JOIN XC_SALARY_RECORD SR                                  ");
+        sql.append("     ON ASTAFF.STAFF_ID = SR.STAFF_ID                               ");
+        sql.append("     LEFT JOIN XC_SALARY_GROUP_WAGE SGW                             ");
+        sql.append("     ON SA.SALARY_WAGE_ID = SGW.ID                                  ");
+        sql.append("     AND SA.SALARY_GROUP_ID = SGW.SALARY_GROUP_ID                   ");
+        sql.append("     LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                          ");
+        sql.append("     ON SGW.ID = GWAY.WAGE_ID                                       ");
+        sql.append("     AND ASS.IBF_ID = GWAY.ITEM_ID                                  ");
+        sql.append("     AND GWAY.IS_DELETE = 0                                         ");
+        sql.append("     AND GWAY.IS_ER = 1                                             ");
+        sql.append("     LEFT JOIN XC_SALARY_VALUE SV                                   ");
+        sql.append("     ON SV.STAFF_ID = ASTAFF.STAFF_ID                               ");
+        sql.append("     AND SV.SALARY_ITEMS_ID = GWAY.ITEM_ID                          ");
+        sql.append("     WHERE STA.FP_DATE IN ('"+StringUtils.join(period.split(","), "','")+"')                  ");
+
+        StringBuilder secondSqlText = new StringBuilder();
+        Map<String, String> search = JsonUtil.parseProperties(pager.getSearchData());
+        if (search != null) {
+            // 公司
+            if (!StringUtils.isBlank(search.get("company"))) {
+                sql.append("   AND BRANCH.FZX LIKE '%"+search.get("company").trim()+"%'            ");
+                secondSqlText.append("   AND BRANCH.FZX LIKE '%"+search.get("company").trim()+"%'            ");
+            }
+            // 分配权限（基层、公司）
+            if (!StringUtils.isBlank(search.get("fpqx"))) {
+                sql.append("   AND SR.FPQX = "+search.get("fpqx")+"            ");
+                secondSqlText.append("   AND SR.FPQX = "+search.get("fpqx")+"            ");
+            }
+        }
+        sql.append("     GROUP BY STA.COMPANY_ID, GWAY.ITEM_ID) TT                      ");
+        sql.append("   WHERE TT.IS_DELETE = 0                      ");
+        sql.append("   GROUP BY TT.COMPANY_ID, TT.CREATEDATE            ");
+        sql.append("   ORDER BY TT.CREATEDATE ASC                       ");
+
+        // 二次分配
+        StringBuilder secondSql = new StringBuilder();
+        secondSql.append("   SELECT DISTINCT                           ");
+        secondSql.append("   ASS.IBF_ID, ASS.IBF_NAME                  ");
+        secondSql.append("   FROM XC_SALARY_TOTAL_AMOUNT STA           ");
+        secondSql.append("   LEFT JOIN BRANCH                          ");
+        secondSql.append("   ON STA.COMPANY_ID = BRANCH.ID             ");
+        secondSql.append("   LEFT JOIN XC_SALARY_ASSIGNATION SA        ");
+        secondSql.append("   ON STA.FP_DATE = SA.SALARY_PERIOD         ");
+        secondSql.append("   LEFT JOIN XC_ASSIGNATION_STAFF ASTAFF     ");
+        secondSql.append("   ON SA.ID = ASTAFF.SALARY_ASSIGNATION_ID   ");
+        secondSql.append("   LEFT JOIN XC_ASSIGNATION_STAFF_SALARY ASS ");
+        secondSql.append("   ON ASTAFF.ID = ASS.ASSIGNATION_STAFF_ID   ");
+        secondSql.append("   AND ASS.IS_DELETE = 0                     ");
+        secondSql.append("   LEFT JOIN XC_SALARY_ITEMS SI              ");
+        secondSql.append("   ON ASS.IBF_ID = SI.ID                     ");
+        secondSql.append("   LEFT JOIN XC_SALARY_RECORD SR   ");
+        secondSql.append("   ON ASTAFF.STAFF_ID = SR.STAFF_ID          ");
+        secondSql.append("   LEFT JOIN XC_SALARY_GROUP_WAGE SGW   ");
+        secondSql.append("   ON SA.SALARY_WAGE_ID = SGW.ID          ");
+        secondSql.append("   AND SA.SALARY_GROUP_ID = SGW.SALARY_GROUP_ID          ");
+        secondSql.append("   LEFT JOIN XC_GROUP_WAGE_AND_TYPE GWAY                          ");
+        secondSql.append("   ON SGW.ID = GWAY.WAGE_ID                                       ");
+        secondSql.append("   AND GWAY.IS_DELETE = 0                                         ");
+        secondSql.append("   AND ASS.IBF_ID = GWAY.ITEM_ID                                  ");
+        secondSql.append("   WHERE STA.FP_DATE IN ('"+StringUtils.join(period.split(","), "','")+"')          ");
+
+        secondSql.append(secondSqlText);
+        secondSql.append("   AND GWAY.IS_ER = 1                       ");
+
+        SQLQuery summaryQuery = getSession().createSQLQuery(secondSql.toString());
+        summaryQuery.setResultTransformer(CriteriaSpecification.ALIAS_TO_ENTITY_MAP);
+        List<Map<String, Object>> secondList = summaryQuery.list();
+
+        pager  = findPagerBySql(pager, sql.toString());
+        List<?> list = pager.getResult();
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("companyId", obj[0]);
+            map.put("company", obj[1]);
+            map.put("peopleCount", obj[2]);
+            map.put("lastMonthAmount", obj[3]);
+            map.put("byjxldkh", obj[4]);
+            map.put("specialReward", obj[5]);
+            map.put("otherReward", obj[6]);
+            map.put("rewardTotal", obj[7]);
+            map.put("bykfpzl", obj[8]);
+            map.put("curMonthAmount", obj[9]);
+            map.put("note", obj[10]);
+            map.put("itemId", obj[11]);
+            map.put("staticValue", obj[12]);
+            dataList.add(map);
+        }
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        map.put("secondAmount", secondList);
+        map.put("actualSecondAmount", secondList);
+
+        return map;
+    }
+
+}

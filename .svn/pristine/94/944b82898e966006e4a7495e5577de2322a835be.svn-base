@@ -1,0 +1,606 @@
+package com.lingnet.hcm.service.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Resource;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.CheckInfosDao;
+import com.lingnet.hcm.dao.check.ContentDao;
+import com.lingnet.hcm.dao.check.MonthStatisticsDao;
+import com.lingnet.hcm.dao.check.StandardDao;
+import com.lingnet.hcm.entity.check.CkContent;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.entity.check.CkMonthStatistics;
+import com.lingnet.hcm.entity.check.CkStandard;
+import com.lingnet.hcm.service.check.MonthStatisticsService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: MonthStatisticsServiceImpl 
+ * @Description: 月度考勤统计service实现类 
+ * @author wangqiang
+ * @date 2017年5月15日 下午1:57:14 
+ *
+ */
+@Service("monthStatisticsService")
+public class MonthStatisticsServiceImpl extends BaseServiceImpl<CkMonthStatistics, String> 
+	implements MonthStatisticsService{
+
+	@Resource(name = "monthStatisticsDao")
+	private MonthStatisticsDao monthStatisticsDao;
+	
+	@Resource(name = "checkInfosDao")
+	private CheckInfosDao checkInfosDao;
+	
+	@Resource(name = "contentDao")
+	private ContentDao contentDao;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+	
+	@Resource(name = "standardDao")
+	private StandardDao standardDao;
+
+	@Override
+	public void saveMonthStatistics(CkInfoCommit ckInfo) {
+		String yearMonth = ckInfo.getMonthCalendar();//年月份
+		String depId = ckInfo.getDepId();
+		String empIds = ckInfo.getPersonIds();//员工号集合串
+		String[] empIdArrs = empIds.split(",");
+		String empIdStr = "";
+		for (int i=0; i < empIdArrs.length; i++){
+			empIdStr += ("'"+empIdArrs[i]+"', ");
+		}
+		if (!"".equals(empIdStr)){
+			empIdStr = empIdStr.substring(0, empIdStr.length()-2);
+		}
+		//查询部门考勤内容信息
+		List<CkContent> contentList = contentDao.getContentListByDepId(depId, new ArrayList<String>());
+		Map<String, CkContent> contentMap = new HashMap<String, CkContent>();
+		if (contentList.size() > 0){
+			for (CkContent content:contentList){
+				contentMap.put(content.getContent(), content);
+			}
+		}
+		//查询员工考勤信息
+		List<Map<String, String>> list = checkInfosDao.getEmpCheckInfosByIds(empIdStr);
+		//统计
+		List<CkMonthStatistics> statisticsList = statisticsMonthInfo(list, contentMap, depId, yearMonth);
+		//批量保存
+		monthStatisticsDao.saveBatch(statisticsList);
+	}
+	
+	/**
+	 * 统计员工月考勤
+	 * @Title: statisticsMonthInfo 
+	 * @param list
+	 * @param contentMap
+	 * @param depId
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月15日 V 1.0
+	 */
+	public List<CkMonthStatistics> statisticsMonthInfo(List<Map<String, String>> list, 
+			Map<String, CkContent> contentMap, String depId, String yearMonth){
+		List<CkMonthStatistics> statisticsList = new ArrayList<CkMonthStatistics>();
+		if (list.size() > 0){
+			//查询上月该部门员工缓休信息
+			String lastMonth = "";
+			if ("1".equals(yearMonth.substring(2, 4))){
+				int beginYear = Integer.parseInt(yearMonth.substring(0, 2))-1;
+				lastMonth = (beginYear<10?"0"+beginYear:beginYear)+"12";
+			} else {
+				int beginMonth = Integer.parseInt(yearMonth.substring(2, 4))-1;
+				lastMonth = yearMonth.substring(0, 2) + "" + (beginMonth<10?"0"+beginMonth:beginMonth);
+			}
+			List<Map<String, String>> lastList = monthStatisticsDao.getLastLatencyInfos(depId, lastMonth);
+			Map<String, String> lastMap = new HashMap<String, String>();//上月员工缓休天数map
+			if (lastList.size() > 0){
+				for(Map<String, String> mapInfo :lastList){
+					lastMap.put(mapInfo.get("jobNumber"), mapInfo.get("latency"));
+				}
+			}
+			//查询节假日日期
+			CkStandard standard = standardDao.getStandardByYearCalendar(yearMonth);//获得改年月份的考勤标准
+			List<String> standardList = new ArrayList<String>();
+			if (standard != null){
+				if (standard.getFestival1() != null && !"".equals(standard.getFestival1())){
+					standardList.add(standard.getFestival1());
+				}
+				if (standard.getFestival2() != null && !"".equals(standard.getFestival2())){
+					standardList.add(standard.getFestival2());
+				}
+				if (standard.getFestival3() != null && !"".equals(standard.getFestival3())){
+					standardList.add(standard.getFestival3());
+				}
+				if (standard.getFestival4() != null && !"".equals(standard.getFestival4())){
+					standardList.add(standard.getFestival4());
+				}
+			}
+			for (Map<String, String> map:list){
+				CkMonthStatistics info = new CkMonthStatistics();
+				info.setJobNumber(map.get("jobNumber"));
+				info.setName(map.get("name"));
+				info.setWageForm(map.get("wageForm"));
+				info.setPostName(map.get("postName"));
+				info.setInstituteName(map.get("instituteName"));
+				info.setEmpType(map.get("empType"));
+				info.setRemark(map.get("remark"));
+				info.setDepId(depId);
+				info.setYearMonth(yearMonth);
+				String wageForm = map.get("wageForm");//工资形式（0 计时， 1 计件）
+				double outHours = 0.0;//总出勤小时数
+				//节加（根据维护的考勤标准中节假日判断是否是节假日）
+				List<String> vacationList = new ArrayList<String>();
+				if (standardList.size() > 0){
+					for (String day:standardList){
+						if ("1".equals(map.get("overtime"+day))){
+							vacationList.add("overtime"+day);//添加到节日加班集合
+							String institute = map.get("day"+day);
+							CkContent content = contentMap.get(institute);
+							if (content != null){
+								info.setVacationModulus(info.getVacationModulus()+(1.0*content.getVacationModulus()));//节加（根据维护的考勤标准中节假日判断是否是节假日）
+							}
+						}
+					}
+				}
+				//统计考勤内容的天数
+				String instituteStr = "";
+				Map<String, Object> numMap = new HashMap<String, Object>();
+				Set<String> keys = map.keySet();
+				for (String key :keys){
+					if (key.indexOf("day") >= 0){
+						instituteStr += (map.get(key)+",");
+					}
+					//休加（除节日加班之外的加班）
+					if (key.indexOf("overtime") >= 0){
+						if (!"overtimeAll".equals(key) && "1".equals(map.get(key)) && !vacationList.contains(key)){
+							String institute = map.get("day"+key.substring(8, key.length()));
+							CkContent content = contentMap.get(institute);
+							if (content != null){
+								info.setOvertimeModulus(info.getOvertimeModulus()+(1.0*content.getOvertimeModulus()));//休加
+							}
+						}
+					}
+				}
+				if (!"".equals(instituteStr)){
+					instituteStr = instituteStr.substring(0, instituteStr.length()-1);
+					String[] instituteArrs = instituteStr.split(",");
+					for (int i=0; i < instituteArrs.length; i++){
+						if (!"null".equals(instituteArrs[i]) && !"".equals(instituteArrs[i])){
+							if (i==0){
+								numMap.put(instituteArrs[i], 1);
+							} else {
+								if (numMap.containsKey(instituteArrs[i])){
+									numMap.put(instituteArrs[i], Integer.parseInt(numMap.get(instituteArrs[i])+"")+1);
+								} else {
+									numMap.put(instituteArrs[i], 1);
+								}
+							}
+						}
+					}
+				}
+				if (!numMap.isEmpty()){
+					Set<String> institutes = numMap.keySet();
+					for(String institute:institutes){
+						CkContent content = contentMap.get(institute);
+						Object value = numMap.get(institute);
+						double num = Double.parseDouble(value+"");
+						if (content.getOutHour() != null && !"".equals(content.getOutHour())){
+							outHours += content.getOutHour()*num;
+						}
+						if (content.getOutDuty() != null && !"".equals(content.getOutDuty())){
+							info.setOutDuty(info.getOutDuty()+(content.getOutDuty()*num));//出勤
+						}
+						if (content.getDaytime() != null && !"".equals(content.getDaytime())){
+							info.setDaytime(info.getDaytime()+(content.getDaytime()*num));//白
+						}
+						if (content.getNight() != null && !"".equals(content.getNight())){
+							info.setNight(info.getNight()+(content.getNight()*num));//夜
+						}
+						if (content.getOffDuty() != null && !"".equals(content.getOffDuty())){
+							info.setOffDuty(info.getOffDuty()+(content.getOffDuty()*num));//下
+						}
+						if (content.getCentre() != null && !"".equals(content.getCentre())){
+							info.setCentre(info.getCentre()+(content.getCentre()*num));//中
+						}
+						if (content.getOverseas() != null && !"".equals(content.getOverseas())){
+							info.setOverseas(info.getOverseas()+(content.getOverseas()*num));//外
+						}
+						if (content.getRest() != null && !"".equals(content.getRest())){
+							info.setRest(info.getRest()+(content.getRest()*num));//休
+						}
+						if (content.getAllDay() != null && !"".equals(content.getAllDay())){
+							info.setAlls(info.getAlls()+(content.getAllDay()*num));//全
+						}
+						if (content.getTake() != null && !"".equals(content.getTake())){
+							info.setTake(info.getTake()+(content.getTake()*num));//带
+						}
+						if (content.getFlip() != null && !"".equals(content.getFlip())){
+							info.setFlip(info.getFlip()+(content.getYear()*num));//弹
+						}
+						if (content.getCall() != null && !"".equals(content.getCall())){
+							info.setTakeWork(info.getTakeWork()+(content.getCall()*num));//调
+						}
+						if (content.getChanges() != null && !"".equals(content.getChanges())){
+							info.setChanges(info.getChanges()+(content.getChanges()*num));//换
+						}
+						if (content.getDisease() != null && !"".equals(content.getDisease())){
+							info.setDisease(info.getDisease()+(content.getDisease()));//病
+						}
+						if (content.getThing() != null && !"".equals(content.getThing())){
+							info.setThing(info.getThing()+(content.getThing()*num));//事
+						}
+						if (content.getMarry() != null && !"".equals(content.getMarry())){
+							info.setMarry(info.getMarry()+(content.getMarry()*num));//婚
+						}
+						if (content.getInjury() != null && !"".equals(content.getInjury())){
+							info.setInjury(info.getInjury()+(content.getInjury()*num));//伤
+						}
+						if (content.getLost() != null && !"".equals(content.getLost())){
+							info.setLost(info.getLost()+(content.getLost()*num));//丧
+						}
+						if (content.getGive() != null && !"".equals(content.getGive())){
+							info.setGive(info.getGive()+(content.getGive()*num));//产
+						}
+						if (content.getExplore() != null && !"".equals(content.getExplore())){
+							info.setExplore(info.getExplore()+(content.getExplore()*num));//探
+						}
+						if (content.getFree() != null && !"".equals(content.getFree())){
+							info.setFree(info.getFree()+(content.getFree()*num));//旷
+						}
+						if (content.getStay() != null && !"".equals(content.getStay())){
+							info.setStay(info.getStay()+(content.getStay()*num));//待
+						}
+						if (content.getStudy() != null && !"".equals(content.getStudy())){
+							info.setStudy(info.getStudy()+(content.getStudy()*num));//学
+						}
+						if (content.getVery() != null && !"".equals(content.getVery())){
+							info.setVery(info.getVery()+(content.getVery()*num));//非
+						}
+						if (content.getBusiness() != null && !"".equals(content.getBusiness())){
+							info.setBusiness(info.getBusiness()+(content.getBusiness()*num));//公
+						}
+						if (content.getEvection() != null && !"".equals(content.getEvection())){
+							info.setEvection(info.getEvection()+(content.getEvection()*num));//差
+						}
+						if (content.getTeam() != null && !"".equals(content.getTeam())){
+							info.setTeam(info.getTeam()+(content.getTeam()*num));//团
+						}
+						if (content.getBorrow() != null && !"".equals(content.getBorrow())){
+							info.setBorrow(info.getBorrow()+(content.getBorrow()*num));//借
+						}
+						if (content.getRetreat() != null && !"".equals(content.getRetreat())){
+							info.setRetreat(info.getRetreat()+(content.getRetreat()*num));//退
+						}
+						if (content.getDiction() != null && !"".equals(content.getDiction())){
+							info.setDiction(info.getDiction()+(content.getDiction()*num));//辞
+						}
+						if (content.getLeave() != null && !"".equals(content.getLeave())){
+							info.setLeave(info.getLeave()+(content.getLeave()*num));//离
+						}
+						if ("计件".equals(wageForm)){//若是计件
+							if (content.getPiece() != null && !"".equals(content.getPiece())){
+								info.setPiece(info.getPiece()+(content.getPiece()*num));//计件
+							}
+						}
+						if (content.getYear() != null && !"".equals(content.getYear())){
+							info.setYears(info.getYears()+(content.getYear()*num));//年休
+						}
+						if (content.getOther() != null && !"".equals(content.getOther())){
+							info.setOther(info.getOther()+(content.getOther()*num));//其他
+						}
+						if (content.getOutWork() != null && !"".equals(content.getOutWork())){
+							info.setOutWork(info.getOutWork()+(content.getOutWork()*num));//出工
+						}
+						if (content.getBigClass() != null && !"".equals(content.getBigClass())){
+							info.setBigClass(info.getBigClass()+(content.getBigClass()*num));//大班
+						}
+						if (content.getSmallClass() != null && !"".equals(content.getSmallClass())){
+							info.setSmallClass(info.getSmallClass()+(content.getSmallClass()*num));//小班
+						}
+						if (content.getBigNight() != null && !"".equals(content.getBigNight())){
+							info.setBigNight(info.getBigNight()+(content.getBigNight()*num));//大夜
+						}
+						if (content.getSmallNight() != null && !"".equals(content.getSmallNight())){
+							info.setSmallNight(info.getSmallNight()+(content.getSmallNight()*num));//小夜
+						}
+					}
+				}
+				//缓休（之前未支付加班费的天数：上月缓休天数+本月总加班天数-应付加班天数-当月换休天数）
+				double lastLatencyDays = 0.0;
+				String jobNumber = map.get("jobNumber");
+				if(lastMap.get(jobNumber) != null){
+					lastLatencyDays = Double.valueOf(lastMap.get(map.get("jobNumber")));//上月缓休天数
+				}
+				double allOvertimes = Double.parseDouble(map.get("overtimeAll"));//本月总加班天数
+				double overtimemax = Double.parseDouble(map.get("overtimemax"));//应付加班天数
+				double changes = info.getChanges();//当月换休天数
+				double latencyLast = lastLatencyDays+allOvertimes-overtimemax-changes;
+				info.setLatency(latencyLast<0.0?0.0:latencyLast);
+				//延时小时数
+				String isSpecialHour = map.get("isSpecialHour");//是否特殊工时（0 否，1 是） 
+				if ("1".equals(isSpecialHour)){//若是特殊工时
+					double time = outHours-167.0;
+					info.setDelayedModulus(time<0.0?0.0:time);
+				}
+				info.setTotals(info.getDaytime()+info.getNight()+info.getOffDuty()+info.getCentre()+info.getOverseas()
+						+info.getRest()+info.getAlls()+info.getTake()+info.getFlip()+info.getTakeWork()+info.getChanges()
+						+info.getDisease()+info.getThing()+info.getMarry()+info.getInjury()+info.getLost()+info.getGive()
+						+info.getExplore()+info.getFree()+info.getStay()+info.getStudy()+info.getVery()+info.getBusiness()
+						+info.getEvection()+info.getTeam()+info.getBorrow()+info.getRetreat()+info.getDiction()+info.getLeave()
+						+info.getPiece()+info.getYears()+info.getOther());//合计
+				info.setAttendanceDays(info.getDaytime()+info.getNight()+info.getCentre()+info.getOverseas()+info.getAlls()
+						+info.getStudy()+info.getVery()+info.getBusiness()+info.getEvection());//出勤天数
+				info.setNightDays(info.getNight()+info.getAlls());//夜班
+				info.setIsDelete(0);
+				statisticsList.add(info);
+			}
+		}
+		return statisticsList;
+	}
+
+	@Override
+	public Map<String, Object> getStatisticsInfoData(Pager pager,
+			String searchData) {
+		String yearMonth = "";
+		String jobNumber = "";
+		String depId = "";
+		String depIds = "";
+		Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+		if (dataMap != null){
+			yearMonth = dataMap.get("yearMonth");
+			jobNumber = dataMap.get("jobNumber");
+			depId = dataMap.get("depId");
+		}
+		if (depId == null || "".equals(depId)){
+			//获得当前用户的所有权限部门集合
+			depIds = getAllDepIdStrs();
+		} else {
+			String[] depIdArrs = depId.split(",");
+			for (String dId:depIdArrs){
+				if (dId != null && !"".equals(dId)){
+					depIds += ("'"+dId+"', "); 
+				}
+			}
+			depIds = depIds.substring(0, depIds.length()-2);
+		}
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		if (searchData != null){
+			list = monthStatisticsDao.getStatisticsInfoByCond(pager, yearMonth, depIds, jobNumber);
+		}
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put("data", list);
+		returnMap.put("total", pager.getTotalCount());
+		return returnMap;
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+		String depIds = "";
+  		String userId = toolUtil.getUserId();
+  		List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+  				+ "INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+  				+ "WHERE B.IS_DELETE = 0 ");
+  		if (data!=null&&data.size()>0){
+  			for (int i=0;i<data.size();i++){
+  				Object b = (Object)data.get(i);
+//  				depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+  				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+               		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+               		"WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+  				}
+  			}
+  		}
+  		if (!"".equals(depIds)){
+  			depIds = depIds.substring(0,depIds.length()-2);
+  		}
+  		return depIds;
+	}
+
+	@Override
+	public void updateStatisInfos(String formdata) throws Exception {
+		Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		if (!dataMap.isEmpty()){
+			if (!"".equals(dataMap.get("id"))){//修改
+				CkMonthStatistics info = monthStatisticsDao.get(dataMap.get("id"));
+				info.setOutDuty(Double.valueOf(dataMap.get("outDuty")));
+				info.setCentre(Double.valueOf(dataMap.get("centre")));
+				info.setNight(Double.valueOf(dataMap.get("night")));
+				info.setVacationModulus(Double.valueOf(dataMap.get("vacationModulus")));
+				info.setOvertimeModulus(Double.valueOf(dataMap.get("overtimeModulus")));
+				info.setDelayedModulus(Double.valueOf(dataMap.get("delayedModulus")));
+				info.setPiece(Double.valueOf(dataMap.get("piece")));
+				info.setYears(Double.valueOf(dataMap.get("years")));
+				info.setFlip(Double.valueOf(dataMap.get("flip")));
+				info.setChanges(Double.valueOf(dataMap.get("changes")));
+				info.setThing(Double.valueOf(dataMap.get("thing")));
+				info.setDisease(Double.valueOf(dataMap.get("disease")));
+				info.setFree(Double.valueOf(dataMap.get("free")));
+				info.setInjury(Double.valueOf(dataMap.get("injury")));
+				info.setMarry(Double.valueOf(dataMap.get("marry")));
+				info.setLost(Double.valueOf(dataMap.get("lost")));
+				info.setExplore(Double.valueOf(dataMap.get("explore")));
+				info.setGive(Double.valueOf(dataMap.get("give")));
+				info.setStay(Double.valueOf(dataMap.get("stay")));
+				info.setOther(Double.valueOf(dataMap.get("other")));
+				info.setOutWork(Double.valueOf(dataMap.get("outWork")));
+				info.setBigClass(Double.valueOf(dataMap.get("bigClass")));
+				info.setSmallClass(Double.valueOf(dataMap.get("smallClass")));
+				info.setBigNight(Double.valueOf(dataMap.get("bigNight")));
+				info.setSmallNight(Double.valueOf(dataMap.get("smallNight")));
+				info.setAlls(Double.valueOf(dataMap.get("alls")));
+				info.setLatency(Double.valueOf(dataMap.get("latency")));
+				info.setTakeWork(Double.valueOf(dataMap.get("takeWork")));
+				info.setRemark(dataMap.get("remark"));
+				monthStatisticsDao.update(info);
+			}
+		}
+	}
+
+	@Override
+	public HSSFWorkbook exportStatisticsInfo(String yearMonth,
+			String jobNumber, String depIds) {
+		String[] cellname={
+				"序号", "职工号", "年月份", "姓名", "出勤", "中班", "夜班", "节加", "休加", "延时", 
+				"计件", "年休", "弹休", "换休", "事假", "病假", "旷工", "工伤", "婚假", "丧假", 
+				"探亲", "产假", "待岗", "其他", "出工", "大班", "小班", "大夜", "小夜", 
+				"全月", "缓休", "调休", "备注"};
+        HSSFWorkbook hwb = new HSSFWorkbook();
+        HSSFSheet sheet = hwb.createSheet("月度考勤统计信息");
+        HSSFRow row = sheet.createRow(0);
+        HSSFCell cell;
+        HSSFCellStyle stycle = hwb.createCellStyle();
+        stycle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        for (int i = 0; i < cellname.length; i++) {
+            cell = row.createCell(i);
+            cell.setCellValue(cellname[i]);
+            cell.setCellStyle(stycle);
+            sheet.setColumnWidth((short) i, cellname[i].getBytes().length * 600);
+        }
+        if (depIds == null || "".equals(depIds)){
+			//获得当前用户的所有权限部门集合
+			depIds = getAllDepIdStrs();
+		} else {
+			String[] depIdArrs = depIds.split(",");
+			depIds = "";
+			for (String dId:depIdArrs){
+				if (dId != null && !"".equals(dId)){
+					depIds += ("'"+dId+"', "); 
+				}
+			}
+			depIds = depIds.substring(0, depIds.length()-2);
+		}
+        //查询班制名称信息
+        List<Map<String, String>> list = monthStatisticsDao.getStatisInfoBySearchs(yearMonth, depIds, jobNumber);
+        if (list != null) {
+            for (int i = 0; i < list.size(); i++) {
+            	Map<String, String> info = list.get(i);
+                row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(i+1+"");
+                if(info.get("jobNumber") != null && !"null".equals(info.get("jobNumber"))){ 
+                	row.createCell(1).setCellValue(info.get("jobNumber")); 
+                }
+                if(info.get("yearMonth") != null && !"null".equals(info.get("yearMonth"))){ 
+                	row.createCell(2).setCellValue(info.get("yearMonth")); 
+                }
+                if(info.get("name") != null && !"null".equals(info.get("name"))){ 
+                	row.createCell(3).setCellValue(info.get("name"));
+                }
+                if(info.get("outDuty") != null && !"null".equals(info.get("outDuty"))){ 
+                	row.createCell(4).setCellValue(info.get("outDuty")); 
+                }
+                if(info.get("centre") != null && !"null".equals(info.get("centre"))){ 
+                	row.createCell(5).setCellValue(info.get("centre")); 
+                }
+                if(info.get("night") != null && !"null".equals(info.get("night"))){ 
+                	row.createCell(6).setCellValue(info.get("night")); 
+                }
+                if(info.get("vacation") != null && !"null".equals(info.get("vacation"))){ 
+                	row.createCell(7).setCellValue(info.get("vacation")); 
+                }
+                if(info.get("overtime") != null && !"null".equals(info.get("overtime"))){ 
+                	row.createCell(8).setCellValue(info.get("overtime")); 
+                }
+                if(info.get("delayed") != null && !"null".equals(info.get("delayed"))){ 
+                	row.createCell(9).setCellValue(info.get("delayed")); 
+                }
+                if(info.get("piece") != null && !"null".equals(info.get("piece"))){ 
+                	row.createCell(10).setCellValue(info.get("piece")); 
+                }
+                if(info.get("years") != null && !"null".equals(info.get("years"))){ 
+                	row.createCell(11).setCellValue(info.get("years")); 
+                }
+                if(info.get("flip") != null && !"null".equals(info.get("flip"))){ 
+                	row.createCell(12).setCellValue(info.get("flip")); 
+                }
+                if(info.get("changes") != null && !"null".equals(info.get("changes"))){ 
+                	row.createCell(13).setCellValue(info.get("changes")); 
+                }
+                if(info.get("thing") != null && !"null".equals(info.get("thing"))){ 
+                	row.createCell(14).setCellValue(info.get("thing")); 
+                }
+                if(info.get("disease") != null && !"null".equals(info.get("disease"))){ 
+                	row.createCell(15).setCellValue(info.get("disease")); 
+                }
+                if(info.get("free") != null && !"null".equals(info.get("free"))){ 
+                	row.createCell(16).setCellValue(info.get("free")); 
+                }
+                if(info.get("injury") != null && !"null".equals(info.get("injury"))){ 
+                	row.createCell(17).setCellValue(info.get("injury")); 
+                }
+                if(info.get("marry") != null && !"null".equals(info.get("marry"))){ 
+                	row.createCell(18).setCellValue(info.get("marry")); 
+                }
+                if(info.get("lost") != null && !"null".equals(info.get("lost"))){ 
+                	row.createCell(19).setCellValue(info.get("lost")); 
+                }
+                if(info.get("explore") != null && !"null".equals(info.get("explore"))){ 
+                	row.createCell(20).setCellValue(info.get("explore")); 
+                }
+                if(info.get("give") != null && !"null".equals(info.get("give"))){ 
+                	row.createCell(21).setCellValue(info.get("give")); 
+                }
+                if(info.get("stay") != null && !"null".equals(info.get("stay"))){ 
+                	row.createCell(22).setCellValue(info.get("stay")); 
+                }
+                if(info.get("other") != null && !"null".equals(info.get("other"))){ 
+                	row.createCell(23).setCellValue(info.get("other")); 
+                }
+                if(info.get("outWork") != null && !"null".equals(info.get("outWork"))){ 
+                	row.createCell(24).setCellValue(info.get("outWork")); 
+                }
+                if(info.get("bigClass") != null && !"null".equals(info.get("bigClass"))){ 
+                	row.createCell(25).setCellValue(info.get("bigClass")); 
+                }
+                if(info.get("smallClass") != null && !"null".equals(info.get("smallClass"))){ 
+                	row.createCell(26).setCellValue(info.get("smallClass")); 
+                }
+                if(info.get("bigNight") != null && !"null".equals(info.get("bigNight"))){ 
+                	row.createCell(27).setCellValue(info.get("bigNight")); 
+                }
+                if(info.get("smallNight") != null && !"null".equals(info.get("smallNight"))){ 
+                	row.createCell(28).setCellValue(info.get("smallNight")); 
+                }
+                if(info.get("alls") != null && !"null".equals(info.get("alls"))){ 
+                	row.createCell(29).setCellValue(info.get("alls")); 
+                }
+                if(info.get("latency") != null && !"null".equals(info.get("latency"))){ 
+                	row.createCell(30).setCellValue(info.get("latency")); 
+                }
+                if(info.get("takeWork") != null && !"null".equals(info.get("takeWork"))){ 
+                	row.createCell(31).setCellValue(info.get("takeWork")); 
+                }
+                if(info.get("remark") != null && !"null".equals(info.get("remark"))){ 
+                	row.createCell(32).setCellValue(info.get("remark")); 
+                }
+            }
+        }
+        return hwb;
+	}
+}

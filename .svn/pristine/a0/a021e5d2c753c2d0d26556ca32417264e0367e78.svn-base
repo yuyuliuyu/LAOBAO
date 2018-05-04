@@ -1,0 +1,1032 @@
+package com.lingnet.hcm.dao.impl.personnel;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: PersonnelDaoImpl 
+ * @Description:  
+ * @author zrl
+ * @date 2017年3月20日 下午12:08:54 
+ *
+ */
+@Repository("personnelDao")
+public class PersonnelDaoImpl extends BaseDaoImpl<BasicInformation, String> 
+	implements PersonnelDao{
+	
+	@Override
+	public BasicInformation getByJobNumber(String jobNumber) {
+		BasicInformation info = (BasicInformation) this.getSession().createCriteria(BasicInformation.class)
+				.add(Restrictions.eq("jobNumber", jobNumber)).uniqueResult();
+		return info;
+	}
+
+	@Override
+	public List<Object> getAllJobNumbers() {
+		String sql = "select JOB_NUMBER from JC_BASIC_INFORMATION where IS_DELETE = '0'";
+		return this.getSession().createSQLQuery(sql).list();
+	}
+
+	@Override
+	public List<Object> getAllCheckNumbers() {
+		String sql = "select CHECK_NO from JC_BASIC_INFORMATION where IS_DELETE = '0'";
+		return this.getSession().createSQLQuery(sql).list();
+	}
+
+	@Override
+	public void updateBatchClass(String empIds, String depIds, String classNo) {
+		String sql = "update JC_BASIC_INFORMATION set CLASS_NO = '"+classNo+"' where IS_DELETE = 0 ";
+		if (!"".equals(empIds)){
+			sql += "and ID IN("+empIds+") ";
+		}
+		if (!"".equals(depIds)){
+			sql += "and DEPART_ID IN("+depIds+") ";
+		}
+		this.getSession().createSQLQuery(sql).executeUpdate();
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Object[]> getCheckInfosByDepIds(String depIds) {
+		String sql = "select jbi.JOB_NUMBER, jbi.CLASS_NO, ci.ID "
+			+"from JC_BASIC_INFORMATION jbi "
+			+"left join CK_CLASS cc on jbi.CLASS_NO = cc.CLASS_NO "
+			+"left join CK_INSTITUTION ci ON ci.ID = cc.INSTITUTE_ID "
+			+"where jbi.IS_DELETE = 0 and jbi.CLASS_NO is not null ";
+		if (!"".equals(depIds)){
+			sql += "and jbi.DEPART_ID IN("+depIds+") ";
+		}
+		return this.getSession().createSQLQuery(sql).list();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public String getEmpIdsByDepIds(String depIds) {
+		String empIds = "";
+		String sql = "select ID from JC_BASIC_INFORMATION where IS_DELETE = 0 and DEPART_ID IN("+depIds+")";
+		List<Object> list = this.getSession().createSQLQuery(sql).list();
+		if (list.size() > 0){
+			for (Object obj:list){
+				empIds += (obj + ",");
+			}
+		}
+		if (!"".equals(empIds)){
+			empIds = empIds.substring(0, empIds.length()-1);
+		}
+		return empIds;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getDataByEmpIds(Pager pager, List<String> empIdArrs) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String empIds = "";
+		if (empIdArrs.size() > 0){
+			for (String empId:empIdArrs){
+				empIds += ("'" + empId + "', ");
+			}
+		}
+		if (!"".equals(empIds)){
+			String sql = "select jbi.ID, cc.class_name, jbi.name, jbi.job_number, jbi.post "
+				+"from jc_basic_information jbi "
+				+"left join CK_CLASS cc on jbi.class_no = cc.class_no "
+				+"where jbi.id in("+empIds.substring(0, empIds.length()-2)+")";
+			List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+			if (objList.size() > 0){
+				for (Object[] obj:objList){
+					Map<String, String> map = new HashMap<String, String>();
+					map.put("empId", obj[0]+"");
+					map.put("className", obj[1]+"");
+					map.put("empName", obj[2]+"");
+					map.put("jobNumber", obj[3]+"");
+					map.put("post", obj[4]+"");
+					list.add(map);
+				}
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public String getJobNumbersByDepIds(String depIds) {
+		String sql = "select JOB_NUMBER from JC_BASIC_INFORMATION where CHECK_UNIT_ID in("+depIds+")";
+		List<Object> objs = this.getSession().createSQLQuery(sql).list();
+		String jobNumbers = "";
+		if (objs != null){
+			for (Object obj:objs){
+				jobNumbers += ("'" +obj+ "', ");
+			}
+		}
+		if (!"".equals(jobNumbers)){
+			jobNumbers = jobNumbers.substring(0, jobNumbers.length()-2);
+		}
+		return jobNumbers;
+	}
+
+	@Override
+	public String getCheckUnitIdByJobNumber(String jobNumber) {
+		String sql = "select CHECK_UNIT_ID from JC_BASIC_INFORMATION where JOB_NUMBER ='"+jobNumber+"'";
+		Object obj = this.getSession().createSQLQuery(sql).uniqueResult();
+		return (obj==null?"":obj+"");
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getAnnualLeaveData(Pager pager,
+			String searchData, String depIds) {
+		List<Map<String, String>> listDate = new ArrayList<Map<String, String>>();
+		String sql = "select JOB_NUMBER, NAME, CLASS_NAME, to_char(SET_WORK_DATE, 'yyyy-MM-dd'), "
+				+ "to_char(IN_PORT_TIME, 'yyyy-MM-dd') "
+				+ "from JC_BASIC_INFORMATION jbi "
+				+ "left join CK_CLASS cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where jbi.IS_DELETE = 0 ";
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				sql += "and jbi.CHECK_UNIT_ID in(";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						sql += ("'" + depIdArrs[i] + "', ");
+					}
+				}
+				sql = sql.substring(0, sql.length()-2);
+				sql += ") ";
+			} else {
+				sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+			}
+		} else {
+			sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+		}
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (Object[] obj:list){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", obj[0]+"");
+				map.put("name", obj[1]+"");
+				map.put("className", obj[2]+"");
+				map.put("workDate", obj[3]+"");//起始工作日期
+				map.put("portDate", obj[4]+"");//入港日期
+				map.put("legalDay", "");//全部
+				map.put("shouldTake", "");//应休
+				map.put("month1", "");
+				map.put("month2", "");
+				map.put("month3", "");
+				map.put("month4", "");
+				map.put("month5", "");
+				map.put("month6", "");
+				map.put("month7", "");
+				map.put("month8", "");
+				map.put("month9", "");
+				map.put("month10", "");
+				map.put("month11", "");
+				map.put("month12", "");
+				map.put("haveTake", "");//已休
+				map.put("surplus", "");//剩余
+				listDate.add(map);
+			}
+		}
+		return listDate;
+	}
+	@Override
+	public String getCheckUnitIdById(String id) {
+		String sql = "select jbi.CHECK_UNIT_ID from QX_USERS qu "
+				+ "left join JC_BASIC_INFORMATION jbi on qu.USERNAME = jbi.JOB_NUMBER "
+				+ "where qu.ID ='"+id+"'";
+		Object obj = this.getSession().createSQLQuery(sql).uniqueResult();
+		return (obj==null?"":obj+"");
+	}
+	//**************************************************************************//
+	/**
+	 * 查询员工总页面
+	 */
+	@Override
+	public HashMap<String, Object> getPersonByDepId(Pager pager,String searchData) {
+		
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB NOT IN(0,3,4) ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMBER LIKE'"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+		
+	}
+	/**
+	 * getZsgPerson
+	 * 试岗期页面
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getSgqPerson(Pager pager,String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 1 AND EMP_TYPE = 0 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+		
+	}
+	/**
+	 * getZsgPerson
+	 * 正式工页面
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getZsgPerson(Pager pager,String searchData) {
+		//普通员工里面的正式工
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 2 AND EMP_TYPE = 0 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+		
+	}
+	/**
+	 * getZsgPerson
+	 * 实习生list页面
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getSxsPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME,IS_PRACTICE,PRACTICE_NUM  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND IS_PRACTICE IN (0, 1) ")//0为结束实习的，1为正在实习的
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			map.put("isPractice", obj[16]);
+			map.put("practiceNum", obj[17]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	/**
+	 * getZsgPerson
+	 * 劳务外包list页面
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getLwwbPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND EMP_TYPE = 1 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	/**
+	 * getZsgPerson
+	 * 业务外包list页面
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getYwwbPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND EMP_TYPE = 2 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	
+	/**
+	 * getZsgPerson
+	 * 退休list页面
+	 * 劳务外包人员，业务外包人员，正式工的退休
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getTxPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 4 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	/**
+	 * getZsgPerson
+	 * 离职list页面
+	 * 劳务外包人员，业务外包人员，正式工的离职
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getLzPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 4 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	/**
+	 * getZsgPerson
+	 * 返聘list页面
+	 * 劳务外包人员，业务外包人员，正式工的返聘
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getFpPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 5 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+	/**
+	 * getZsgPerson
+	 * 返聘list页面
+	 * 退伍军人
+	 * zrl
+	 */
+	@Override
+	public HashMap<String, Object> getFyjrPerson(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" select ID, DEPART_ID, JOB_NUMBER, NAME,AGE,SEX,IS_MARRIED,POST,JOB_LEVEL,EMP_TYPE,ON_JOB,ON_POST,SPECIFIC_POST,FILM_ID,  ")
+		.append(" FILM_NAME,DEPART_NAME  ")
+		.append(" from JC_BASIC_INFORMATION ")
+		.append(" where IS_DELETE = 0 AND ON_JOB = 0 ")
+		;
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				
+				String  resql="";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						resql+="'" + depIdArrs[i] + "', ";
+					}
+				}
+				resql = resql.substring(0, resql.length()-2);
+				
+				sql.append(" and DEPART_ID in("+resql+")");
+				
+			}
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and JOB_NUMNER ='"+dataMap.get("jobNumber")+"'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and NAME like '%"+dataMap.get("name")+"%'");
+			}
+			if (dataMap.get("post") != null && !"".equals(dataMap.get("post"))){
+				sql.append(" and POST ='"+dataMap.get("post")+"'");
+			}
+		}
+		sql.append(" order by CREATEDATE DESC ");
+		
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+		
+        List dataList = new ArrayList();
+		
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("id", obj[0]);
+			map.put("depId", obj[1]);
+			map.put("jobNumber", obj[2]);
+			map.put("name", obj[3]);
+			map.put("age", obj[4]);
+			map.put("sex", obj[5]);
+			map.put("isMarried", obj[6]);
+			map.put("post", obj[7]);
+			map.put("jobLevel", obj[8]);
+			/*map.put("jobLevel", obj[8]);*/
+			map.put("empType", obj[9]);
+			map.put("onJob", obj[10]);
+			map.put("onPost", obj[11]);
+			map.put("specificPost", obj[12]);
+			map.put("filmId", obj[13]);
+			map.put("filmName", obj[14]);
+			map.put("departName", obj[15]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getAnnualDataList(String searchData, String depIds) {
+		List<Map<String, String>> listDate = new ArrayList<Map<String, String>>();
+		String sql = "select JOB_NUMBER, NAME, CLASS_NAME, to_char(SET_WORK_DATE, 'yyyy-MM-dd'), "
+				+ "to_char(IN_PORT_TIME, 'yyyy-MM-dd') "
+				+ "from JC_BASIC_INFORMATION jbi "
+				+ "left join CK_CLASS cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where jbi.IS_DELETE = 0 ";
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				sql += "and jbi.CHECK_UNIT_ID in(";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						sql += ("'" + depIdArrs[i] + "', ");
+					}
+				}
+				sql = sql.substring(0, sql.length()-2);
+				sql += ") ";
+			} else {
+				sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+			}
+		} else {
+			sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+		}
+		List<Object[]> list = this.getSession().createSQLQuery(sql).list();
+		if (list.size() > 0){
+			for (Object[] obj:list){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", obj[0]+"");
+				map.put("name", obj[1]+"");
+				map.put("className", obj[2]+"");
+				map.put("workDate", obj[3]+"");//起始工作日期
+				map.put("portDate", obj[4]+"");//入港日期
+				map.put("legalDay", "");//全部
+				map.put("shouldTake", "");//应休
+				map.put("month1", "");
+				map.put("month2", "");
+				map.put("month3", "");
+				map.put("month4", "");
+				map.put("month5", "");
+				map.put("month6", "");
+				map.put("month7", "");
+				map.put("month8", "");
+				map.put("month9", "");
+				map.put("month10", "");
+				map.put("month11", "");
+				map.put("month12", "");
+				map.put("haveTake", "");//已休
+				map.put("surplus", "");//剩余
+				listDate.add(map);
+			}
+		}
+		return listDate;
+	}
+
+}

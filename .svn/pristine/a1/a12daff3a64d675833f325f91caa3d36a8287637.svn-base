@@ -1,0 +1,212 @@
+package com.lingnet.hcm.action.check;
+
+import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.service.check.MonthStatisticsService;
+import com.lingnet.util.JsonUtil;
+/**
+ * 
+ * @ClassName: Report 
+ * @Description: 考勤报表打印控制层 
+ * @author wangqiang
+ * @date 2017年3月7日 下午4:44:05 
+ *
+ */
+public class ReportAction extends BaseAction{
+
+	private static final long serialVersionUID = 5623909238890670719L;
+	
+	private String jobNumber;//职工号
+	private String depIds;//部门ID集合
+	private String yearMonth;//年月份
+	private String isAbsence;
+	
+	@Resource(name = "monthStatisticsService")
+	private MonthStatisticsService monthStatisticsService;
+		
+	/**
+	 * 跳转到月度考勤表页
+	 */
+	public String checkMonthList(){
+        return "checkMonthList";
+    }
+	
+	/**
+	 * 获取月度考勤表数据及统计信息
+	 */
+	public String getCheckMonthData(){
+		Map<String, Object> result = monthStatisticsService.getReportDataByCond(pager, searchData);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+	/**
+	 * 导出月度考勤信息
+	 * @Title: exportMonthCheckInfo  
+	 * @author wangqiang
+	 * @since 2017年5月19日 V 1.0
+	 */
+	public void exportMonthCheckInfo(){
+		HttpServletResponse resp = getResponse(); 
+    	try {
+            HSSFWorkbook hwb = monthStatisticsService.exportMonthCheckInfo(yearMonth, jobNumber, depIds);
+            resp.setContentType("application/x-msdownload");
+            resp.setHeader("Content-Disposition", "attachment;filename=\""
+            		+ new String("员工月度考勤表信息".getBytes("gb2312"), "ISO8859-1")+ ".xls" + "\"");
+            OutputStream out = resp.getOutputStream();
+            hwb.write(out);
+            out.flush();
+            out.close();
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+
+    
+	/**
+	 * 跳转到打印月度考勤表页面
+	 * @Title: toPrintMonthCheck  
+	 * @author wangqiang
+	 * @since 2017年5月20日 V 1.0
+	 */
+	public String toPrintMonthCheck(){
+		return "printMonthCheck";
+	}
+	
+	/**********************************************************/
+	
+	/**
+	 * 跳转到出勤率报表页
+	 */
+	public String rateList(){
+        return "rateList";
+    }
+	
+	/**
+	 * 获取出勤率报表数据及统计信息
+	 */
+	public String getRateData(){
+		Map<String, Object> result = monthStatisticsService.getReportDataByCond(pager, searchData);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+
+    /**
+     * 导出出勤全月考勤信息
+     * @Title: exportMonthCheckInfo  
+     * @author wangqiang
+     * @since 2017年5月19日 V 1.0
+     */
+    public void exportRateCheckInfo(){
+        HttpServletResponse resp = getResponse(); 
+        try {
+            HSSFWorkbook hwb = monthStatisticsService.exportStatisticsInfo(yearMonth, null,depIds);
+            resp.setContentType("application/x-msdownload");
+            resp.setHeader("Content-Disposition", "attachment;filename=\""
+                    + new String("员工月度考勤表信息".getBytes("gb2312"), "ISO8859-1")+ ".xls" + "\"");
+            OutputStream out = resp.getOutputStream();
+            hwb.write(out);
+            out.flush();
+            out.close();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+	/*************************************************************/
+	
+	/**
+	 * 跳转到缺勤全月统计报表页
+	 */ 
+	public String absenceList(){
+        return "absenceList";
+    }
+	
+	/**
+	 * 获取缺勤全月统计报表数据及统计信息
+	 */
+	public String getAbsenceData(){
+		Map<String, Object> result = monthStatisticsService.getAbsenceReportByCond(pager, searchData);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+
+    /**
+     * 导出缺勤全月考勤信息
+     * @Title: exportMonthCheckInfo  
+     * @author wangqiang
+     * @since 2017年5月19日 V 1.0
+     */
+    public void exportAbsenceCheckInfo(){
+        HttpServletResponse resp = getResponse(); 
+        try {
+            HSSFWorkbook hwb = monthStatisticsService.exportAbsenceCheckInfo(yearMonth, depIds,isAbsence);
+            resp.setContentType("application/x-msdownload");
+            resp.setHeader("Content-Disposition", "attachment;filename=\""
+                    + new String("员工月度考勤表信息".getBytes("gb2312"), "ISO8859-1")+ ".xls" + "\"");
+            OutputStream out = resp.getOutputStream();
+            hwb.write(out);
+            out.flush();
+            out.close();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+	/*************************************************************/
+	
+	/**
+	 * 跳转到岗位出勤天数报表页
+	 */
+	public String attendanceList(){
+        return "attendanceList";
+    }
+	
+	/**
+	 * 获取岗位出勤天数报表数据及统计信息
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public String getAttendanceData(){
+		Map result = new HashMap();
+        result.put("data", null);
+        result.put("total", pager.getTotalCount());
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+	public String getDepIds() {
+		return depIds;
+	}
+
+	public void setDepIds(String depIds) {
+		this.depIds = depIds;
+	}
+
+	public String getJobNumber() {
+		return jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	public String getYearMonth() {
+		return yearMonth;
+	}
+
+	public void setYearMonth(String yearMonth) {
+		this.yearMonth = yearMonth;
+	} 
+    public String getIsAbsence() {
+        return isAbsence;
+    } 
+    public void setIsAbsence(String isAbsence) {
+        this.isAbsence = isAbsence;
+    } 
+}

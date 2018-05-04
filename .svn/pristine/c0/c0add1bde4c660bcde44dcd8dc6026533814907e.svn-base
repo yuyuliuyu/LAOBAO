@@ -1,0 +1,145 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryGroupWageDao;
+import com.lingnet.hcm.entity.salary.GroupWageAndType;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.hcm.service.salary.GroupWageAndTypeService;
+import com.lingnet.hcm.service.salary.SalaryGroupWageService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪资组工资套
+ * @ClassName: SalaryGroupWageService 
+ * @Description: 薪资组工资套 
+ * @author zhanghj
+ * @date 2017年4月5日 下午4:30:53 
+ *
+ */
+@Service("salaryGroupWageService")
+public class SalaryGroupWageServiceImpl extends BaseServiceImpl<SalaryGroupWage, String>
+              implements SalaryGroupWageService {
+
+    @Resource(name="groupWageAndTypeService")
+    private GroupWageAndTypeService groupWageAndTypeService;
+    @Resource(name="salaryGroupWageDao")
+    private SalaryGroupWageDao salaryGroupWageDao;
+
+    @Override
+    public Map<String, Object> getSalaryGroupWageListData(String id,
+            String searchData, Pager pager) {
+        return salaryGroupWageDao.getSalaryGroupWageListData(id, searchData, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateItems(String formdata, String griddata, String gridData) throws Exception {
+        SalaryGroupWage salaryWage = JsonUtil.toObject(formdata, SalaryGroupWage.class);
+        if (salaryWage != null) {
+            String id ="";
+            if (StringUtils.isBlank(salaryWage.getId())) {
+                salaryWage.setIsDelete(0);
+                id = save(salaryWage);
+                if (StringUtils.isBlank(id)) {
+                    throw new Exception("保存失败");
+                }
+            } else {
+                SalaryGroupWage newsal = get(SalaryGroupWage.class, Restrictions.eq("id", salaryWage.getId()), Restrictions.eq("isDelete", 0));
+                if (newsal == null) {
+                    return "该工资套不存在";
+                }
+                salaryWage.setIsDelete(0);
+                newsal.copyFrom(salaryWage);
+                update(newsal);
+                id = newsal.getId();
+            }
+
+            // 将引用的薪资项目删除
+            List<GroupWageAndType> listYin = getList(GroupWageAndType.class,
+                    Restrictions.eq("sign", 1),
+                    Restrictions.eq("wageId", id),
+                    Restrictions.eq("isDelete", 0));
+            for (GroupWageAndType groupWageAndType : listYin) {
+                groupWageAndType.setIsDelete(1);
+                groupWageAndTypeService.update(groupWageAndType);
+            }
+
+            // 增加引用的薪资项目
+            List<GroupWageAndType> newListType = JsonUtil.toList(griddata, GroupWageAndType.class);
+            for (int i =0, l = newListType.size(); i < l; i++) {
+                GroupWageAndType bean = newListType.get(i);
+                bean.setWageId(id);
+                bean.setIsDelete(0);
+                bean.setSign(1);
+                String result = groupWageAndTypeService.save(bean);
+                if (StringUtils.isBlank(result))
+                    throw new Exception("保存失败");
+            }
+            List<Map<String, String>> list = JsonUtil.getMapList(gridData);
+            for (int i =0, l = list.size(); i < l; i++) {
+                Map<String, String> m = list.get(i);
+                GroupWageAndType bean = JsonUtil.toObject(JsonUtil.Encode(m), GroupWageAndType.class);
+                bean.setWageId(id);
+                if ("removed".equals(m.get("_state"))) {
+                    GroupWageAndType itemAndType = get(GroupWageAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("wageId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.setIsDelete(1);
+                        groupWageAndTypeService.update(itemAndType);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    GroupWageAndType itemAndType = get(GroupWageAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("wageId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.copyFrom(bean);
+                        groupWageAndTypeService.update(itemAndType);
+                    } else throw new Exception("发生异常");
+                } else if ("added".equals(m.get("_state"))) {
+                    bean.setIsDelete(0);
+                    bean.setSign(2);
+                    String result = groupWageAndTypeService.save(bean);
+                    if (StringUtils.isBlank(result))
+                        throw new Exception("保存失败");
+                }
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            SalaryGroupWage salaryWage = get(SalaryGroupWage.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (salaryWage != null) {
+                salaryWage.setIsDelete(1);
+                this.update(salaryWage);
+            } else {
+                return "第"+(i+1)+"条记录不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getGroupWageTypeListData(String id, int sign) {
+        return salaryGroupWageDao.getGroupWageTypeListData(id, sign);
+    }
+
+}

@@ -1,0 +1,676 @@
+package com.lingnet.hcm.service.impl.personnel;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.AnnualLeaveRecordDao;
+import com.lingnet.hcm.dao.personnel.ChangeDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.dao.personnel.PtJobDao;
+import com.lingnet.hcm.dao.post.DeptPositionDao;
+import com.lingnet.hcm.dao.post.PostPositionDao;
+import com.lingnet.hcm.entity.DeptPosition;
+import com.lingnet.hcm.entity.PostPosition;
+import com.lingnet.hcm.entity.check.CkAnnualLeave;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.hcm.service.personnel.PersonnelUploadService;
+import com.lingnet.qxgl.dao.AdminDao;
+import com.lingnet.qxgl.dao.BackendDepDao;
+import com.lingnet.qxgl.dao.BranchDao;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxRoles;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUserDatauth;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BackendRoleService;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: PersonnelServiceImpl 
+ * @Description: 人员信息service实现类 
+ * @author zrl
+ * @date 2017年3月20日 下午1:32:00 
+ *
+ */
+@Service("personnelUploadService")
+public class PersonnelUploadServiceImpl extends BaseServiceImpl<BasicInformation, String> 
+	implements PersonnelUploadService{
+	
+	@Resource(name = "backendRoleService")
+    private BackendRoleService backendRoleService;
+	
+	@Resource(name = "adminService")
+    private AdminService adminService;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+	
+	@Resource(name = "adminDao")
+    private AdminDao adminDao;
+	
+	@Resource(name="ptJobDao")
+	private PtJobDao ptJobDao;
+	
+	@Resource(name="changeDao")
+	private ChangeDao changeDao;
+	
+	@Resource(name="personnelDao")
+	private PersonnelDao personnelDao;
+	
+	@Override
+	public String saveImportInfos(String endSuffix, File uploadFile) throws Exception {
+		// 读取数据
+        List<String[]> jblist = this.readData(2,4, endSuffix, uploadFile,"员工基本信息");
+        List<String[]> zzlist = this.readData(2,4, endSuffix, uploadFile,"员工组织信息");
+        
+        // 第一行内容
+        String[] jbfirstRow = {"工号(*)", "姓名(*)", "性别(*)", "出生日期(*)", "证件号码(*)", "开始工作日期(*)",
+        		"证件类型(*)", "政治面貌", "出生地", "职务级别","籍贯", "婚姻状况", "户口所在地","集团编号(*)","是否退伍军人(*)","是否技术工人(*)","是否专业技术人员(*)"};
+        
+        String[] zzfirstRow = {"员工工号(*)", "用工形式(*)","人员类别(*)", "劳务公司","职务","公司编号(*)", "部门编号(*)",
+        		"标准岗位编号(*)", "部门岗位编号(*)", "在职状态(*)", "在岗状态(*)", "开始时间","入司时间1","入司时间2","入港时间1","入港时间2",};
+        // 单独把第一行抽取出来
+        String[] jbfirstValues = jblist.get(0);
+        
+        String[] zzfirstValues = zzlist.get(0);
+        
+        
+        for (int i = 0, z = jbfirstRow.length; i < z; i++) {
+            if (!jbfirstRow[i].trim().equals(jbfirstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + jbfirstValues[i].trim() + "</font>列必须是 " + jbfirstRow[i].trim();
+            }
+        }
+        for (int i = 0, z = zzfirstRow.length; i < z; i++) {
+            if (!zzfirstRow[i].trim().equals(zzfirstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + zzfirstValues[i].trim() + "</font>列必须是 " + zzfirstRow[i].trim();
+            }
+        }
+        
+        //List<BasicInformation> importData = new ArrayList<BasicInformation>();
+        // 匹配消息
+        String msg = StringUtils.EMPTY;
+
+        
+        // 循环遍历存储《基础数据》Excel值
+        for (int i = 1; i < jblist.size(); i++) {
+            // 组装列
+            String[] columns = new String[17];
+            String[] values = jblist.get(i);
+            // 判断是否整行是空行
+            Boolean isEmpty= true;
+            for(int q=0;q<values.length;q++){
+                if (q < 17) {
+                    columns[q]=values[q].trim();
+                    if (!StringUtils.isBlank(columns[q])) {
+                        isEmpty = false;
+                    }
+                } else continue;
+            }
+            // 存在空白行
+            if (isEmpty) {
+                // 文档结束
+                break;
+            }
+            for(int k=values.length;k<17;k++){
+                columns[k]="";
+            }
+            BasicInformation infos = new BasicInformation();// 存储人员基本信息
+            //职工号判断
+            if (!StringUtils.isBlank(columns[0])) {
+                String message = checkLength(columns[0], "职工号长度不能超过10位", 10);
+                if (!StringUtils.isBlank(message)) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，"+message);
+                }
+                BasicInformation oldinfo=null;
+				try {
+					oldinfo = this.get(Restrictions.eq("jobNumber", columns[0]));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                if (oldinfo!=null) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，职工号存在重复问题"+message);
+                }
+                infos.setJobNumber(columns[0]);
+            } else throw new Exception("文件导入失败： 第"+ (i+1) +"行，职工号不能为空！");
+            // 姓名验证
+            if (!StringUtils.isBlank(columns[1])) {
+                infos.setName(columns[1]);
+            } else throw new Exception("文件导入失败： 第"+ (i+1) +"行，名字不能为空！");
+            //性别验证
+            if (!StringUtils.isBlank(columns[2])) {
+                infos.setSex(Integer.parseInt(columns[2]));
+            }
+            // 出生日期验证
+            if (!StringUtils.isBlank(columns[3])) {
+            	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+            	 Date date = sdf.parse(columns[3]); 
+                 infos.setBorthDate(date);
+            }
+            //证件号码验证
+            if (!StringUtils.isBlank(columns[4])) {
+            	String message = checkLength(columns[4], "职证件号码长度不能超过18位", 18);
+            	if (!StringUtils.isBlank(message)) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，"+message);
+                }
+                infos.setIdNumber(columns[4]);
+            }
+            // 开始工作日期验证
+            if (!StringUtils.isBlank(columns[5])) {
+            	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+            	 Date date = sdf.parse(columns[5]); 
+                 infos.setSetWorkDate(date);
+            }
+            //性证件类型
+            if (!StringUtils.isBlank(columns[6])) {
+                infos.setIdType(columns[6]);
+            }
+            //政治面貌
+            if (!StringUtils.isBlank(columns[7])) {
+                infos.setPoliticsStatus(columns[7]);
+            }
+            //出生地
+            if (!StringUtils.isBlank(columns[8])) {
+                infos.setBorthPlace(columns[8]);
+            }
+            //职务级别
+            if (!StringUtils.isBlank(columns[9])) {
+                infos.setJobLevel(columns[9]);
+            }
+            //籍贯
+            if (!StringUtils.isBlank(columns[10])) {
+                infos.setNativePlace(columns[10]);
+            }
+            //婚姻状况
+            if (!StringUtils.isBlank(columns[11])) {
+                infos.setIsMarried(Integer.parseInt(columns[11]));
+            }
+            //户口所在地
+            if (!StringUtils.isBlank(columns[12])) {
+                infos.setResidencePlace(columns[12]);
+            }
+            if (!StringUtils.isBlank(columns[13])) {
+                String message = checkLength(columns[13], "集团编号长度不能超过10位", 10);
+                if (!StringUtils.isBlank(message)) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，"+message);
+                }
+                infos.setJobNumberJt(columns[13]);
+            } else throw new Exception("文件导入失败： 第"+ (i+1) +"行，集团编号不能为空！");
+            //是否为军人
+            if (!StringUtils.isBlank(columns[14])) {
+                infos.setIsSoldier(Integer.parseInt(columns[14]));
+            }
+            //是否为技术工人
+            if (!StringUtils.isBlank(columns[15])) {
+                infos.setIsSkilled(Integer.parseInt(columns[15]));
+            }
+            //是否为专业技术人员
+            if (!StringUtils.isBlank(columns[16])) {
+                infos.setIsSpecialty(Integer.parseInt(columns[16]));
+            }
+            infos.setIsDelete(0);
+            
+           
+            //importData.add(infos);
+            
+            
+            for (int j = 1; j < zzlist.size(); j++) {
+                // 组装列
+                String[] columns1 = new String[16];
+                String[] values1 = zzlist.get(j);
+                // 判断是否整行是空行
+                Boolean isEmpty1= true;
+                for(int qq=0;qq<values1.length;qq++){
+                    if (qq < 16) {
+                        columns1[qq]=values1[qq].trim();
+                        if (!StringUtils.isBlank(columns1[qq])) {
+                            isEmpty1 = false;
+                        }
+                    } else continue;
+                }
+                // 存在空白行
+                if (isEmpty1) {
+                    // 文档结束
+                    break;
+                }
+                for(int kk=values1.length;kk<16;kk++){
+                    columns1[kk]="";
+                }
+                
+                
+                if(!infos.getJobNumber().equals(columns1[0])){
+                	continue;
+                }
+                //职工号判断
+                if (StringUtils.isBlank(columns1[0])) {
+                	throw new Exception("文件导入失败： 第"+ (j+1) +"行，职工号不能为空！");
+                } 
+                // 用工形式
+                if (!StringUtils.isBlank(columns1[1])) {
+                	infos.setWorkType(Integer.parseInt(columns1[1]));
+                } else throw new Exception("文件导入失败： 第"+ (j+1) +"行，用工形式不能为空！");
+                //员工分类
+                if (!StringUtils.isBlank(columns1[2])) {
+                	infos.setEmpType(Integer.parseInt(columns1[2]));
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，员工分类不能为空！");
+                // 劳务公司
+                if (!StringUtils.isBlank(columns1[3])) {
+                	infos.setLaborCompany(columns1[3]);
+                }
+                
+                //职务
+                if (!StringUtils.isBlank(columns1[4])) {
+                	infos.setJobLevel(columns1[4]);
+                }
+                //部门简称
+                if (!StringUtils.isBlank(columns1[6])) {
+                	QxDepartment dep=this.get(QxDepartment.class, Restrictions.eq("description", columns1[6]));
+                    if(dep!=null){
+                    	infos.setDepartId(dep.getId());
+                    	infos.setDepartName(dep.getName());
+                    	infos.setCheckUnitId(dep.getId());
+                    }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，部门编号填写不正确！");
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，部门编号不能为空！");
+                //公司简称
+                if (!StringUtils.isBlank(columns1[5])) {
+                	Branch dep=this.get(Branch.class, Restrictions.eq("jm", columns1[5]));
+                    if(dep!=null){
+                    	infos.setFilmId(dep.getId());
+                    	infos.setFilmName(dep.getFzx());
+                    }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，公司编号填写不正确！");
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，公司编号不能为空！");
+                //标准岗位
+                if (!StringUtils.isBlank(columns1[7])) {
+                	PostPosition dep=this.get(PostPosition.class, Restrictions.eq("positionCode", columns1[7]));
+                    if(dep!=null){
+                    	infos.setPostId(dep.getId());
+                    	infos.setPost(dep.getPositionName());
+                    }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，标准岗位编码填写不正确！");
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，标准岗位编码不能为空！");
+                //部门岗位
+                if (!StringUtils.isBlank(columns1[8])) {
+                	DeptPosition dep=this.get(DeptPosition.class, Restrictions.eq("positionCode", columns1[8]));
+                    if(dep!=null){
+                    	infos.setSpecificPostId(dep.getId());
+                    	infos.setSpecificPost(dep.getPositionName());
+                    }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，部门岗位编码填写不正确！");
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，部门岗位编码不能为空！");
+                //在职状态
+                if (!StringUtils.isBlank(columns1[9])) {
+                	infos.setOnJob(Integer.parseInt(columns1[9]));
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，在职状态不能为空！");
+                //在岗状态
+                if (!StringUtils.isBlank(columns1[10])) {
+                	infos.setOnPost(Integer.parseInt(columns1[10]));
+                }else throw new Exception("文件导入失败： 第"+ (j+1) +"行，在岗状态不能为空！");
+                // 开始日期
+                if (!StringUtils.isBlank(columns1[11])) {
+                	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+                	 Date date = sdf.parse(columns1[11]); 
+                	 infos.setBeginTime(date);
+                }
+                
+             // 入司时间1
+                if (!StringUtils.isBlank(columns1[12])) {
+                	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+                	 Date date = sdf.parse(columns1[12]); 
+                	 infos.setInCompanyTime(date);
+                }
+                
+             // 入司时间2
+                if (!StringUtils.isBlank(columns1[13])) {
+                	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+                	 Date date = sdf.parse(columns1[13]); 
+                	 infos.setInCompanyTime2(date);
+                }
+             // 入港时间1
+                if (!StringUtils.isBlank(columns1[14])) {
+                	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+                	 Date date = sdf.parse(columns1[14]); 
+                	 infos.setInPortTime(date);
+                }
+             // 入港时间2
+                if (!StringUtils.isBlank(columns1[15])) {
+                	 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");  
+                	 Date date = sdf.parse(columns1[15]); 
+                	 infos.setInPortTime2(date);
+                }
+                
+                
+                String id="";
+				try {
+					id = personnelDao.save(infos);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+                if (StringUtils.isBlank(id))throw new Exception("文件导入失败： 第"+ (i+1) +"行，保存基本信息失败！");
+                
+                //添加登录账号
+                QxUsers usenfo=adminService.getUserByName(infos.getJobNumber());
+                if(usenfo==null||usenfo.getId()==null){
+                    QxUser  userinfo=new QxUser();
+                    userinfo.setUsername(infos.getJobNumber());
+                    userinfo.setName(infos.getName());
+                    userinfo.setPassword("123456");
+                    userinfo.setCid(infos.getFilmId());
+                    userinfo.setDepId(infos.getDepartId());
+                    userinfo.setIsDelete(0);
+                    HashSet<QxRoles> rolelist =new HashSet<QxRoles>(); 
+                  //普通员工权限
+                    QxRoles role = backendRoleService.get(QxRoles.class, Restrictions.eq("id","402881955c62c8f6015c62dc874d0006"));
+                    rolelist.add(role);
+                    adminService.saveuser(userinfo, rolelist);
+                    String userId=this.get(QxUsers.class, Restrictions.eq("username",infos.getJobNumber())).getId();
+                            
+                    String depIds =getall(infos.getDepartId(),"","","");
+                    String branchid=depIds.split("branchid")[1];
+                    String branchs =getall1(branchid,"","","");
+                    
+                    String depall=depIds.split("branchid")[0].split("and")[0];
+                    String flgall=depIds.split("branchid")[0].split("and")[1];
+                    String branchall=branchs.split("and")[0];
+                    String flgall1=branchs.split("and")[1];
+                    
+                    String depId=depall+","+branchall;
+                    String flgs=flgall+","+flgall1;
+                    
+                    if(StringUtils.isNotEmpty(depId)){
+                        String[] depArr=depId.split(",");
+                        String[] flgArr=flgs.split(",");
+                        for(int kk=0,l=depArr.length;kk<l;kk++){
+                            QxUserDatauth datauth=new QxUserDatauth(userId, depArr[kk], flgArr[kk]);
+                            adminDao.save(datauth);
+                        }
+                    }
+                }else{
+                	throw new Exception("这个用户已经存在，不需要重新添加！");
+                }
+                if(infos.getSpecificPost()!=null&&!"".equals(infos.getSpecificPost())){
+        			//兼职信息
+            		PtJob ptJob=new PtJob();
+            		ptJob.setPersonId(infos.getId());
+            		ptJob.setIsDelete(0);
+            		ptJob.setIsHostPost(1);
+            		ptJob.setDepId(infos.getDepartId());//部门ID
+            		ptJob.setFirmId(infos.getFilmId());//单位ID
+            		ptJob.setStandardPostId(infos.getPostId());
+            		ptJob.setSpePostId(infos.getSpecificPostId());
+            		ptJob.setBeginTime(infos.getBeginTime());
+            		ptJob.setDep(infos.getDepartName());//部门
+            		ptJob.setFirm(infos.getFilmName());//单位
+            		ptJob.setStandardPost(infos.getPost());
+            		ptJob.setSpePost(infos.getSpecificPost());
+            		//人员异动
+            		Change change=new Change();
+            		change.setPersonId(infos.getId());
+            		change.setJobNumber(infos.getJobNumber());
+            		change.setChangedate(infos.getBeginTime());
+            		change.setDepbeginDate(infos.getBeginTime());
+            		change.setPostbeginDate(infos.getBeginTime());
+            		change.setChangeType(15);
+            		change.setDepName2(infos.getDepartName());
+            		change.setFilmName2(infos.getFilmName());
+            		change.setSpanPostName2(infos.getPost());
+            		change.setSpPostName2(infos.getSpecificPost());
+            		change.setEmpType2(infos.getEmpType());
+            		change.setOnJob2(infos.getOnJob());
+            		change.setOnPost2(infos.getOnPost());
+            		change.setJobLevel2(infos.getJobLevel());
+            		String changeid=changeDao.save(change);//保存
+            		String jobid=ptJobDao.save(ptJob);//保存
+            		if (StringUtils.isBlank(jobid))throw new Exception("文件导入失败： 第"+ (j+1) +"行，信息导入兼职信息时发生异常！");
+            		if (StringUtils.isBlank(changeid))throw new Exception("文件导入失败： 第"+ (j+1) +"行，信息导入异动表时发生异常！");
+        		}
+                break;
+            }
+        }
+        
+        // 循环遍历存储《员工部门信息》Excel值
+        return "success";
+	}
+	/**
+     * @Title: 检测列的长度 
+     * @param column
+     * @param msg
+     * @param length
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2016年12月6日 V 1.0
+     */
+    private String checkLength(Object column, String msg, int length) {
+        if (null != column) {
+            if (column.toString().length() > length) return msg;
+            else return "";
+        } else return "";
+    }
+	
+	 /**
+     * @Title: 读取Excel文件内容 
+     * @param fromLine 起始行数（从1开始）
+     * @param netFilePath 文件网络地址
+     * @param is
+     * @return
+     * @throws Exception 
+     * List<String[]> 
+     * @author zhanghj
+     * @since 2016-8-30 V 1.0
+     */
+    public static List<String[]> readData(int fromLine, int toLine, String endSuffix, File uploafFile,String sheetName) throws Exception {
+        // 创建对Excel工作簿文件的引用
+        // 项目下面的路径
+        // 根据文件后缀判断是xls还是xlsx
+        Workbook wookbook = createWorkBook(endSuffix, new FileInputStream(uploafFile));
+        if (null == wookbook) {
+            throw new Exception("导入文件必须是以xls或者xlsx结尾");
+        }
+
+        // 在Excel文档中，第一张工作表的缺省索引是0
+        Sheet sheet = wookbook.getSheet(sheetName);
+        if(sheet==null){
+            throw new Exception("Excel上传内容页名称有误，请根据模板名称来！");
+        }
+        // 获取到Excel文件中的所有行数（物理行数，不包括空行、隔行）
+        int rows = sheet.getPhysicalNumberOfRows();
+        // 得到起始行
+        int start = fromLine-1;
+        int end = rows-1;// 结束行比excel行数少一行，修改的话，改成 toLine 参数
+        // 判断起始行与结束行
+        if (start > end) {
+            throw new Exception("起始行数不能大于结束行数！");
+        }
+        List<String[]> list = new ArrayList<String[]>();
+        if (end <= rows-1) {
+            // 循环遍历
+            for (int i = start; i <= end; i++) {
+                // 读取左上端单元格
+                Row row = sheet.getRow(i);
+                // 行不为空
+                if (row != null) {
+                    // 获取到Excel文件中的所有的列（比最后一列列标大1）
+                    int cells = row.getLastCellNum();
+                    if(cells==-1){
+                        throw new Exception("模板错误，请选择正确的模板进行上传！");
+                    }
+                    String value = "";
+                    // 遍历列
+                    String[] values = new String[cells];
+                    for (int j = 0; j < cells; j++) {
+                        // 获取到列的值
+                        Cell cell = row.getCell(j);
+                        if (cell != null) {
+                            // 判断单元格样式
+                            switch (cell.getCellType()) {
+                            case HSSFCell.CELL_TYPE_FORMULA:// 公式
+                                value = new DecimalFormat("0.####").format(cell.getNumericCellValue());
+                                break;
+                            case HSSFCell.CELL_TYPE_NUMERIC:// 数值类型
+                                if (HSSFDateUtil.isCellDateFormatted(cell)) {
+                                    Date date = cell.getDateCellValue();
+                                    if (date != null) {
+                                        value = new SimpleDateFormat("yyyy-MM-dd").format(date);
+                                    } else {
+                                        value = "";
+                                    }
+                                } else {
+                                    value = new DecimalFormat("0.####").format(cell.getNumericCellValue());
+                                }
+                                break;
+                            case HSSFCell.CELL_TYPE_STRING:// 字符串类型
+                                value = cell.getStringCellValue();
+                                break;
+                            default:
+                                value = "";
+                                break;
+                            }
+                        } else {
+                            value = "";
+                        }
+                        // 把列放入数组
+                        values[j] = value;
+                    }
+
+                    // 把行数据放入list
+                    list.add(values);
+                }
+            }
+        }
+
+        return list;
+    }
+    
+    /**
+     * @Title: 判断是xls文件还是xlsx文件 
+     * @param endSuffix 文件后缀
+     * @param is
+     * @return
+     * @throws IOException 
+     * Workbook 
+     * @author zhanghj
+     * @since 2016-8-29 V 1.0
+     */
+    private static Workbook createWorkBook(String endSuffix, InputStream is) throws IOException {
+        //需要在盖方法中判断是xls文件还是xlsx文件
+        if (endSuffix.toLowerCase().endsWith("xls")) {
+            return new HSSFWorkbook(is);
+        }
+        if (endSuffix.toLowerCase().endsWith("xlsx")) {
+            return new XSSFWorkbook(is);
+        }
+
+        return null;
+    }
+    
+    /**
+	 * 根据部门ID获得所有部门-----递归
+	 * @Title: getDepId 
+	 * @return 
+	 * String 
+	 * @author zrl
+	 * @since 2017年6月17日 V 1.0
+	 */
+	public String getall(String deptid,String retstr,String flgs,String fepflg){
+	    QxDepartment dept=this.get(QxDepartment.class, deptid);
+	    if("ROOT".equals(dept.getParent())){
+	        if("".equals(retstr)){
+	            retstr=dept.getId();
+	        }else{
+	            retstr=retstr+","+dept.getId();
+	        }
+	        if("".equals(flgs)){
+	            flgs="1";
+	        }else{
+	            flgs=flgs+","+1;
+	        }
+	        fepflg=retstr+"and"+flgs+"branchid"+dept.getBarchId();
+	        return fepflg;
+	    }else{
+	        retstr=retstr+","+dept.getId();
+	        flgs=flgs+","+1;
+	        fepflg=retstr+"and"+flgs+"branchid"+dept.getBarchId();
+            return getall(dept.getParent() , retstr,flgs,fepflg);
+	    } 
+	    
+	}
+	/**
+     * 根据部门ID获得所有公司-----递归
+     * @Title: getDepId 
+     * @return 
+     * String 
+     * @author zrl
+     * @since 2017年6月17日 V 1.0
+     */
+    public String getall1(String deptid,String retstr,String flgs,String fepflg){
+        Branch branch=this.get(Branch.class, deptid);
+        
+        if("-1".equals(branch.getPid())){
+            if("".equals(retstr)){
+                retstr= branch.getId();
+            }else{
+                retstr=retstr+","+branch.getId(); 
+            }
+            if("".equals(flgs)){
+                flgs="0"; 
+            }else{
+                flgs=flgs+","+0;
+            }
+            
+            fepflg=retstr+"and"+flgs; 
+            return fepflg;
+        }else{
+            if("".equals(retstr)){
+                retstr= branch.getId();
+            }else{
+                retstr=retstr+","+branch.getId(); 
+            }
+            if("".equals(flgs)){
+                flgs="0"; 
+            }else{
+                flgs=flgs+","+0;
+            }
+            fepflg= retstr+"and"+flgs;
+           return getall1(branch.getPid(), retstr,flgs,fepflg); 
+        } 
+    }
+	
+}

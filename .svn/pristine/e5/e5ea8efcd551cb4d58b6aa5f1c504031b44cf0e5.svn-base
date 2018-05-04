@@ -1,0 +1,408 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+String path = request.getContextPath();
+String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.getServerPort()+path+"/";
+pageContext.setAttribute("base", basePath);
+HttpSession sessions=request.getSession();
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>管理中心</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="${base}template/miniui/boot.js" type="text/javascript"></script>
+    <link href="${base}template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <script src="${base}template/common/js/toastr.min.js" type="text/javascript"></script>
+    <link href="${base}template/common/css/toastr.min.css" rel="stylesheet" type="text/css" />
+     <%-- <script src="${base}template/system/js/swfobject.js" type="text/javascript"></script> --%>
+     <link rel="shortcut icon" href="${base}template/system/images/favicon.ico" type="image/x-icon" />
+	<!--引入皮肤样式-->
+    <link href="${base}template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    
+    <style type="text/css">
+    body
+    {
+        margin:0;padding:0;border:0;width:100%;height:100%;overflow:hidden;
+    }    
+	
+	.mini-tabs-body{
+		padding:0;
+		
+	 }
+	 .mini-menuitem .mini-menuitem-icon{margin-top:4px;}
+	 .mini-menu-horizontal .mini-menuitem-inner{padding-right: 0px;padding-right:0px;}
+	 .mini-menuitem-icon{height:16px;width:16px;}
+	 .mini-menu-horizontal .mini-menuitem-text{padding: 0 1px;}
+	 .mini-tab-active{color:#000;font-weight:bold}
+	 </style>   
+</head>
+<body onload="shen()" onresize="shen()">
+<!-- 滑动通知窗口 -->
+        <div id="show"  style="display: block;top: -330px;">
+
+            <a id="wenben" class="cuo" > 您没有权限！</a> 
+            <a class="mini-button qd close" id="close" style="width:45px;">确定</a>
+        </div>
+
+<!-- 滑动通知窗口End -->
+	<div class="bottomInfo" 
+	     style="background: #379BE9 url(${base}template/miniui/themes/other/images/button/logo3.png) 
+	     0px 0 no-repeat;">
+
+		 <!--欢迎您登陆本系统-->
+		<div style="float:right;height:28px;line-height:28px;">
+			<a class="tipUser">
+			欢迎您,<sec:authentication property="name"/>
+			</a>
+			<span class="tipUser" style="cursor: pointer;margin: 0px 20px;" onclick="changepwd()" title="修改密码">修改密码</span>
+			<a class="lout" id="zhu" href="<%=basePath%>logout?token=backend" target="_top"> 
+				<img src="../template/system/images/tuichu.png"  />
+			</a>
+		</div>
+		
+	 </div>
+	 <!-- 隐藏的子框架 -->
+	 <div type="hidden" style="display:none;">
+	    <iframe id="topframe" src = "backend_page!header.action" frameborder="0" name="topframe" style="width:0%;height:0%;" border="0"></iframe>
+	 </div>
+    <ul id="menu1" class="mini-menubar" style="width:100%;"
+            url="backend_menu!list.action" onitemclick="onItemClick" 
+            textField="text" idField="id" parentField="pid" >
+        
+    </ul>
+
+    <div class="mini-fit" style="padding-top:5px;background:#F0F2F1;">
+    	<iframe id="mfrom1" name="mfrom1" onload="shen2()"
+			src="${base}jsp/left/lianj.jsp"
+			style="float:left; width:10px; height:100%; border:none;"
+			frameborder="no" border="0" marginwidth="0" marginheight="0"
+			scrolling="no" allowtransparency="yes"> </iframe>
+        <!--Tabs-->
+    	<div id="mainTabs" class="mini-tabs" activeIndex="0"
+			onactivechanged="en"
+			style=" float:left;width:95%;height:100%; min-width:950px;"
+			contextMenu="#tabsMenu">
+			<div title="首页" id="homeid" name="index">
+                	<iframe id="mainframe22" frameborder="0" name="main"
+					style="width:100%;height:100%;" border="0"
+					src="../system/work_bench!show.action"></iframe>	 <%-- ${base}jsp/icon/icon_home.jsp --%>
+              </div>
+        </div>        
+    </div>
+    <ul id="tabsMenu" class="mini-contextmenu" onbeforeopen="onBeforeOpen">        
+        <!--<li onclick="closeTab">关闭标签页</li>-->                
+	    <li onclick="closeAllBut">关闭其它标签页</li>
+	    <li onclick="closeAll">关闭所有标签页</li>        
+        <li onclick="reloadmenu">刷新</li>   
+    </ul>
+    
+
+    <div id="win1" class="mini-window" title="系统提示" style="width:400px;height:250px;" 
+    showMaxButton="false" showCollapseButton="false" showShadow="false"
+    showToolbar="true" showFooter="false" showModal="false" allowResize="true" allowDrag="false"
+    >
+
+      <div class="mini-fit" >
+     <div id="grid1" class="mini-datagrid" style="width:100%;height:100%;"
+			url="../system/backend_role!treeshowTx.action" showPager="false"
+			idField="id"  multiSelect="false" expandOnLoad="false">
+
+			<div property="columns">
+				<div field="mokuai" width="50" headerAlign="center" align="center">模块名</div>
+				<div field="type" width="30" headerAlign="center" align="center">操作类型</div>
+				<div field="tixing" width="80" headerAlign="center" align="center">提醒</div>
+			</div>
+		</div> 
+    </div>
+</div>
+     <input type="hidden" id="sta" value='${flg}' style="display:none;"/>
+     <input class="mini-hidden" id="flg1" name="flg1" value='${flg1}' style="display:none;"/>
+     <div id="sound"> 
+</div> 
+<script type="text/javascript">
+
+    mini.parse();
+    function shen2(){
+    	shen();
+    }
+ 	var grid1 = mini.get("grid1");
+        var flg=mini.get("flg1").getValue();
+        grid1.hideColumn("idColumn");
+	function en(e){
+		var tabs = mini.get("mainTabs");
+		if(tabs.tabs.length>8){
+			tabs.removeTab(tabs.tabs[1]);
+		}
+		var tab = tabs.getActiveTab();
+		if((tab.name).indexOf("add")==-1&&(tab.name).indexOf("edit")==-1){
+		   	var framein = tabs.getTabIFrameEl(tab);
+		   	if(framein!=null){
+		   		if(framein.contentWindow.mini!=null){
+		   			var gridin = framein.contentWindow.mini.get("grid");
+			   		if(gridin!=null){
+			   			gridin.reload();
+			   		}
+		   		}
+		   	}
+		} 
+	   // 自定义执行函数 zhanghj
+       var framein = tabs.getTabIFrameEl(tab);
+       if(framein!=null){
+           if (typeof framein.contentWindow.selfFresh === "function") {
+               framein.contentWindow.selfFresh();
+           }
+       }
+	}
+
+
+	var tabs = mini.get("mainTabs");
+    function showTab(node) {
+        var tabs = mini.get("mainTabs");
+        var id = "tab$" + $.trim(node.id);
+        var tab = tabs.getTab(id);
+        if (!tab) {
+            tab = {};
+            tab.name = id;
+            tab.title = node.text;
+            tab.showCloseButton = true;
+            tab.url = node.url;
+            tabs.addTab(tab);
+        }
+        tabs.activeTab(tab);
+    }
+    function onItemClick(e) {        
+        var item = e.item;
+        var isLeaf = e.isLeaf;
+
+        if (isLeaf) {
+            showTab(item);
+              
+        }            
+    }
+            function onBeforeOpen(e) {
+            currentTab = tabs.getTabByEvent(e.htmlEvent);
+            if (!currentTab) {
+                e.cancel = true;                
+            }
+        }
+    function closeTab() {
+          /*   tabs.removeTab(currentTab) */
+            var but = [currentTab];            
+            but.push(tabs.getTab("index"));
+            tabs.removeTab(but);
+        }
+        function closeAllBut() {
+            var but = [currentTab];            
+            but.push(tabs.getTab("index"));
+            tabs.removeAll(but);
+        }
+        function closeAll() {
+            tabs.removeAll(tabs.getTab("index"));
+        }
+        function closeAllButFirst() {
+            var but = [currentTab];            
+            but.push(tabs.getTab("index"));
+            tabs.removeAll(but);
+        }
+    function reloadmenu() {	
+ 		tabs.reloadTab(currentTab);
+ 	}
+    
+     if(flg=="T"){
+     	setTimeout("showAtPos()",1000*1);
+     }
+        function showAtPos() {
+        //grid1.load();
+        var win = mini.get("win1");
+        grid1.selectAll(); 
+            var rows = grid1.getSelecteds();
+        if (rows.length > 0) {
+	        win.showAtPos(1000, 500);
+	        //play("${base}template/system/js/msg.mp3");
+	        setTimeout("hideWindow()",15000); 
+	        setTimeout("showAtPos()",1000*60*10);
+        }else{
+        	setTimeout("showAtPos()",1000*60*10);
+        }
+    }
+     
+   //showAtPos();
+   /**var flashvars = { 
+     }; 
+     var params = { 
+     wmode: "transparent" 
+     }; 
+     var attributes = {}; 
+     swfobject.embedSWF("${base}template/system/js/sound.swf", "sound", "1", "1", "9.0.0", "${base}template/system/js/expressInstall.swf", flashvars, params, attributes); 
+
+     function play(c) { 
+     var sound = swfobject.getObjectById("sound"); 
+     if (sound) { 
+     sound.SetVariable("f", c); 
+     sound.GotoFrame(1); 
+     } 
+     }**/
+    
+  function hideWindow() {
+        var win = mini.get("win1");
+        win.hide();
+    }
+    
+    function fpdh(){
+		var  url=grid1.getSelected().url;
+		var ids=grid1.getSelected().ids;
+		var title=grid1.getSelected().title;
+		
+		var tabs = window.parent.mini.get("mainTabs");
+		 		var id = ids;
+		        var tab = tabs.getTab(id);
+		    if (!tab) {
+	            tab = {};
+	            tab.name = id;
+	            tab.title = title;
+	            tab.showCloseButton = true;
+	           
+	            tab.url = url;
+	            tabs.addTab(tab);
+	        }else{
+	        	tabs.removeTab(tab);
+	            tab = {};
+	            tab.name = id;
+	            tab.title = title;
+	            tab.showCloseButton = true;
+	           
+	            tab.url = url;
+	            tabs.addTab(tab);
+	        }
+        tabs.activeTab(tab);
+		
+		}
+    
+    function loading() {
+        mini.mask({
+            el: document.body,
+            cls: 'mini-mask-loading',
+            html: '全力执行中,请稍候...'
+        });
+        
+    }
+    
+    function unmask() {
+         mini.unmask(document.body);
+    }
+    
+    toastr.options = {
+			    "closeButton": true,
+				  "debug": true,
+				  "progressBar": true,
+				  "positionClass": "toast-top-center",
+				  "showDuration": "1000",
+				  "hideDuration": "1000",
+				  "timeOut": "2000",
+				  "extendedTimeOut": "2000",
+				  "showEasing": "swing",
+				  "hideEasing": "linear",
+				  "showMethod": "fadeIn",
+				  "hideMethod": "fadeOut",
+				 "preventDuplicates": false
+	};
+
+function noAuth(){
+ toastr.error("请联系管理员获取操作权限!","权限错误");
+}
+
+var laih=1;
+var one = 0;
+function shen(){
+	//固定内框架大小
+	var weisuo=mfrom1.window.document.getElementById("jiantou");//获取伸缩箭头 
+	var laogun=mfrom1.window.document.getElementById("laogun");//触碰大小区域
+	var leibxs=mfrom1.window.document.getElementById("liebiao");//获取列表
+	var llqk=document.body.clientWidth;//获取浏览器显示区域大小
+	var chuangkou=document.getElementById("mainTabs");//获取内框架
+	var lbkj=document.getElementById("mfrom1");//获取内框架
+	var ggdt=llqk-parseInt(lbkj.style.width);
+	chuangkou.style.width=ggdt+"px";
+	$(".mini-tabs-bodys").width(ggdt);
+	$(".mini-tabs-headers").width(ggdt);
+	//控制栏伸缩
+	if(!weisuo)return;
+	weisuo.onclick=function(){
+		var lbkd=parseInt(lbkj.style.width);
+        function lsxg(){	
+				lbkj.style.width=lbkd+"px";
+				chuangkou.style.width=llqk-lbkd+"px";
+				var ceshi=parseInt(chuangkou.style.width);
+				$(".mini-tabs-bodys").width(ceshi-10);
+				lbkd=lbkd-10;
+				if(lbkd<10)
+				{
+					clearInterval(dhkz);
+					laih=1;
+					lbkj.style.width=10+"px";
+					leibxs.style.display="none";
+					$(".mini-tabs-bodys").width(ggdt+39);
+					$(".mini-tabs-headers").width(ggdt+39);
+					shen();
+				}
+			}
+		function xxa(){
+				lbkj.style.width=lbkd+"px";
+				chuangkou.style.width=llqk-lbkd+"px";
+				var ceshi=parseInt(chuangkou.style.width);
+				$(".mini-tabs-bodys").width(ceshi-10);
+				lbkd=lbkd+10;
+				if(lbkd>50)
+				{
+					clearInterval(dhkz);
+					lbkj.style.width=49+"px";
+					laih=0;
+					$(".mini-tabs-bodys").width(ggdt);
+					$(".mini-tabs-headers").width(ggdt);
+					shen();
+				}
+			}
+		if (laih==0){
+			$(weisuo).toggleClass("nei");
+			var dhkz=setInterval(lsxg,10);
+		}
+		else if(laih==1)
+		{
+			leibxs.style.display="block";
+			$(weisuo).toggleClass("nei");
+			var dhkz=setInterval(xxa,10);
+		} 
+      }
+	if (one == 0) {
+		weisuo.click();
+		one = 1;
+	}
+}
+
+	/**
+     * 根据左侧选中的值动态变换菜单
+     * zhanghj
+     **/
+    function setMenuDisplay(id) {
+        var topMenu = mini.get("menu1");
+        topMenu.setUrl("backend_menu!list.action?id=" + id);
+    }
+
+    function changepwd(){ 
+        mini.open({
+            url: "admin!changepwd.action",
+            title: "修改用户密码",
+            width: 495,
+            height: 250,
+            /* allowResize:false, */
+            onload: function () {
+            },
+            ondestroy: function (action) {
+            }
+        });
+    }
+</script>
+</body>
+</html>

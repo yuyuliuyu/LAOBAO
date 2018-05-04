@@ -1,0 +1,540 @@
+package com.lingnet.qxgl.service.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Resource;
+
+import org.apache.log4j.Logger;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.qxgl.dao.BackendRoleDao;
+import com.lingnet.qxgl.entity.QxResource;
+import com.lingnet.qxgl.entity.QxRoleResourceId;
+import com.lingnet.qxgl.entity.QxRoles;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.security.manage.metadata.BackendSecurityMetadataSource;
+import com.lingnet.qxgl.service.BackendResourceService;
+import com.lingnet.qxgl.service.BackendRoleService;
+import com.lingnet.qxgl.service.RoleResourceService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+@Service("backendRoleService")
+public class BackendRoleServiceImpl extends
+		BaseServiceImpl<QxRoles, String> implements BackendRoleService {
+    
+    @SuppressWarnings("unused")
+	private static final Logger logger = Logger
+            .getLogger(BackendRoleServiceImpl.class);
+
+	@Resource(name = "backendRoleDao")
+	private BackendRoleDao backendRoleDao;
+
+	public BackendRoleDao getBackendRoleService() {
+		return backendRoleDao;
+	}
+
+	@Resource(name = "backendRoleDao")
+	public void setBackendRoleService(BackendRoleDao backendRoleDao) {
+		super.setBaseDao(backendRoleDao);
+	}
+	
+	@Resource(name = "backendResourceService")
+    private BackendResourceService backendResourceService;
+    @Resource(name = "RoleResourceService")
+    private RoleResourceService roleResourceService;
+	
+	 @SuppressWarnings({ "unchecked", "rawtypes" })
+	@Override
+    public HashMap findUserByRoleId(Pager pager,String roleId){
+	    
+	     List lite = backendRoleDao.getUsersByRoleId(pager,roleId);
+	        ArrayList data = new ArrayList();
+	        for (int i = 0, l = lite.size(); i < l; i++)
+	        {
+	            HashMap<String, Object> record = new HashMap<String, Object>();
+	            Object[] user = (Object[]) lite.get(i);
+	            record.put("id", user[0]);
+	            record.put("username", user[1]);
+	            record.put("name", user[2]);
+	            record.put("email", user[3]);
+	            record.put("createdate", user[4]);
+	            if (lite.get(i) == null) continue;
+	            //if (start <= i && i < end)
+	            //{
+	                data.add(record);
+	          //  }
+	        }
+
+	        HashMap result = new HashMap();
+	        result.put("data", data);
+	        result.put("total", pager.getTotalCount());
+	        
+	        
+	        return result;
+	}
+
+    
+    @Override
+    public QxRoles findRoleByName(String name) {
+        
+        return backendRoleDao.findRoleByName(name);
+    }
+
+   
+    @Override
+    public List<QxRoles> findRole(String name,int start,int end) {
+        
+        return backendRoleDao.findRole(name, start,end);
+    }
+    
+    @Override
+    public List<QxRoles> findRolseByResource(String resourceUrl){
+        
+        return backendRoleDao.findRolseByResource(resourceUrl);
+        
+    }
+    /*以下是代码整理：将放在action中的实现方法放到impl中  栾胜鹏*/
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public void saveOrUpdate(String id, String name, String desc, String data,BackendSecurityMetadataSource backendSecurityMetadataSource) throws Exception {
+    	List<Map<String, String>> listMap =null;
+        List<Map<String, String>> listData =null;
+        List<Map<String, String>> listFun =null;
+        
+        QxResource br = new QxResource();
+        
+        QxRoleResourceId roleResourceId = new QxRoleResourceId();
+        
+        Map qxMap = new HashMap();
+       
+        List<QxResource> qxList = backendResourceService.getAllList();
+        for(QxResource res:qxList){
+            qxMap.put(res.getResourcename(), res);
+            qxMap.put(res.getResourcename()+"^"+res.getPresource(), res);
+        }
+        
+        Map map = new HashMap();
+        
+        if(id!=null&&!"null".equals(id)){
+            //保存权限
+            QxRoles backendRole = get(QxRoles.class,Restrictions.eq("id", id));
+            
+            backendRole.setName(name);
+            
+            backendRole.setDescription(desc);
+           
+            Map maplist = roleResourceService.getResourceByRole(id);
+            
+            map.putAll(maplist);
+            
+            int q = maplist.size();
+            
+            Map map1 = new HashMap();
+            
+            //保存角色权限
+            listMap = JsonUtil.getMapList(data);
+            //获取菜单子元素
+            listData = dgChile(listMap);
+            
+            //获取权限元素
+            for(int j=0;j<listData.size();j++){
+                if(listData.get(j).get("functions")!=null&&!("".equals(listData.get(j).get("functions")))){
+                    listFun =JsonUtil.getMapList(listData.get(j).get("functions"));
+                    //获取每个元素之前的情况跟现在的情况对比
+                    for(int k=0;k<listFun.size();k++){
+                        if(listFun.get(k).get("checked").equals("true")){
+                            br = (QxResource) qxMap.get(listFun.get(k).get("name")+"^"+listData.get(j).get("id"));
+                            while(!"0".equals(br.getModuleid())){
+                                if(!map.containsKey(br.getId())&&!map1.containsKey(br.getId())){
+                                    roleResourceId = new QxRoleResourceId();
+                                    roleResourceId.setResourceId(br.getId());
+                                    roleResourceId.setRoleId(id);
+                                    roleResourceService.saveId(roleResourceId);
+                                    map1.put(br.getId(), 1);
+                                }
+                                if(maplist.containsKey(br.getId()))
+                                    maplist.remove(br.getId());
+                                //保存父元素
+                                br = (QxResource) qxMap.get(br.getPresource());
+                            }
+                            if(!map.containsKey(br.getId())&&!map1.containsKey(br.getId())){
+                                roleResourceId = new QxRoleResourceId();
+                                roleResourceId.setResourceId(br.getId());
+                                roleResourceId.setRoleId(id);
+                                roleResourceService.saveId(roleResourceId);
+                                map1.put(br.getId(), 1);
+                            }
+                            if(maplist.containsKey(br.getId())){
+                                maplist.remove(br.getId());
+                            }
+                        }
+                   }
+                }
+            }
+            //删除减少的权限
+            if(maplist.size()==q&&map1.size()<=0){
+                throw new Exception("您没有选中任何权限！");
+            }
+            Iterator emt = maplist.keySet().iterator();
+            while(emt.hasNext()){
+                String sourceId = (String) emt.next();
+                
+                roleResourceId = new QxRoleResourceId();
+                
+                roleResourceId.setResourceId(sourceId);
+                
+                roleResourceId.setRoleId((String)maplist.get(sourceId));
+                
+                roleResourceService.deleId(roleResourceId);
+                
+                br = backendResourceService.get(QxResource.class,Restrictions.eq("id", sourceId));
+            }
+           this.update(backendRole);
+           
+          // operate("角色管理", "编辑",backendRole.getName());
+           
+       }else{
+           
+          /* Map companyPool = ThreadLocalHolder.getMap();
+           Company company = (Company) companyPool.get("company");
+           if(company!=null){
+               List<QxRoles> list = this.getAllList(QxRoles.class);
+               if(company.getUserCont()!=null){
+                   if((list.size()+1)>Double.parseDouble(company.getRoleCont())){
+                       throw new Exception("添加角色失败，已达最大角色数量！"
+                               +"</br>在您的权限下，只能添加"+company.getRoleCont()+"个角色。"
+                               +"</br>请联系客服调整角色数量！");
+                   }
+               }
+           }*/
+           
+           QxRoles backendRole = this.findRoleByName(name);
+           if(backendRole!=null){
+               throw new Exception("该角色名称已经存在，请重新录入！");
+           }
+           backendRole = new QxRoles();
+           backendRole.setName(name);
+           
+           backendRole.setDescription(desc);
+          
+           Set<QxResource> qxResources = new HashSet<QxResource>();
+           
+           //保存角色权限
+           listMap = JsonUtil.getMapList(data);
+           //获取菜单子元素
+            listData = dgChile(listMap);
+            //获取权限元素
+            for(int j=0;j<listData.size();j++){
+                
+                if(listData.get(j).get("functions")!=null&&!("".equals(listData.get(j).get("functions")))){
+                        listFun =JsonUtil.getMapList(listData.get(j).get("functions"));
+                        //获取每个元素之前的情况跟现在的情况对比
+                        for(int k=0;k<listFun.size();k++){
+                            if(listFun.get(k).get("checked").equals("true")){
+                                br = (QxResource) qxMap.get(listFun.get(k).get("name")+"^"+listData.get(j).get("id"));
+                                while(!"0".equals(br.getModuleid())){
+                                    if(!map.containsKey(br.getId())){
+                                        map.put(br.getId(), 1);
+                                        qxResources.add(br);
+                                    }
+                                    br = (QxResource) qxMap.get(br.getPresource());
+                                }
+                                if(!map.containsKey(br.getId())){
+                                    map.put(br.getId(), 1);
+                                    qxResources.add(br);
+                                }
+                            }
+                       }
+                }
+            }
+            if(!(qxResources.size()>0)){
+                throw new Exception("您没有选中任何权限！");
+            }
+            backendRole.setQxResources(qxResources);
+            
+            this.save(backendRole);
+            
+           // operate("角色管理", "增加",backendRole.getName());
+        }
+        
+        backendSecurityMetadataSource.refresh();
+    }
+    
+    /**
+     * 获取所有的子节点 
+     */
+    @Override
+    public List<Map<String, String>> dgChile(List<Map<String, String>> listData) {
+        List<Map<String, String>> data = new ArrayList<Map<String,String>>();
+        
+        while(listData.size()>=1){
+            listData.get(0);
+                if(listData.get(0).get("children")!=null&&!("".equals(listData.get(0).get("children")))){
+                    List<Map<String, String>> data1 =JsonUtil.getMapList(listData.get(0).get("children"));
+                    for(int j=0;j<data1.size();j++){
+                        if(data1.get(j).get("children")!=null&&!("".equals(data1.get(j).get("children")))){
+                            listData.add(data1.get(j));
+                        }else{
+                            data.add(data1.get(j));
+                        }
+                    }
+                }else{
+                    data.add(listData.get(0));
+                }
+           listData.remove(0);
+        }
+        return data;
+    }
+    
+    /**
+     * 根据用户 查出所有的用户id。
+     */
+    @Override
+    public String treeShow(String username, Pager pager) {
+
+        QxUser qu=get(QxUser.class, Restrictions.eq("username", username));
+        Set<QxRoles> list1=qu.getQxRoles();
+        String userid="";
+        for(QxRoles qur:list1){
+            if(userid.equals("")){
+                userid+=qur.getId();
+            }else{
+                userid+=","+qur.getId();
+            }
+        }
+        return userid;
+    }
+
+    /**
+     * 获取角色信息 
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public String json(String key, Pager pager) {
+        @SuppressWarnings("rawtypes")
+        ArrayList data = new ArrayList();
+        
+        pager = this.findPager(QxRoles.class, pager);
+      
+        @SuppressWarnings("rawtypes")
+        List list = pager.getResult();
+        //获取角色详细数据转成json
+        for (int i = 0; i < list.size(); i++) {
+            HashMap<String,String> record = new HashMap<String,String>();
+            QxRoles qx = (QxRoles) list.get(i);
+            
+            record.put("id", qx.getId());
+            record.put("name", qx.getName());
+            if(qx.getIsSystem()){
+                record.put("isSystem", "√");
+            }else{
+                record.put("isSystem", "×");
+            }
+           
+            record.put("description", qx.getDescription());
+            if(qx.getCreateDate()!=null){
+            	SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                record.put("createdate", mat.format(qx.getCreateDate()));
+            }
+            
+
+            data.add(record);
+        }
+           @SuppressWarnings("rawtypes")
+           HashMap result = new HashMap();
+           
+           result.put("data", data);
+           result.put("total", pager.getTotalCount());
+           
+           String json = JsonUtil.Encode(result);
+           
+           return json;
+    }
+
+    /**
+     * 获取权限展现详细内容，树状表示
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public String resource(String id) {
+        @SuppressWarnings("rawtypes")
+        HashMap havaResource = new HashMap();
+        
+        QxRoles persistent = new QxRoles();
+        //获取用户所应有的权限
+        if(!id.equals("null")){
+            
+            persistent = this.get(QxRoles.class, Restrictions.eq("id", id));
+            Set<QxResource> qx = new HashSet<QxResource>();
+            qx = persistent.getQxResources();
+            Iterator<QxResource> it = qx.iterator(); 
+            while (it.hasNext()) {   
+              QxResource str = it.next();  
+              havaResource.put(str.getResourcename(), str.getResourcename());
+            } 
+        }
+        
+        //遍历所有的资源，对比用户权限选中
+        List<QxResource> backendResources = backendResourceService.getAllList();
+
+        @SuppressWarnings("rawtypes")
+        ArrayList data = new ArrayList();
+        for(int i=0;i<backendResources.size();i++){
+                QxResource allResource = backendResources.get(i);
+                if(havaResource.containsKey(allResource.getResourcename())){
+                    //下级选中
+                    HashMap<String,String> record = new HashMap<String,String>();
+                    record.put("id", allResource.getResourcename());
+                    record.put("text", allResource.getDescription());
+                    record.put("pid", allResource.getPresource());
+                    record.put("checked", "true");
+                    data.add(record);
+                }else{
+                    //下级不被选中
+                    HashMap<String,String> record = new HashMap<String,String>();
+                    record.put("id", allResource.getResourcename());
+                    record.put("text", allResource.getDescription());
+                    record.put("pid", allResource.getPresource());
+                    data.add(record);
+                }
+        }
+        String json = JsonUtil.Encode(data);
+        
+        return json;
+    }
+
+    /**
+     * 代码整理实现方法放到impl中 
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public void savedata(String[] key, String id, String name, String desc) throws Exception {
+        
+        HashMap maplist = new HashMap();
+        List<QxResource> reslist = backendResourceService.getAllList();
+        HashMap<String,String>  map = new HashMap<String,String>();
+        for(int i=0;i<reslist.size();i++){
+            map.put(reslist.get(i).getResourcename(), reslist.get(i).getId());
+        }
+        if(id!=null&&!id.equals("null")){
+            //修改权限
+            maplist = roleResourceService.getResourceByRole(id);
+
+            if(key!=null){
+                for(int i=0;i<key.length;i++){
+                    String resourceId = (String) map.get(key[i]);
+                    //保存新增权限
+                    if(!maplist.containsKey(resourceId)){
+                                QxRoleResourceId roleResourceId = new QxRoleResourceId();
+                                roleResourceId.setResourceId(resourceId);
+                                roleResourceId.setRoleId(id);
+                                
+                                roleResourceService.saveId(roleResourceId);
+                   }
+                    
+                    if(maplist.containsKey(resourceId))
+                        maplist.remove(resourceId);
+                }
+            }
+            
+            //删除减少的权限
+            Iterator emt = maplist.keySet().iterator();
+            while(emt.hasNext()){
+                String sourceId = (String) emt.next();
+                QxRoleResourceId roleResourceId = new QxRoleResourceId();
+                roleResourceId.setResourceId(sourceId);
+                roleResourceId.setRoleId((String)maplist.get(sourceId));
+                
+                roleResourceService.deleId(roleResourceId);
+            }
+          //保存修改的用户名
+            QxRoles backendRole = this.get(id);
+            
+            backendRole.setName(name);
+            backendRole.setDescription(desc);
+            this.update(backendRole);
+            
+        }else{
+           //保存权限 
+            
+            QxRoles backendRole = findRoleByName(name);
+            if(backendRole!=null){
+                throw new Exception("权限名称已经存在请重新操作！");
+            }
+            backendRole = new QxRoles();
+            backendRole.setName(name);
+            backendRole.setDescription(desc);
+            Set<QxResource> qxResources = new HashSet<QxResource>();
+            if(key!=null){
+                for(int i=0;i<key.length;i++){
+                    for(int j=0;j<reslist.size();j++){
+                        if(reslist.get(j).getResourcename().equals(key[i])){
+                              qxResources.add(reslist.get(j));
+                        }
+                    }
+                }
+            }
+            backendRole.setQxResources(qxResources);
+            this.save(backendRole);
+        }
+    }
+
+    /**
+     * 删除
+     */
+    @Override
+    public void del(String id) throws Exception {
+        
+        QxRoles persistent = this.get(QxRoles.class, Restrictions.eq("id", id));
+        if (persistent.getIsSystem()) {
+            throw new Exception("角色["+persistent.getName() + "]无法删除系统内置管理员，删除失败!");
+        }
+        
+        persistent =this.get(QxRoles.class, Restrictions.eq("id", id));
+        
+        Set<QxUser> qx = new HashSet<QxUser>();
+        qx =  persistent.getAdmins();
+        
+        if(qx.size()>0){
+            throw new Exception("存在用户占用此角色，删除失败！");
+        }
+            
+        this.delete(id);
+        
+       // operate("角色管理", "删除",persistent.getName());
+    }
+    
+    /*以上是代码整理：将放在action中的实现方法放到impl中  栾胜鹏*/
+    
+    public BackendResourceService getBackendResourceService() {
+        return backendResourceService;
+    }
+
+    public void setBackendResourceService(
+            BackendResourceService backendResourceService) {
+        this.backendResourceService = backendResourceService;
+    }
+
+    public RoleResourceService getRoleResourceService() {
+        return roleResourceService;
+    }
+
+    public void setRoleResourceService(RoleResourceService roleResourceService) {
+        this.roleResourceService = roleResourceService;
+    }
+}

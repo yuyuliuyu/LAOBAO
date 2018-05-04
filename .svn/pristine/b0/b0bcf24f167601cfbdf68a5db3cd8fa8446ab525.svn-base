@@ -1,0 +1,72 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryTotalAmountDao;
+import com.lingnet.hcm.entity.salary.SalaryTotalAmount;
+import com.lingnet.hcm.service.salary.SalaryTotalAmountService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 总量表
+ * @ClassName: SalaryTotalAmountServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:14:40 
+ *
+ */
+@Service("salaryTotalAmountService")
+public class SalaryTotalAmountServiceImpl extends BaseServiceImpl<SalaryTotalAmount, String>
+              implements SalaryTotalAmountService {
+
+    @Resource(name="salaryTotalAmountDao")
+    private SalaryTotalAmountDao salaryTotalAmountDao;
+
+    @Override
+    public Map<String, Object> getAmountListData(String searchData, Pager pager) {
+        return salaryTotalAmountDao.getAmountListData(searchData, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String period, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, String> map = list.get(i);
+            // 检查公司总量数据是否存在
+            SalaryTotalAmount amount = get(SalaryTotalAmount.class, Restrictions.eq("id", map.get("id")));
+            if (amount == null) {
+                throw new Exception("第"+(i+1)+"条数据不存在，已经被删除");
+            } else if (amount.getIsDelete() == 1) {
+                throw new Exception(map.get("company") + "的总量数据不存在，已经被删除");
+            }
+            amount.setLastMonthAmount(map.get("lastMonthAmount"));// 上月结余
+            amount.setByjxldkh(map.get("byjxldkh"));// 本月绩效联动考核
+            amount.setSpecialReward(map.get("specialReward"));// 特殊激励
+            amount.setOtherReward(map.get("otherReward"));// 其他
+            amount.setRewardTotal(map.get("rewardTotal"));// 合计
+            amount.setBykfpzl(map.get("bykfpzl"));// 本月可分配总量
+            amount.setCurMonthAmount(map.get("curMonthAmount"));// 本月结余
+            amount.setNote(map.get("note"));// 备注
+
+            update(amount);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getAmountForPeriodListData(String period, Pager pager) {
+        return salaryTotalAmountDao.getAmountForPeriodListData(period, pager);
+    }
+}

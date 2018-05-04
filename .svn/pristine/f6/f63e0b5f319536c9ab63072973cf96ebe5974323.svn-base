@@ -1,0 +1,133 @@
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryRecord;
+import com.lingnet.util.Pager;
+
+/**
+ * 工资档案
+ * @ClassName: SalaryRecordDao 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年3月23日 下午5:12:18 
+ *
+ */
+public interface SalaryRecordDao extends BaseDao<SalaryRecord, String>{
+
+    /**
+     * @Title: 获取员工档案 
+     * @param id
+     * @param searchData
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月7日 V 1.0
+     */
+    public Map<String, Object> getStaffSalaryListData(String id, String deptId, String searchData, Pager pager);
+
+    /**
+     * @Title: 获取某一员工工资档案信息 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public Map<String, Object> getStaffSalaryData(String id);
+
+    /**
+     * @Title: 获取分类薪资项目 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public List<Map<String, Object>> getSalaryStandardItems(String id, int type);
+
+    /**
+     * @Title: 获取员工收入 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public Map<String, Object> getHistorySalaryRecord(String id);
+
+    /**
+     * @Title: 获取实习员工以及异动人员列表数据 
+     * @param depId
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public Map<String, Object> getPracticeEmployeeListData(String depId,
+            Pager pager);
+
+    /**
+     * @Title: 获取员工基本信息 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public Map<String, Object> getEmployeeBaseInfo(String id);
+
+    /**
+     * @Title: 获取员工薪酬薪资组值 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月14日 V 1.0
+     */
+    public List<Map<String, Object>> getSalaryGroupValueListData(String id);
+
+    /**
+     * @Title: 获取异动薪资调整数据 
+     * @param depId
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月15日 V 1.0
+     */
+    public Map<String, Object> getAllSalaryAdjustListData(String depId, String searchData, Pager pager);
+
+    /**
+     * @Title: 获取员工计算公式 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public List<Map<String, String>> getAllGroupFinancialList(String id);
+
+    /**
+     * @Title: 获取员工调整薪酬历史记录 
+     * @param staffId
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public Map<String, Object> getAllRecordHistoryListData(String staffId, Pager pager);
+
+    /**
+     * @Title: 获取需要调整工资数据 
+     * @param ids
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月18日 V 1.0
+     */
+    public List<Map<String, Object>> getStaffForAdjustListData(String ids);
+
+}

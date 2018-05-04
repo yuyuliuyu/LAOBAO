@@ -1,0 +1,499 @@
+package com.lingnet.hcm.action.salary;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.SalaryRecord;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.hcm.service.salary.SalaryRecordService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 工资、绩效档案
+ * @ClassName: SalaryRecordAction 
+ * @Description: 工资、绩效档案
+ * @author zhanghj
+ * @date 2017年3月6日 下午4:24:10 
+ *
+ */
+public class SalaryRecordAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+
+    private String depId;// 部门ID
+    private Map<String, Object> mapData;// 档案信息
+    private List<String[]> itemlTypeList;// 分类项目
+    private int type;// 类型
+    private int isDisplay;// 是否显示标准项目
+    private SalaryRecord salaryRecord;
+    private Map<String, Object> mapInfo;// 员工基本信息
+    private Double qzd;// 起征点
+    private String gridData;// 员工薪酬固定薪酬值
+    private String gridAccountData;// 账号信息
+    private String salaryGroupId;// 薪资组ID
+    private String salaryItemsId;// 薪资项目ID
+    private String staffId;// 员工ID
+    private String standardData;// 标准数据
+
+    @Resource(name="salaryRecordService")
+    private SalaryRecordService salaryRecordService;
+    @Resource(name="salaryInsuranceService")
+    private SalaryInsuranceService salaryInsuranceService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        mapData = salaryRecordService.getStaffSalaryData(id);
+        // 考勤单位
+        if (mapData.get("KQID") != null) {
+            QxDepartment department = getBeanByCriteria(QxDepartment.class, Restrictions.eq("id", mapData.get("KQID")));
+            if (department != null) {
+                Branch branch = getBeanByCriteria(Branch.class, Restrictions.eq("id", department.getBarchId()));
+                if (branch != null) {
+                    mapData.put("KQCOMID", branch.getId());
+                    mapData.put("KQCOM", branch.getFzx());
+                }
+            }
+        }
+
+        itemlTypeList = salaryRecordService.getStandardItems(id);
+
+        return "add";
+    }
+
+    /**
+     * @Title: 弹出收入证明展现页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String prove() {
+        return "prove";
+    }
+
+    /**
+     * @Title: 员工工资调整列表 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String adjust() {
+        return "adjust";
+    }
+
+    /**
+     * @Title: 员工工资调整 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String adjustedit() {
+        mapInfo = salaryRecordService.getEmployeeBaseInfo(id);
+        salaryRecord = salaryRecordService.get(SalaryRecord.class, Restrictions.eq("staffId", id));
+
+        return "adjustedit";
+    }
+
+    /**
+     * @Title: 员工薪酬公式计算展示页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public String financial() {
+        return "financial";
+    }
+
+    /**
+     * @Title: 调整员工固定薪酬结构展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String struct() {
+        return "struct";
+    }
+
+    /**
+     * @Title: 调整员工固定薪酬结构修改页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String structEdit() {
+        return "structedit";
+    }
+
+    /**
+     * @Title: 调整历史展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public String structHistory() {
+        BasicInformation information = salaryRecordService.get(BasicInformation.class, Restrictions.eq("id", id));
+        if (information != null) {
+            mapInfo = new HashMap<String, Object>();
+            mapInfo.put("jobNumber", information.getJobNumber());
+            mapInfo.put("name", information.getName());
+            mapInfo.put("staffId", information.getId());
+        }
+        return "structhistory";
+    }
+
+    /**
+     * @Title: 调整员工薪级展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String level() {
+        return "level";
+    }
+
+    /**
+     * @Title: 调整员工薪级增加页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String levelAdd() {
+        return "leveladd";
+    }
+
+    /**
+     * @Title: 公司选择
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月14日 V 1.0
+     */
+    public String company() {
+        return "company";
+    }
+
+    /**
+     * @Title: 获取工资标准 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月8日 V 1.0
+     */
+    public String getSalaryStandard() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getStaffSalaryListData(id, depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 更新员工工资档案 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月8日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryRecordService.saveOrUpdate(formdata, griddata, standardData));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取工资标准项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月8日 V 1.0
+     */
+    public String getSalaryStandardItems() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getSalaryStandardItems(id, type, isDisplay)));
+    }
+
+    /**
+     * @Title: 获取员工收入 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public String getHistorySalaryRecord() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getHistorySalaryRecord(id)));
+    }
+
+    /**
+     * @Title: 获取实习员工以及异动人员列表数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月13日 V 1.0
+     */
+    public String getPracticeEmployeeListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getPracticeEmployeeListData(depId, pager)));
+    }
+
+    /**
+     * @Title: 获取员工薪酬薪资组值 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月14日 V 1.0
+     */
+    public String getSalaryGroupValueListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getSalaryGroupValueListData(id)));
+    }
+
+    /**
+     * @Title: 更新员工薪酬
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月8日 V 1.0
+     */
+    public String saveOrUpdateToStaff() {
+        try {
+            return ajax(Status.success, salaryRecordService.saveOrUpdateToStaff(formdata, griddata, gridData, gridAccountData));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取异动薪资调整数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月15日 V 1.0
+     */
+    public String getAllSalaryAdjustListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getAllSalaryAdjustListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取员工薪酬公式 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public String getAllGroupFinancialList() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getAllGroupFinancialList(id)));
+    }
+
+    /**
+     * @Title: 获取员工调整历史记录 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public String getAllRecordHistoryListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getAllRecordHistoryListData(staffId, pager)));
+    }
+
+    /**
+     * @Title: 获取需要调整工资数据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月17日 V 1.0
+     */
+    public String getStaffForAdjustListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getStaffForAdjustListData(ids)));
+    }
+
+    /**
+     * @Title: 调整员工薪酬 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月18日 V 1.0
+     */
+    public String saveOrUpdateToStaffSalary() {
+        try {
+            return ajax(Status.success, salaryRecordService.saveOrUpdateToStaffSalary(griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取员工账号信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String getSalaryAccountListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryRecordService.getSalaryAccountListData(id)));
+    }
+
+    /**
+     * @Title: 获取选中的员工的福利项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月8日 V 1.0
+     */
+    public String getChoseStaffInsurances() {
+        List<Map<String, Object>> bxList = salaryInsuranceService.getChoseStaffInsurances(id);
+        return ajax(Status.success, JsonUtil.Encode(bxList));
+    }
+
+    public String getDepId() {
+        return depId;
+    }
+
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+
+    public Map<String, Object> getMapData() {
+        return mapData;
+    }
+
+    public void setMapData(Map<String, Object> mapData) {
+        this.mapData = mapData;
+    }
+
+    public List<String[]> getItemlTypeList() {
+        return itemlTypeList;
+    }
+
+    public void setItemlTypeList(List<String[]> itemlTypeList) {
+        this.itemlTypeList = itemlTypeList;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public SalaryRecord getSalaryRecord() {
+        return salaryRecord;
+    }
+
+    public void setSalaryRecord(SalaryRecord salaryRecord) {
+        this.salaryRecord = salaryRecord;
+    }
+
+    public Map<String, Object> getMapInfo() {
+        return mapInfo;
+    }
+
+    public void setMapInfo(Map<String, Object> mapInfo) {
+        this.mapInfo = mapInfo;
+    }
+
+    public Double getQzd() {
+        return qzd;
+    }
+
+    public void setQzd(Double qzd) {
+        this.qzd = qzd;
+    }
+
+    public String getGridData() {
+        return gridData;
+    }
+
+    public void setGridData(String gridData) {
+        this.gridData = gridData;
+    }
+
+    public String getSalaryGroupId() {
+        return salaryGroupId;
+    }
+
+    public void setSalaryGroupId(String salaryGroupId) {
+        this.salaryGroupId = salaryGroupId;
+    }
+
+    public String getSalaryItemsId() {
+        return salaryItemsId;
+    }
+
+    public void setSalaryItemsId(String salaryItemsId) {
+        this.salaryItemsId = salaryItemsId;
+    }
+
+    public String getStaffId() {
+        return staffId;
+    }
+
+    public void setStaffId(String staffId) {
+        this.staffId = staffId;
+    }
+
+    public String getGridAccountData() {
+        return gridAccountData;
+    }
+
+    public void setGridAccountData(String gridAccountData) {
+        this.gridAccountData = gridAccountData;
+    }
+
+    public int getIsDisplay() {
+        return isDisplay;
+    }
+
+    public void setIsDisplay(int isDisplay) {
+        this.isDisplay = isDisplay;
+    }
+
+    public String getStandardData() {
+        return standardData;
+    }
+
+    public void setStandardData(String standardData) {
+        this.standardData = standardData;
+    }
+
+}

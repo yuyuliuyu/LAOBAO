@@ -1,0 +1,254 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.CheckHisInfoDao;
+import com.lingnet.hcm.entity.check.CkCheckHisInfo;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: CheckHisInfoDaoImpl 
+ * @Description: 员工考勤历史信息Dao实现类 
+ * @author wangqiang
+ * @date 2017年4月18日 上午8:50:53 
+ *
+ */
+@Repository("checkHisInfoDao")
+public class CheckHisInfoDaoImpl extends BaseDaoImpl<CkCheckHisInfo, String> implements CheckHisInfoDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getHisInfoByCond(Pager pager,
+			String startTime, String endTime, String depId, String jobNumber) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		int beginTime = 0;
+		int lastTime = 0;
+		String times = "";
+		if (!"".equals(startTime)){
+			beginTime = Integer.parseInt(startTime);
+		}
+		if (!"".equals(endTime)){
+			lastTime = Integer.parseInt(endTime);
+		}
+		int flag = 0;//日期记录
+		while(flag != lastTime){
+			if (flag == 0){
+				flag = beginTime;
+			}
+			if (beginTime == lastTime){
+				break;
+			}
+			times += ("'"+flag+"', ");
+			if ("12".equals((flag+"").substring(2, 4))){
+				flag = Integer.parseInt(Integer.parseInt((flag+"").substring(0, 2))+1+"01");
+			} else {
+				flag ++;
+			}
+		}
+		if (flag != 0){
+			times += times+"'"+flag+"'";
+		}
+		String sql = "select a.ID, a.JOB_NUMBER, a.MONTH_CALENDAR, a.NAME, a.CLASS_NAME, a.POST_NAME, a.POST_STATE, a.IS_HEADER, "
+				+ "a.MONTH_DAYS, a.DAY1, a.DAY2, a.DAY3, a.DAY4, a.DAY5, a.DAY6, a.DAY7, a.DAY8, a.DAY9, a.DAY10, a.DAY11, a.DAY12, "
+				+ "a.DAY13, a.DAY14, a.DAY15, a.DAY16, a.DAY17, a.DAY18, a.DAY19,a.DAY20, a.DAY21, a.DAY22, a.DAY23, a.DAY24, "
+				+ "a.DAY25, a.DAY26, a.DAY27, a.DAY28, a.DAY29, a.DAY30, a.DAY31 "
+				+ "from ck_emp_hisinfo a ,jc_basic_information b where a.IS_DELETE=0 and a.JOB_NUMBER=b.JOB_NUMBER";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and a.JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工 
+			sql += " and instr('"+depId+"',a.CHECK_DEP_ID)>=0 ";  
+			sql+= " and b.depart_id like '%"+depId+"%'";
+			
+		}
+		if (beginTime != 0 && lastTime != 0){
+			sql += "and MONTH_CALENDAR in(" + times + ") ";
+		}
+		sql += "order by MONTH_CALENDAR desc, JOB_NUMBER asc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> objList = (List<Object[]>) pageInfo.getResult();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("monthCalendar", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("className", objs[4]+"");
+				map.put("postName", objs[5]+"");
+				map.put("postState", objs[6]+"");
+				map.put("isHeader", objs[7]+"");
+				map.put("monthDays", objs[8]+"");
+				map.put("day1", objs[9]+"");
+				map.put("day2", objs[12]+"");
+				map.put("day3", objs[11]+"");
+				map.put("day4", objs[12]+"");
+				map.put("day5", objs[13]+"");
+				map.put("day6", objs[14]+"");
+				map.put("day7", objs[15]+"");
+				map.put("day8", objs[16]+"");
+				map.put("day9", objs[17]+"");
+				map.put("day10", objs[18]+"");
+				map.put("day11", objs[19]+"");
+				map.put("day12", objs[20]+"");
+				map.put("day13", objs[21]+"");
+				map.put("day14", objs[22]+"");
+				map.put("day15", objs[23]+"");
+				map.put("day16", objs[24]+"");
+				map.put("day17", objs[25]+"");
+				map.put("day18", objs[26]+"");
+				map.put("day19", objs[27]+"");
+				map.put("day20", objs[28]+"");
+				map.put("day21", objs[29]+"");
+				map.put("day22", objs[30]+"");
+				map.put("day23", objs[31]+"");
+				map.put("day24", objs[32]+"");
+				map.put("day25", objs[33]+"");
+				map.put("day26", objs[34]+"");
+				map.put("day27", objs[35]+"");
+				map.put("day28", objs[36]+"");
+				if (objs[37] == null){
+					map.put("day29", "");
+				} else {
+					map.put("day29", objs[37]+"");
+				}
+				if (objs[38] == null){
+					map.put("day30", "");
+				} else {
+					map.put("day30", objs[38]+"");
+				}
+				if (objs[39] == null){
+					map.put("day31", "");
+				} else {
+					map.put("day31", objs[39]+"");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	}
+	
+	public static int getDaysByYearMonth(int year, int month) {  
+        Calendar a = Calendar.getInstance();  
+        a.set(Calendar.YEAR, year);  
+        a.set(Calendar.MONTH, month - 1);  
+        a.set(Calendar.DATE, 1);  
+        a.roll(Calendar.DATE, -1);  
+        int maxDate = a.get(Calendar.DATE);  
+        return maxDate;  
+    }
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getHisInfoBySearchs(String startTime,
+			String endTime, String depIds, String jobNumber) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		int beginTime = 0;
+		int lastTime = 0;
+		String times = "";
+		if (!"".equals(startTime)){
+			beginTime = Integer.parseInt(startTime);
+		}
+		if (!"".equals(endTime)){
+			lastTime = Integer.parseInt(endTime);
+		}
+		int flag = 0;//日期记录
+		while(flag != lastTime){
+			if (flag == 0){
+				flag = beginTime;
+			}
+			if (beginTime == lastTime){
+				break;
+			}
+			times += ("'"+flag+"', ");
+			if ("12".equals((flag+"").substring(2, 4))){
+				flag = Integer.parseInt(Integer.parseInt((flag+"").substring(0, 2))+1+"01");
+			} else {
+				flag ++;
+			}
+		}
+		if (flag != 0){
+			times += times+"'"+flag+"'";
+		}
+		String sql = "select ID, JOB_NUMBER, MONTH_CALENDAR, NAME, CLASS_NAME, POST_NAME, POST_STATE, IS_HEADER, "
+				+ "MONTH_DAYS, DAY1, DAY2, DAY3, DAY4, DAY5, DAY6, DAY7, DAY8, DAY9, DAY10, DAY11, DAY12, "
+				+ "DAY13, DAY14, DAY15, DAY16, DAY17, DAY18, DAY19, DAY20, DAY21, DAY22, DAY23, DAY24, "
+				+ "DAY25, DAY26, DAY27, DAY28, DAY29, DAY30, DAY31 "
+				+ "from ck_emp_hisinfo where IS_DELETE=0 ";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+			sql += "and CHECK_DEP_ID in("+depIds+") ";
+		}
+		if (beginTime != 0 && lastTime != 0){
+			sql += "and MONTH_CALENDAR in(" + times + ") ";
+		}
+		sql += "order by MONTH_CALENDAR desc, JOB_NUMBER asc";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("monthCalendar", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("className", objs[4]+"");
+				map.put("postName", objs[5]+"");
+				map.put("postState", objs[6]+"");
+				map.put("isHeader", objs[7]+"");
+				map.put("monthDays", objs[8]+"");
+				map.put("day1", objs[9]+"");
+				map.put("day2", objs[12]+"");
+				map.put("day3", objs[11]+"");
+				map.put("day4", objs[12]+"");
+				map.put("day5", objs[13]+"");
+				map.put("day6", objs[14]+"");
+				map.put("day7", objs[15]+"");
+				map.put("day8", objs[16]+"");
+				map.put("day9", objs[17]+"");
+				map.put("day10", objs[18]+"");
+				map.put("day11", objs[19]+"");
+				map.put("day12", objs[20]+"");
+				map.put("day13", objs[21]+"");
+				map.put("day14", objs[22]+"");
+				map.put("day15", objs[23]+"");
+				map.put("day16", objs[24]+"");
+				map.put("day17", objs[25]+"");
+				map.put("day18", objs[26]+"");
+				map.put("day19", objs[27]+"");
+				map.put("day20", objs[28]+"");
+				map.put("day21", objs[29]+"");
+				map.put("day22", objs[30]+"");
+				map.put("day23", objs[31]+"");
+				map.put("day24", objs[32]+"");
+				map.put("day25", objs[33]+"");
+				map.put("day26", objs[34]+"");
+				map.put("day27", objs[35]+"");
+				map.put("day28", objs[36]+"");
+				if (objs[37] == null){
+					map.put("day29", "");
+				} else {
+					map.put("day29", objs[37]+"");
+				}
+				if (objs[38] == null){
+					map.put("day30", "");
+				} else {
+					map.put("day30", objs[38]+"");
+				}
+				if (objs[39] == null){
+					map.put("day31", "");
+				} else {
+					map.put("day31", objs[39]+"");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	} 
+}

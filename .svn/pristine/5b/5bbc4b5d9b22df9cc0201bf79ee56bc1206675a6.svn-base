@@ -1,0 +1,904 @@
+package com.lingnet.qxgl.service.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.action.BaseAction.Status;
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.qxgl.dao.BackendDepDao;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxCenDep;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxUseDep;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.QxcendepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+
+/** 
+ * @ClassName: BackendDepServiceImpl 
+ * @Description: 部门业务实现类
+ * @author zhmf
+ * @date 2013-6-17 上午9:13:23 
+ * 
+ */
+@Service("backendDepService")
+public class BackendDepServiceImpl extends BaseServiceImpl<QxDepartment, String> implements BackendDepService  {
+
+    @Resource(name = "backendDepDao")
+    private BackendDepDao backendDepDao;
+    @Resource(name="adminService")
+    private AdminService adminService;
+    @Resource(name="qxcendepService")
+    private QxcendepService qxcendepService;
+    @Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+    
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public List<HashMap<String, String>> getTreeList(){
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = backendDepDao.getAllList();
+        //遍历部门内容，进行
+        for (int i = 0; i < depList.size(); i++) {
+            HashMap record = new HashMap();
+            
+            QxDepartment qxDep = depList.get(i);
+            
+            //判断是否为跟部门
+            if(qxDep.getParent().equals("ROOT")){
+                record.put("pid", "-1");
+            }else{
+                record.put("pid", qxDep.getParent());
+            }
+            record.put("id", qxDep.getName());
+            record.put("name", qxDep.getName());
+            record.put("PercentComplete", qxDep.getDescription());
+            SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            record.put("Finish", mat.format(qxDep.getCreateDate()));
+            record.put("Id", qxDep.getId());
+            record.put("expanded", true);
+            
+            data.add(record);
+        }
+        return data;
+    }
+    
+    /** 
+     * 获取部门树
+     */
+    public List<HashMap<String, String>> getTreeAll(){
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = backendDepDao.getAllList();
+        
+        //遍历部门内容，进行
+        for (int i = 0; i < depList.size(); i++) {
+            HashMap<String,String> record = new HashMap<String,String>();
+            
+            QxDepartment qxDep = depList.get(i);
+            //判断是否为跟部门
+            if(qxDep.getParent().equals("ROOT")){
+                record.put("pid", "-1");
+            }else{
+                record.put("pid", qxDep.getParent());
+            }
+            record.put("id", qxDep.getName());
+            record.put("text", qxDep.getName());
+            record.put("PercentComplete", qxDep.getDescription());
+            SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            record.put("Finish", mat.format(qxDep.getCreateDate()));
+            record.put("Id", qxDep.getId());
+            
+            data.add(record);
+        }
+        return data;
+    }
+    /** 
+     * 获取部门树
+     */
+    public List<HashMap<String, String>> getTreeAll2(){
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = backendDepDao.getAllList();
+        
+        //遍历部门内容，进行
+        for (int i = 0; i < depList.size(); i++) {
+            HashMap<String,String> record = new HashMap<String,String>();
+            
+            QxDepartment qxDep = depList.get(i);
+            if("系统归属".equals(qxDep.getName())){
+                continue;
+            }
+            
+            //判断是否为跟部门
+            if(qxDep.getParent().equals("ROOT")){
+                record.put("pid", "-1");
+            }else{
+                record.put("pid", qxDep.getParent());
+            }
+            record.put("id", qxDep.getName());
+            record.put("text", qxDep.getName());
+            record.put("PercentComplete", qxDep.getDescription());
+            SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            record.put("Finish", mat.format(qxDep.getCreateDate()));
+            record.put("Id", qxDep.getId());
+            
+            data.add(record);
+        }
+        return data;
+    }
+    
+    /** 
+     * 获取部门所有内容
+     */
+    @Override
+    public List<HashMap<String, String>> getAll() {
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String, String>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = backendDepDao.getAllList();
+        //遍历部门内容，进行
+        for (int i = 0; i < depList.size(); i++) {
+            HashMap<String,String> record = new HashMap<String,String>();
+            
+            QxDepartment qxDep = depList.get(i);
+            
+            //判断是否为跟部门
+            if(qxDep.getParent().equals("ROOT")){
+                record.put("ParentTaskUID", "-1");
+            }else{
+                record.put("ParentTaskUID", qxDep.getParent());
+            }
+            record.put("UID", qxDep.getName());
+            record.put("Name", qxDep.getName());
+            record.put("PercentComplete", qxDep.getDescription());
+            if(qxDep.getCreateDate()!=null){
+                SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                record.put("Finish", mat.format(qxDep.getCreateDate()));
+            }
+            
+            record.put("Id", qxDep.getId());
+            
+            data.add(record);
+        }
+        return data;
+    }
+    
+//    @Override
+//    public QxDepartment getByName(String name){
+//        
+//        QxDepartment dep = backendDepDao.getByName(name);
+//        
+//        return dep;
+//    }
+    
+    /**
+     * 保存更新方法
+     */
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdata(String id, String name, String description, String parent, String child,String cid) {
+        String flg = "";
+        
+        QxDepartment qxDepartment = new QxDepartment();     
+        
+        if(id!=null&&!id.equals("")&&!id.equals("null")){
+            qxDepartment = this.get(QxDepartment.class, Restrictions.eq("id", id));
+            
+            qxDepartment.setDescription(description);
+            qxDepartment.setName(name);
+            Date now=new Date(System.currentTimeMillis());
+            qxDepartment.setModifyDate(now);
+            
+            //判断是否是父级
+            if(parent!=null&&!parent.equals("null")&&!parent.equals("")){
+                qxDepartment.setParent(parent);
+            }else{
+                qxDepartment.setParent("ROOT");
+            }
+            
+            //更新修改的数据
+            this.update(qxDepartment);
+            
+            //存在子节点更新子节点信息
+            String[] allid = child.split(",");
+            for(int i=0;i<allid.length;i++){
+                if(!allid[i].equals("null")&&!allid[i].equals("")){
+                    qxDepartment = this.get(QxDepartment.class, Restrictions.eq("id", allid[i]));
+                    qxDepartment.setParent(qxDepartment.getId());
+                   this.update(qxDepartment);
+                }
+            }
+           flg = "success";
+           
+           //operate("部门管理", "编辑",qxDepartment.getName());
+           
+        }else{
+            QxDepartment department =  backendDepDao.getByName(name);
+            if(department!=null){
+                flg = "该部门名称已经存在，请重新录入！";
+                return flg;
+            }
+            String inputCode = ToolUtil.getGuihuaHeadChar(name);
+            qxDepartment.setInput_code(inputCode);
+            qxDepartment.setDescription(description);
+            qxDepartment.setName(name);
+            Date now=new Date(System.currentTimeMillis());
+            qxDepartment.setCreateDate(now);
+            qxDepartment.setIs_function(0);
+            //判断是否是父级
+            if(parent!=null&&!parent.equals("null")&&!parent.equals("")){
+                qxDepartment.setParent(parent);
+            }else{
+                qxDepartment.setParent("ROOT");
+            }
+            qxDepartment.setIsDelete(0);
+            try {
+                this.save(qxDepartment);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //保存新入数据
+            
+             //operate("部门管理", "增加",qxDepartment.getName());
+             
+             flg = "success";
+        }
+        return flg;
+    }
+    
+    ////////////////////////////////////////////////////////////////
+    @Resource(name = "backendDepDao")
+    public void setBackendDepDao(BackendDepDao backendDepDao) {
+        super.setBaseDao(backendDepDao);
+    }
+    
+    public BackendDepDao getBackendDepDao() {
+        return backendDepDao;
+    }
+
+    /**
+     * 获取部门treegrid数据
+     */
+    @Override
+    public String treeGridData(HashMap<String, String> parammap) {
+
+        List<HashMap<String, Object>> data = new ArrayList<HashMap<String, Object>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = this.getOrderList(QxDepartment.class, Order.asc("xh"),Restrictions.eq("isDelete", 0));
+        //遍历部门内容，进行
+        for (int i = 0; i < depList.size(); i++) {
+            HashMap<String, Object> record = new HashMap<String, Object>();
+            
+            QxDepartment qxDep = depList.get(i);
+            
+            //判断是否为跟部门
+            if(qxDep.getParent().equals("ROOT")){
+                record.put("pid", "-1");
+            }else{
+                record.put("pid", qxDep.getParent());
+            }
+            record.put("id", qxDep.getId());
+            record.put("name", qxDep.getName());
+            record.put("pym", qxDep.getInput_code());
+            record.put("descript", qxDep.getDescription());
+            SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            record.put("createdate", mat.format(qxDep.getCreateDate()));
+            record.put("isgnks", qxDep.getIs_function());//是否功能科室
+            record.put("xh",qxDep.getXh() );//序号
+            record.put("sjbggs",qxDep.getSjbggs() );//数据报告格式
+            record.put("jklx", qxDep.getJklx()==null?"": qxDep.getJklx());//接口类型
+            record.put("ksh",qxDep.getKsh() );//科室号
+            
+            data.add(record);
+        }
+        return JsonUtil.Encode(data);
+    
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    public List getTreeAll1(String cid) {
+
+        List<HashMap<String, Object>> data = new ArrayList<HashMap<String, Object>>();
+        //获取所有部门内容
+        List<QxDepartment> depList = null;
+        if(StringUtils.isNotBlank(cid)){
+
+            List<QxCenDep> cdlist = this.getList(QxCenDep.class, Restrictions.eq("cid", cid));
+            if(cdlist!=null&&cdlist.size()>0){
+                int l = cdlist.size();
+                String[] dids = new String[l];
+                for(int i = 0 ; i < l ; i++){
+                    QxCenDep cd = cdlist.get(i);
+                    dids[i] = cd.getDid();
+                }
+                try {
+                    depList =  this.getOrderList(QxDepartment.class,Order.asc("xh"),Restrictions.eq("isDelete", 0),Restrictions.in("id", dids));  
+                } catch (Exception e) {
+                   e.printStackTrace();
+                }
+               
+            }
+        }else{
+            depList =  this.getOrderList(QxDepartment.class,Order.asc("xh"),Restrictions.eq("isDelete", 0));
+        }
+        if(depList!=null){
+          //遍历部门内容，进行
+            for (int i = 0,l = depList.size(); i < l; i++) {
+                HashMap<String,Object> record = new HashMap<String,Object>();
+                
+                QxDepartment qxDep = depList.get(i);
+                //判断是否为跟部门
+                if(qxDep.getParent().equals("ROOT")){
+                    record.put("pid", "-1");
+                    record.put("pname", "ROOT");
+                }else{
+                    record.put("pid", qxDep.getParent());
+                    QxDepartment qd = this.get(qxDep.getParent());
+                    record.put("pname", qd==null?"":qd.getName());
+                }
+                record.put("id", qxDep.getId());
+                record.put("name", qxDep.getName());
+                record.put("isFunction", qxDep.getIs_function());
+                record.put("isgnks", qxDep.getIs_function());//是否功能科室
+                record.put("xh",qxDep.getXh() );//序号
+                record.put("sjbggs",qxDep.getSjbggs() );//数据报告格式
+                record.put("jklx", qxDep.getJklx());//接口类型
+                record.put("ksh",qxDep.getKsh() );//科室号
+                record.put("input_code", qxDep.getInput_code());
+                record.put("imgpath", qxDep.getImgpath());
+                record.put("description", qxDep.getDescription());
+                record.put("input_code", qxDep.getInput_code());
+                data.add(record);
+            }
+        }
+        
+        return data;
+    
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdata(String formData, String child)throws Exception {
+
+        QxDepartment department = JsonUtil.toObject(formData, QxDepartment.class);
+        String flg = "";
+        
+        String id = department.getId();
+        String parent = department.getParent();
+        String name = department.getName();
+        if(id!=null&&!id.equals("")&&!id.equals("null")){//修改
+           QxDepartment bean = this.get(QxDepartment.class, Restrictions.eq("id", id));
+           if(bean!=null){
+               bean.copyFrom(department);
+           }
+           bean.setModifyDate(new Date(System.currentTimeMillis()));
+            
+            //判断是否是父级
+            if(parent!=null&&!parent.equals("null")&&!parent.equals("")){
+                bean.setParent(parent);
+            }else{
+                bean.setParent("ROOT");
+            }
+            
+            //更新修改的数据
+            this.update(bean);
+            
+            //存在子节点更新子节点信息
+            String[] allid = child.split(",");
+            for(int i=0;i<allid.length;i++){
+                if(!allid[i].equals("null")&&!allid[i].equals("")){
+                    QxDepartment qxDepartment = this.get(allid[i]);
+                    qxDepartment.setParent(department.getId());
+                   this.update(qxDepartment);
+                }
+            }
+           flg = "success";
+           
+          // operate("部门管理", "编辑",name);
+           
+        }else{
+        	//编辑时不能修改科室名称
+            QxDepartment olddepartment =  backendDepDao.get(Restrictions.eq("name",name),Restrictions.eq("isDelete",0));
+            if(olddepartment!=null){
+                flg = "该部门名称已经存在，请重新录入！";
+                throw new Exception(flg) ;
+            }
+            
+            Date now=new Date(System.currentTimeMillis());
+            department.setCreateDate(now);
+           
+            //判断是否是父级
+            if(parent!=null&&!parent.equals("null")&&!parent.equals("")){
+                department.setParent(parent);
+            }else{
+                department.setParent("ROOT");
+            }
+            department.setIsDelete(0);
+            try {
+                this.save(department);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            //保存新入数据
+            
+            // operate("部门管理", "增加",name);
+             
+             flg = "success";
+        }
+        return flg;
+    
+    }
+
+    @SuppressWarnings("rawtypes")
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String remove(Pager pager,String id) throws Exception {
+      //循环删除部门信息
+        String[] ids = id.split(",");
+        //判断部门下是否有人员
+        for(int i=0;i<ids.length;i++){
+            HashMap result = adminService.getUsersByDepId(pager,ids[i],"","");
+            
+            if(Integer.parseInt(result.get("total").toString())>0){//判断该部门是否存在用户
+                
+               throw new Exception("操作失败：该部门下存在人员！");
+            }else{
+                QxDepartment d = this.get(QxDepartment.class, Restrictions.eq("id", ids[i]),Restrictions.eq("isDelete", 0));
+                if(d!=null){
+                    d.setIsDelete(1);
+                    this.update(d);
+                }
+                
+            }
+        }
+       
+        return "success";
+    }
+    /**
+     * 获取所有的功能部门（科室）
+     * 
+     * @Title: findAllDepartment
+     * @return List<QxDepartment>
+     * @author yinzl
+     * @since 2016-8-7 V 1.0
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String getAllDepartment(Pager pager, String key) {
+        List<HashMap> mapList = new ArrayList<HashMap>();
+        List<QxDepartment> departments = new ArrayList<QxDepartment>();
+        try {
+            departments = backendDepDao.getAllDepartment(pager, key);
+        } catch (Exception e) {
+            return Status.error + e.getMessage();
+        }
+        if (departments != null && departments.size() != 0) {
+            for (QxDepartment bean : departments) {
+                HashMap map = new HashMap();
+                if (bean != null && !"0".equals(bean) && !"".equals(bean)) {
+                    map.put("id", bean.getId());
+                    map.put("name", bean.getName());
+                    map.put("input_code", bean.getInput_code());
+                    mapList.add(map);
+                }
+
+            }
+        }
+        HashMap result = new HashMap();
+        result.put("data", mapList);
+        result.put("total", pager.getTotalCount());
+        return JsonUtil.Encode(result);
+    }
+    /**
+     * 获取所有功能科室
+     */
+    @Override
+    public String getStyks(String key) {
+        Conjunction con = Restrictions.conjunction();
+        if(StringUtils.isNotBlank(key)){
+            key = key.trim().toUpperCase();
+            con.add(Restrictions.like("input_code", key, MatchMode.ANYWHERE));
+        }
+        con.add(Restrictions.eq("isDelete", 0)).add(Restrictions.eq("is_function", 1));
+        List<QxDepartment> list = this.getOrderList(QxDepartment.class, Order.desc("createDate"), con);
+        List<HashMap<String, Object>> data = new ArrayList<HashMap<String,Object>>();
+        if(list!=null&&list.size()>0){
+            for(QxDepartment q : list){
+                HashMap<String, Object> map = new HashMap<String, Object>();
+                map.put("id", q.getId());
+                map.put("name", q.getName());
+                map.put("srm", q.getInput_code());
+                
+                data.add(map);
+            }
+        }
+        return JsonUtil.Encode(data);
+    }
+    /**
+     * 获取所有科室
+     */
+    @Override
+    public String getAllks(String key) {
+        Conjunction con = Restrictions.conjunction();
+        if(StringUtils.isNotBlank(key)){
+            key = key.trim().toUpperCase();
+            con.add(Restrictions.like("input_code", key, MatchMode.ANYWHERE));
+        }
+        con.add(Restrictions.eq("isDelete", 0)).add(Restrictions.isNotNull("ksh"));
+        List<QxDepartment> list = this.getOrderList(QxDepartment.class, Order.desc("createDate"), con);
+        List<HashMap<String, Object>> data = new ArrayList<HashMap<String,Object>>();
+        if(list!=null&&list.size()>0){
+            for(QxDepartment q : list){
+                HashMap<String, Object> map = new HashMap<String, Object>();
+                map.put("id", q.getId());
+                map.put("name", q.getName());
+                map.put("srm", q.getInput_code());
+                
+                data.add(map);
+            }
+        }
+        return JsonUtil.Encode(data);
+    }
+
+    /**
+     * 获取开单医师  所有的销售 本分中心的客服
+     * @Title: getKdys 
+     * @param key
+     * @return 
+     * String 
+     * @author lsp      
+     * @since 2016-8-18 V 1.0
+     */
+    @Override
+    public String getKdys(String key) {
+        
+        String userName = ToolUtil.userName();
+        QxUsers user = adminService.getUserByName(userName);
+        String cid = user.getCid();//分中心id
+        
+        Branch b = this.get(Branch.class, Restrictions.eq("id", cid));
+        
+        List<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+        try {
+            
+        
+        //销售数据
+        QxDepartment xs = this.get(QxDepartment.class, Restrictions.eq("isDelete", 0),Restrictions.eq("name", "销售部"));
+        if(xs!=null){
+            String xsId = xs.getId();
+            List<HashMap<String,String>> xsData=this.getKdysData(xsId,cid,key,b.getFzx(),"");
+            data.addAll(xsData);
+        }
+        
+        //客服数据
+        List<QxCenDep> list =this.getList(QxCenDep.class, Restrictions.eq("cid",b.getId()));
+        if(list!=null&&list.size()>0){
+            int l = list.size();
+            String[] ids = new String[l];
+            for(int i = 0 ; i < l ; i++){
+                QxCenDep cd = list.get(i);
+                ids[i] = cd.getDid();
+            }
+            QxDepartment kf = this.get(QxDepartment.class, Restrictions.eq("isDelete", 0),Restrictions.eq("name", "客服部"),Restrictions.in("id", ids));
+            if(kf!=null){
+                String kfId = kf.getId();
+                List<HashMap<String,String>> kfData=this.getKdysData(kfId,cid,key,b.getFzx(),"");
+                data.addAll(kfData);
+            }
+        }
+        
+       
+       
+        } catch (Exception e) {
+           e.printStackTrace();
+           return null;
+        }
+        return JsonUtil.Encode(data);
+    }
+
+    /**
+     * 通过部门Id获取人员的数据
+     * @Title: getKdysData 
+     * @param id 部门id
+     * @param cid 分中心id
+     * @param key 输入码
+     * @param fzxname 分中心名称 没有值传“”
+     * @param type 类型 ：gnks，“”
+     * @return 
+     * List<HashMap<String,String>> 
+     * @author lsp		
+     * @since 2016-8-18 V 1.0
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private List<HashMap<String, String>> getKdysData(Object id,String cid,String key,String fzxname,String type) {
+        
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String,String>>();
+        /**获取部门id及其子部门id*/
+        ArrayList ids = new ArrayList();
+        if(StringUtils.isNotBlank(type)&&type.equals("gnks")){
+            ids.addAll((Collection) id);
+        }else{
+            ArrayList qids = new ArrayList();
+            ids.addAll(this.getQids(id,qids));
+             
+        }
+         
+        
+        /**人员部门中间表*/
+        List<QxUseDep> udlist = this.getList(QxUseDep.class, Restrictions.in("depId", ids));
+        if(udlist!=null&&udlist.size()>0){
+            int l = udlist.size();
+            /**存放用户id*/
+            String[] uIds = new String[l];
+            for(int j = 0 ; j < l ; j++){
+                QxUseDep ud = udlist.get(j);
+                uIds[j] = ud.getUserId();
+            }
+            /**查询条件  主要对key和分中心的判断*/
+            Conjunction  con = Restrictions.conjunction();
+            con.add(Restrictions.in("id", uIds));
+            con.add(Restrictions.eq("isDelete", 0));
+            if(StringUtils.isNotBlank(cid)){
+                con.add(Restrictions.eq("cid", cid));
+            }
+            if(StringUtils.isNotBlank(key)){
+                key = key.trim().toUpperCase();
+                con.add(Restrictions.like("inputCode", key, MatchMode.ANYWHERE));
+            }
+            /**获取用户表*/
+            List<QxUsers> ulist = this.getOrderList(QxUsers.class, Order.desc("createDate"), con);
+            if(ulist!=null&&ulist.size()>0){
+                for(QxUsers u :ulist){
+                    HashMap<String, String> map = new HashMap<String, String>();
+                    String uid = u.getId();
+                    map.put("id", u.getId());
+                    map.put("name", u.getUsername());
+                    map.put("cname",fzxname);
+                    map.put("inputCode", u.getInputCode());
+                    
+                    /**获取用户部门表*/
+                    List<QxUseDep> userDlist = this.getList(QxUseDep.class, Restrictions.eq("userId", uid));
+                    String dname = "";
+                    if(userDlist!=null&&userDlist.size()>0){
+                        int ul = userDlist.size();
+                        /**存放部门id*/
+                        String[] uids = new String[ul];
+                        for(int j = 0 ; j < ul ; j++){
+                            QxUseDep ud = userDlist.get(j);
+                            uids[j] = ud.getDepId();
+                        }
+                        
+                        /**获取用户所在部门*/
+                        List<QxDepartment> udd = this.getOrderList(QxDepartment.class,Order.desc("createDate"), Restrictions.in("id", uids),Restrictions.eq("isDelete", 0));
+                        if(udd!=null&&udd.size()>0){
+                            for(QxDepartment dep:udd){
+                                String depname = dep.getName();
+                                dname=dname+depname+",";
+                            }
+                        }
+                    }
+                    /**部门名称*/
+                    dname = dname.substring(0, dname.length()-1);
+                    map.put("dname", dname);//部门名称
+                    
+                    data.add(map);
+                }
+            }
+        }
+        return data;
+    }
+    /**获取部门所有成员id*/
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public ArrayList getQids(Object id, ArrayList ids) {
+        ids.add(id);
+        List<QxDepartment> list = this.getOrderList(QxDepartment.class,Order.desc("createDate"), Restrictions.eq("parent", id),Restrictions.eq("isDelete", 0));
+        if(list!=null&&list.size()>0){
+            int len = list.size();
+            for(int i = 0 ; i < len ; i++){
+                QxDepartment d = list.get(i);
+                ids = getQids(d.getId(),ids);
+            }
+          }   
+        return ids;
+    }
+
+    /**
+     * 获取加项医师 本分中心所有的功能科室的
+     * @Title: getJxys 
+     * @param key
+     * @return 
+     * String 
+     * @author lsp      
+     * @since 2016-8-18 V 1.0
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public String getJxys(String key) {
+
+        
+        String userName = ToolUtil.userName();
+        QxUsers user = adminService.getUserByName(userName);
+        String cid = user.getCid();//分中心id
+        
+        Branch b = this.get(Branch.class, Restrictions.eq("id", cid));
+        
+        List<HashMap<String,String>> data = new ArrayList<HashMap<String,String>>();
+        //销售数据
+        List<QxCenDep> list =this.getList(QxCenDep.class, Restrictions.eq("cid",b.getId()));
+        if(list!=null&&list.size()>0){
+            int l = list.size();
+            String[] ids = new String[l];
+            for(int i = 0 ; i < l ; i++){
+                QxCenDep cd = list.get(i);
+                ids[i] = cd.getDid();
+            }
+            List<QxDepartment> gnkslist = this.getList(QxDepartment.class, Restrictions.eq("isDelete", 0),Restrictions.eq("is_function", 1),Restrictions.in("id", ids));
+            if(gnkslist!=null&&gnkslist.size()>0){
+                ArrayList gnids = new ArrayList();
+                for(QxDepartment d :gnkslist){
+                    gnids.add(d.getId());
+                }
+                List<HashMap<String,String>> gnksData=this.getKdysData(gnids,cid,key,b.getFzx(),"gnks");
+                data.addAll(gnksData);
+            }
+        }
+        return JsonUtil.Encode(data);
+    
+    }
+    
+    /**
+     * 判断树节点是否为销售部
+     * @Title: isXsb 
+     * @param pid,did
+     * @return 
+     * String 
+     * @author mbx      
+     * @since 2016-8-23 V 1.0
+     */
+    @Override
+    public String isXsb(String pid,String did) {
+        String state="0";
+        String id="";
+        QxDepartment depart=backendDepService.get(QxDepartment.class, Restrictions.eq("id", pid));
+        if(depart!=null){
+            if(!depart.getParent().equalsIgnoreCase("ROOT")){
+                id=depart.getId();
+            }else{
+                //是ROOT节点
+                depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", did));
+                if(depart.getName().indexOf("销售")!=-1 || depart.getName().indexOf("客服")!=-1){
+                    //是销售部
+                    state="1";
+                    return state;
+                }else{
+                    //不是销售部门
+                    state="0";
+                    return state;
+                }
+            }
+        }
+        if(depart!=null){
+            do{
+                depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", depart.getParent()));
+                if(depart!=null&&!depart.getParent().equalsIgnoreCase("ROOT")){
+                    id=depart.getId();
+                    depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", depart.getParent()));
+                    if(depart!=null){
+                        if(depart.getParent().equalsIgnoreCase("ROOT")){
+                            //判断是否为销售根部
+                            depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", id)); 
+                            if(depart.getName().indexOf("销售")!=-1 || depart.getName().indexOf("客服")!=-1){
+                                //该节点属于销售部
+                                state="1";
+                            }
+                        }else{
+                            depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", depart.getParent())); 
+                            id=depart.getParent();
+                        }
+                    }
+                }else if(depart.getParent().equalsIgnoreCase("ROOT")){
+                    //是ROOT节点
+                    depart=backendDepService.get(QxDepartment.class,Restrictions.eq("id", id));
+                    if(depart.getName().indexOf("销售")!=-1 || depart.getName().indexOf("客服")!=-1){
+                        //该节点属于销售部
+                        state="1";
+                    }else{
+                        //不是销售部
+                        state="2";
+                    }
+                }
+            }while(state.equals("0"));
+        }
+        return state;
+    }
+
+    /**
+     * 获取分中心下某部门下的所有人员信息
+     * @Title: getCenDepUserData 
+     * @param pager
+     * @param parmmap
+     * @return 
+     * String 
+     * @author lsp      
+     * @since 2016-8-24 V 1.0
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String getCenDepUserData(Pager pager, HashMap<String, String> parmmap) {
+        String cid = parmmap.get("cid");//分中心Id
+        String name = parmmap.get("name");//部门名称
+        Branch b = this.get(Branch.class,Restrictions.eq("id", cid));
+        List<HashMap<String, String>> data = new ArrayList<HashMap<String,String>>(); 
+        QxDepartment d = this.get(QxDepartment.class, Restrictions.eq("isDelete", 0),Restrictions.eq("name", name));
+        if(d!=null){
+            String did = d.getId();
+            QxCenDep cd = qxcendepService.get(QxCenDep.class, Restrictions.eq("cid", cid),Restrictions.eq("did",did ));
+            if(cd!=null){
+                ArrayList ids = new ArrayList();
+                ids = getQids((Object)did, ids);//部门下所有部门的Id的集合
+                List<QxUseDep> udl = this.getList(QxUseDep.class, Restrictions.in("depId", ids));
+                if(udl!=null&&udl.size()>0){//部门下存在用户
+                    int l = udl.size();
+                    String[] uids = new String[l];
+                    for(int i = 0 ; i < l ; i++){
+                        QxUseDep ud = udl.get(i);
+                        uids[i] = ud.getUserId();
+                    }
+                    pager = this.findPager(QxUsers.class, pager, Restrictions.in("id", uids),Restrictions.eq("isleader", "0"),Restrictions.eq("isDelete", 0),Restrictions.eq("cid", cid));
+                    List<QxUsers> ul = (List<QxUsers>) pager.getResult();
+                    if(ul!=null&&ul.size()>0){
+                        for(QxUsers u : ul){
+                            HashMap<String, String> map = new HashMap<String, String>();
+                            map.put("id",u.getId() );
+                            map.put("inputCode",u.getInputCode() );
+                            map.put("name", u.getName());
+                            map.put("isleader", u.getIsleader());//是否领导
+                            map.put("cname",b.getFzx());//分中心名称
+                            data.add(map);
+                        }
+                    }
+                }
+            }
+        }
+        return JsonUtil.Encode(data);
+    }
+
+	@Override
+	public String getDepListByBranchId(String branchId) {
+		List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+	       
+	       List<QxDepartment> data = this.getList(QxDepartment.class,Restrictions.eq("isDelete", 0), Restrictions.eq("barchId", branchId));
+	       if(data!=null&&data.size()>0){
+	           for(QxDepartment b : data){
+	               HashMap<String, String> map = new HashMap<String, String>();
+	               map.put("id", b.getId());
+	               map.put("name", b.getName());
+	               list.add(map);
+	           }
+	       }
+	        return JsonUtil.Encode(list);
+	}
+
+}
+

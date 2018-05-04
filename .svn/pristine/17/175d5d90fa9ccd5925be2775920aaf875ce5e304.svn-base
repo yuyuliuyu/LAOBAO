@@ -1,0 +1,328 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.Criteria;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.ContentDao;
+import com.lingnet.hcm.entity.check.CkContent;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: ContentDaoImpl 
+ * @Description: 考勤内容Dao 
+ * @author wangqiang
+ * @date 2017年4月1日 上午9:07:51 
+ *
+ */
+@Repository("contentDao")
+public class ContentDaoImpl extends BaseDaoImpl<CkContent, String> implements ContentDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getInfoByCond(Pager pager, String userId) {
+		List<Map<String, Object>> mapList = new ArrayList<Map<String,Object>>();
+		String sql = "select "
+				+ "ID, CONTENT, CONTENT_TYPE, OUT_WORK, POST, OUT_DUTY, CENTRE, NIGHT, YEAR, THING, "
+				+ "DISEASE, FREE, STAY, INJURY, MARRY, LOST, EXPLORE, GIVE, FLIP, BIG_CLASS, SMALL_CLASS, "
+				+ "BIG_NIGHT, SMALL_NIGHT, OVERSEAS, OTHER, OVERTIME_MODULUS, VACATION_MODULUS, "
+				+ "to_char(START_TIMEb1,'HH24:mi'), to_char(START_TIMEf1,'HH24:mi'), "
+				+ "to_char(END_TIMEb1,'HH24:mi'), to_char(END_TIMEf1,'HH24:mi'), "
+				+ "to_char(START_TIMEb2,'HH24:mi'), to_char(START_TIMEf2,'HH24:mi'), "
+				+ "to_char(END_TIMEb2,'HH24:mi'), to_char(END_TIMEf2,'HH24:mi'), "
+				+ "to_char(START_TIMEb3,'HH24:mi'), to_char(START_TIMEf3,'HH24:mi'), "
+				+ "to_char(END_TIMEb3,'HH24:mi'), to_char(END_TIMEf3,'HH24:mi'), DISCRIPTION, "
+				+ "OUT_HOUR, DELAYED_HOUR, PIECE, DAYTIME, OFF_DUTY, REST, ALL_DAY, TAKE, CALL, "
+				+ "CHANGES, STUDY, VERY, BUSINESS, EVECTION, TEAM, BORROW, RETREAT, DICTION, LEAVE "
+				+ "from ck_content "
+				+ "where IS_DELETE = 0 and USER_ID = '"+ userId +"' ORDER BY CREATEDATE ASC";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, Object> hashmap = new HashMap<String, Object>();
+				hashmap.put("id", list.get(i)[0]);
+				hashmap.put("content", list.get(i)[1]);
+				hashmap.put("contentType", list.get(i)[2]);
+				hashmap.put("outWork", list.get(i)[3]);
+				hashmap.put("post", list.get(i)[4]);
+				hashmap.put("outDuty", list.get(i)[5]);
+				hashmap.put("centre", list.get(i)[6]);
+				hashmap.put("night", list.get(i)[7]);
+				hashmap.put("year", list.get(i)[8]);
+				hashmap.put("thing", list.get(i)[9]);
+				hashmap.put("disease", list.get(i)[10]);
+				hashmap.put("free", list.get(i)[11]);
+				hashmap.put("stay", list.get(i)[12]);
+				hashmap.put("injury", list.get(i)[13]);
+				hashmap.put("marry", list.get(i)[14]);
+				hashmap.put("lost", list.get(i)[15]);
+				hashmap.put("explore", list.get(i)[16]);
+				hashmap.put("give", list.get(i)[17]);
+				hashmap.put("flip", list.get(i)[18]);
+				hashmap.put("bigClass", list.get(i)[19]);
+				hashmap.put("smallClass", list.get(i)[20]);
+				hashmap.put("bigNight", list.get(i)[21]);
+				hashmap.put("smallNight", list.get(i)[22]);
+				hashmap.put("overseas", list.get(i)[23]);
+				hashmap.put("other", list.get(i)[24]);
+				hashmap.put("overtimeModulus", list.get(i)[25]);
+				hashmap.put("vacationModulus", list.get(i)[26]);
+				if (list.get(i)[27] != null && !"00:00".equals(list.get(i)[27])){
+					hashmap.put("startTimeb1", list.get(i)[27]+"");
+				} else {
+					hashmap.put("startTimeb1", "");
+				}
+				if (list.get(i)[28] != null && !"00:00".equals(list.get(i)[28])){
+					hashmap.put("startTimef1", list.get(i)[28]+"");
+				} else {
+					hashmap.put("startTimef1", "");
+				}
+				if (list.get(i)[29] != null && !"00:00".equals(list.get(i)[29])){
+					hashmap.put("endTimeb1", list.get(i)[29]+"");
+				} else {
+					hashmap.put("endTimeb1", "");
+				}
+				if (list.get(i)[30] != null && !"00:00".equals(list.get(i)[30])){
+					hashmap.put("endTimef1", list.get(i)[30]+"");
+				} else {
+					hashmap.put("endTimef1", "");
+				}
+				if (list.get(i)[31] != null && !"00:00".equals(list.get(i)[31])){
+					hashmap.put("startTimeb2", list.get(i)[31]+"");
+				} else {
+					hashmap.put("startTimeb2", "");
+				}
+				if (list.get(i)[32] != null && !"00:00".equals(list.get(i)[32])){
+					hashmap.put("startTimef2", list.get(i)[32]+"");
+				} else {
+					hashmap.put("startTimef2", "");
+				}
+				if (list.get(i)[33] != null && !"00:00".equals(list.get(i)[33])){
+					hashmap.put("endTimeb2", list.get(i)[33]+"");
+				} else {
+					hashmap.put("endTimeb2", "");
+				}
+				if (list.get(i)[34] != null && !"00:00".equals(list.get(i)[34])){
+					hashmap.put("endTimef2", list.get(i)[34]+"");
+				} else {
+					hashmap.put("endTimef2", "");
+				}
+				if (list.get(i)[35] != null && !"00:00".equals(list.get(i)[35])){
+					hashmap.put("startTimeb3", list.get(i)[35]+"");
+				} else {
+					hashmap.put("startTimeb3", "");
+				}
+				if (list.get(i)[36] != null && !"00:00".equals(list.get(i)[36])){
+					hashmap.put("startTimef3", list.get(i)[36]+"");
+				} else {
+					hashmap.put("startTimef3", "");
+				}
+				if (list.get(i)[37] != null && !"00:00".equals(list.get(i)[37])){
+					hashmap.put("endTimeb3", list.get(i)[37]+"");
+				} else {
+					hashmap.put("endTimeb3", "");
+				}
+				if (list.get(i)[38] != null && !"00:00".equals(list.get(i)[38])){
+					hashmap.put("endTimef3", list.get(i)[38]+"");
+				} else {
+					hashmap.put("endTimef3", "");
+				}
+				hashmap.put("discription", list.get(i)[39]);
+				hashmap.put("outHour", list.get(i)[40]);
+				hashmap.put("delayedHour", list.get(i)[41]);
+				hashmap.put("piece", list.get(i)[42]);
+				hashmap.put("daytime", list.get(i)[43]);
+				hashmap.put("offDuty", list.get(i)[44]);
+				hashmap.put("rest", list.get(i)[45]);
+				hashmap.put("allDay", list.get(i)[46]);
+				hashmap.put("take", list.get(i)[47]);
+				hashmap.put("call", list.get(i)[48]);
+				hashmap.put("changes", list.get(i)[49]);
+				hashmap.put("study", list.get(i)[50]);
+				hashmap.put("very", list.get(i)[51]);
+				hashmap.put("business", list.get(i)[52]);
+				hashmap.put("evection", list.get(i)[53]);
+				hashmap.put("team", list.get(i)[54]);
+				hashmap.put("borrow", list.get(i)[55]);
+				hashmap.put("retreat", list.get(i)[56]);
+				hashmap.put("diction", list.get(i)[57]);
+				hashmap.put("leave", list.get(i)[58]);
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Map<String, String>> getAllInfoList(String userId) {
+        List<Map<String, String>> mapList = new ArrayList<Map<String, String>>();
+        List<CkContent> list = this.getSession().createCriteria(CkContent.class).add(Restrictions.eq("userId", userId))
+                .add(Restrictions.eq("isDelete", 0)).addOrder(Order.asc("createDate")).list();
+        if (list.size() > 0){
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+            for (int i = 0; i < list.size(); i++){
+                Map<String, String> hashmap = new HashMap<String, String>();
+                hashmap.put("content", list.get(i).getContent()+"");
+                hashmap.put("contentType", list.get(i).getContentType()+"");
+                hashmap.put("outWork", list.get(i).getOutWork()+"");
+                hashmap.put("post", list.get(i).getPost()+"");
+                hashmap.put("outDuty", list.get(i).getOutDuty()+"");
+                hashmap.put("daytime", list.get(i).getDaytime()+"");
+                hashmap.put("night", list.get(i).getNight()+"");
+                hashmap.put("offDuty", list.get(i).getOffDuty()+"");
+                hashmap.put("centre", list.get(i).getCentre()+"");
+                hashmap.put("overseas", list.get(i).getOverseas()+"");
+                hashmap.put("rest", list.get(i).getRest()+"");
+                hashmap.put("allDay", list.get(i).getAllDay()+"");
+                hashmap.put("take", list.get(i).getTake()+"");
+                hashmap.put("flip", list.get(i).getFlip()+"");
+                hashmap.put("call", list.get(i).getCall()+"");
+                hashmap.put("changes", list.get(i).getChanges()+"");
+                hashmap.put("disease", list.get(i).getDisease()+"");
+                hashmap.put("thing", list.get(i).getThing()+"");
+                hashmap.put("marry", list.get(i).getMarry()+"");
+                hashmap.put("injury", list.get(i).getInjury()+"");
+                hashmap.put("lost", list.get(i).getLost()+"");
+                hashmap.put("give", list.get(i).getGive()+"");
+                hashmap.put("explore", list.get(i).getExplore()+"");
+                hashmap.put("free", list.get(i).getFree()+"");
+                hashmap.put("stay", list.get(i).getStay()+"");
+                hashmap.put("study", list.get(i).getStudy()+"");
+                hashmap.put("very", list.get(i).getVery()+"");
+                hashmap.put("business", list.get(i).getBusiness()+"");
+                hashmap.put("evection", list.get(i).getEvection()+"");
+                hashmap.put("team", list.get(i).getTeam()+"");
+                hashmap.put("borrow", list.get(i).getBorrow()+"");
+                hashmap.put("retreat", list.get(i).getRetreat()+"");
+                hashmap.put("diction", list.get(i).getDiction()+"");
+                hashmap.put("leave", list.get(i).getLeave()+"");
+                hashmap.put("year", list.get(i).getYear()+"");
+                hashmap.put("other", list.get(i).getOther()+"");
+                hashmap.put("bigClass", list.get(i).getBigClass()+"");
+                hashmap.put("smallClass", list.get(i).getSmallClass()+"");
+                hashmap.put("bigNight", list.get(i).getBigNight()+"");
+                hashmap.put("smallNight", list.get(i).getSmallNight()+"");
+                hashmap.put("piece", list.get(i).getPiece()+"");
+                hashmap.put("overtimeModulus", list.get(i).getOvertimeModulus()+"");
+                hashmap.put("vacationModulus", list.get(i).getVacationModulus()+"");
+                hashmap.put("outHour", list.get(i).getOutHour()+"");
+                hashmap.put("delayedHour", list.get(i).getDelayedHour()+"");
+                if (list.get(i).getStartTimeb1() != null){
+                    hashmap.put("startTimeb1", sdf.format(list.get(i).getStartTimeb1())+"");
+                } else {
+                    hashmap.put("startTimeb1", "");
+                }
+                if (list.get(i).getStartTimef1() != null){
+                    hashmap.put("startTimef1", sdf.format(list.get(i).getStartTimef1())+"");
+                } else {
+                    hashmap.put("startTimef1", "");
+                }
+                if (list.get(i).getEndTimeb1() != null){
+                    hashmap.put("endTimeb1", sdf.format(list.get(i).getEndTimeb1())+"");
+                } else {
+                    hashmap.put("endTimeb1", "");
+                }
+                if (list.get(i).getEndTimef1() != null){
+                    hashmap.put("endTimef1", sdf.format(list.get(i).getEndTimef1())+"");
+                } else {
+                    hashmap.put("endTimef1", "");
+                }
+                if (list.get(i).getStartTimeb2() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getStartTimeb2()+"")){
+                    hashmap.put("startTimeb2", sdf.format(list.get(i).getStartTimeb2())+"");
+                } else {
+                    hashmap.put("startTimeb2", "");
+                }
+                if (list.get(i).getStartTimef2() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getStartTimef2()+"")){
+                    hashmap.put("startTimef2", sdf.format(list.get(i).getStartTimef2())+"");
+                } else {
+                    hashmap.put("startTimef2", "");
+                }
+                if (list.get(i).getEndTimeb2() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getEndTimeb2()+"")){
+                    hashmap.put("endTimeb2", sdf.format(list.get(i).getEndTimeb2())+"");
+                } else {
+                    hashmap.put("endTimeb2", "");
+                }
+                if (list.get(i).getEndTimef2() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getEndTimef2()+"")){
+                    hashmap.put("endTimef2", sdf.format(list.get(i).getEndTimef2())+"");
+                } else {
+                    hashmap.put("endTimef2", "");
+                }
+                if (list.get(i).getStartTimeb3() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getStartTimeb3()+"")){
+                    hashmap.put("startTimeb3", sdf.format(list.get(i).getStartTimeb3())+"");
+                } else {
+                    hashmap.put("startTimeb3", "");
+                }
+                if (list.get(i).getStartTimef3() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getStartTimef3()+"")){
+                    hashmap.put("startTimef3", sdf.format(list.get(i).getStartTimef3())+"");
+                } else {
+                    hashmap.put("startTimef3", "");
+                }
+                if (list.get(i).getEndTimeb3() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getEndTimeb3()+"")){
+                    hashmap.put("endTimeb3", sdf.format(list.get(i).getEndTimeb3())+"");
+                } else {
+                    hashmap.put("endTimeb3", "");
+                }
+                if (list.get(i).getEndTimef3() != null && !"1970-01-01 00:00:00.0".equals(list.get(i).getEndTimef3()+"")){
+                    hashmap.put("endTimef3", sdf.format(list.get(i).getEndTimef3())+"");
+                } else {
+                    hashmap.put("endTimef3", "");
+                }
+                hashmap.put("discription", list.get(i).getDiscription()+"");
+                mapList.add(hashmap);
+            }
+        }
+        return mapList;
+    }
+    
+    @SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getContentList(String userId) {
+		List<Map<String, String>> mapList = new ArrayList<Map<String, String>>();
+		List<CkContent> list = this.getSession().createCriteria(CkContent.class)
+				.add(Restrictions.eq("userId", userId))
+				.add(Restrictions.eq("isDelete", 0)).list();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, String> hashmap = new HashMap<String, String>();
+				hashmap.put("id", list.get(i).getId()+"");
+				hashmap.put("text", list.get(i).getContent()+"");
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+
+	@Override
+	public CkContent getValidateContent(String userId, String contentName) {
+		return (CkContent) this.getSession().createCriteria(CkContent.class)
+				.add(Restrictions.eq("userId", userId))
+				.add(Restrictions.eq("content", contentName)).uniqueResult();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<CkContent> getContentListByDepId(String checkUnitId,
+			List<String> contentList) {
+	    String [] deptid=checkUnitId.split(",");
+		Criteria c = this.getSession().createCriteria(CkContent.class);
+		if (checkUnitId != null && !"".equals(checkUnitId)){
+			c.add(Restrictions.in("depId", deptid));
+		}
+		if (contentList.size() > 0){
+			c.add(Restrictions.in("content", contentList));
+		}
+		c.add(Restrictions.eq("isDelete", 0));
+		 List<CkContent> cklist=c.list();
+		return cklist;
+	}
+}

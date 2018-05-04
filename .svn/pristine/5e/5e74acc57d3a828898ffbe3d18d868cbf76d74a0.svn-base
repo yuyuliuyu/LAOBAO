@@ -1,0 +1,612 @@
+package com.lingnet.qxgl.service.impl;
+
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.security.authentication.encoding.MessageDigestPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.qxgl.dao.AdminDao;
+import com.lingnet.qxgl.dao.UserDao;
+import com.lingnet.qxgl.entity.QxCenDep;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxDictionary;
+import com.lingnet.qxgl.entity.QxResource;
+import com.lingnet.qxgl.entity.QxRoles;
+import com.lingnet.qxgl.entity.QxUseDep;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUserDatauth;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.BackendRoleService;
+import com.lingnet.qxgl.service.QxcendepService;
+import com.lingnet.qxgl.service.QxusedepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.MD5;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ToolUtil;
+import com.opensymphony.xwork2.ActionContext;
+
+@Service("adminService")
+public class AdminServiceImpl extends BaseServiceImpl<QxUsers, String> implements AdminService {
+    
+    @Resource(name = "userDao")
+    private UserDao userDao;
+    @Resource(name = "adminDao")
+    private AdminDao adminDao;
+    @Resource(name = "backendRoleService")
+    private BackendRoleService backendRoleService;
+    @Resource(name="qxusedepService")
+    private QxusedepService qxusedepService;
+    @Resource(name="qxcendepService")
+    private QxcendepService qxcendepService;
+    private String jdbcUrl;
+    @Resource(name = "adminDao")
+    public void setAdminDao(AdminDao adminDao) {
+        super.setBaseDao(adminDao);
+    }
+    public boolean isExistByUsername(String username) {
+        return adminDao.isExistByUsername(username);
+    }
+    public String saveuser(QxUser admin, HashSet<QxRoles> rolelist ){ 
+        String redirectUrl = "";  
+                   admin.setIsSystem(false);
+                   String inputCode = ToolUtil.getGuihuaHeadChar(admin.getUsername()).toUpperCase();
+                   admin.setInputCode(inputCode); 
+                   MessageDigestPasswordEncoder encoder = new MessageDigestPasswordEncoder("SHA-256");
+                   admin.setPassword(encoder.encodePassword(admin.getPassword(),admin.getUsername())); 
+                   admin.setUserAccountNonExpired(true);
+                   admin.setUserAccountNonLocked(true);
+                   admin.setUserCredentialsNonExpired(true);
+                   admin.setUserEnabled(true); 
+                   HashSet<QxRoles> set = new HashSet<QxRoles>();
+                   admin.setQxRoles(rolelist); 
+                   userDao.save(admin);
+                   return "保存成功";
+    }
+    /**
+     * 保存新用户
+     */
+    @SuppressWarnings({ "static-access", "rawtypes" })
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String savedata(JsonUtil sut, String data,String value,String ra11d,String depIds) throws Exception {
+        String redirectUrl = ""; 
+        Map listdata = sut.parseProperties(data);
+        QxUser admin = new QxUser();
+        
+        if(!listdata.get("id").toString().equals("")&&!listdata.get("id").toString().equals("null")){
+            admin = userDao.get(listdata.get("id").toString()); 
+            admin.setIsSystem(false);
+            admin.setName(listdata.get("name").toString());
+            String username = listdata.get("username").toString();
+            admin.setUsername(listdata.get("username").toString());
+            String inputCode = ToolUtil.getGuihuaHeadChar(username).toUpperCase();
+            admin.setInputCode(inputCode);
+            admin.setEmail(listdata.get("email").toString());
+            admin.setCid(listdata.get("cid").toString());
+//            admin.setIsleader(listdata.get("isleader")+"");
+            admin.setIsDoc(listdata.get("isDoc")==null?null:Integer.parseInt(listdata.get("isDoc").toString()));
+            admin.setPhone(listdata.get("phone")==null?null:listdata.get("phone").toString());
+            MessageDigestPasswordEncoder encoder = new MessageDigestPasswordEncoder("SHA-256");
+            
+            if(!listdata.get("password").toString().equals("")&&!listdata.get("password").toString().equals("null")){
+                if(listdata.get("rePassword").toString().equals(listdata.get("password").toString())){
+                    admin.setPassword(encoder.encodePassword(listdata.get("password").toString(), listdata.get("username").toString()));
+                }else{
+                    throw new Exception("您两次输入的密码不一致！");
+                }
+            }
+            if(listdata.get("sdiscount")!=null){
+                admin.setSdiscount(Double.parseDouble((String) listdata.get("sdiscount")));
+            }
+            if(listdata.get("ldiscount")!=null){
+                admin.setLdiscount(Double.parseDouble((String) listdata.get("ldiscount")));
+            }
+            admin.setUserAccountNonExpired(true);
+            admin.setUserAccountNonLocked(true);
+            admin.setUserCredentialsNonExpired(true);
+            admin.setUserEnabled(true);
+//            admin.setUserCode(listdata.get("userCode")==null?null:listdata.get("userCode").toString());
+            HashSet<QxRoles> set = new HashSet<QxRoles>();
+            
+            if(value!=null&&!value.equals("null")){
+                String[] rolId = value.split(",");
+                for(int i=0;i<rolId.length;i++){
+                    if(rolId[i]!=null&&!rolId[i].equals("null")){
+                       
+                        QxRoles role = backendRoleService.get(QxRoles.class, Restrictions.eq("id", rolId[i]));
+                        
+                        set.add(role);
+                    }
+                }
+            }
+           
+            admin.setQxRoles(new HashSet<QxRoles>(set));
+            
+            userDao.update(admin); 
+//            qxusedepService.deleteByCriteria(QxUseDep.class, Restrictions.eq("userId",admin.getId()));
+//            for(String depId:depIds.split(",")){
+//        		QxUseDep ud = new QxUseDep();//用户部门表
+//            	ud.setUserId(admin.getId());
+//            	ud.setDepId(depId);
+//            	qxusedepService.save(ud);
+//            } 
+            return redirectUrl;
+            
+        }else{ 
+            if (this.isExistByUsername(listdata.get("username").toString())) {
+                throw new Exception("该用户名已经存在，请重新录入！");
+            }
+            admin.setName(listdata.get("name").toString());
+            String username  = listdata.get("username").toString();
+            admin.setUsername(username);
+            
+            String inputCode = ToolUtil.getGuihuaHeadChar(username).toUpperCase();
+            admin.setInputCode(inputCode);
+            admin.setPhone(listdata.get("phone")==null?null:listdata.get("phone").toString());
+            admin.setEmail(listdata.get("email").toString());
+            if(listdata.get("sdiscount")!=null){
+                admin.setSdiscount(Double.parseDouble((String) listdata.get("sdiscount")));
+            }
+            if(listdata.get("ldiscount")!=null){
+                admin.setLdiscount(Double.parseDouble((String) listdata.get("ldiscount")));
+            }
+//            admin.setIsleader(listdata.get("isleader").toString());
+            MessageDigestPasswordEncoder encoder = new MessageDigestPasswordEncoder("SHA-256");
+             
+            if(!listdata.get("password").toString().equals("")&&!listdata.get("password").toString().equals("null")){
+                if(listdata.get("rePassword").toString().equals(listdata.get("password").toString())){
+                    admin.setPassword(encoder.encodePassword(listdata.get("password").toString(), listdata.get("username").toString()));
+                }else{
+                    throw new Exception("您两次输入的密码不一致！");
+                }
+            }else{
+                throw new Exception("密码不能为空！");
+            }
+            admin.setReciveCode(MD5.encode("123"));//交接密码默认为123
+            admin.setUserAccountNonExpired(true);
+            admin.setUserAccountNonLocked(true);
+            admin.setUserCredentialsNonExpired(true);
+            admin.setUserEnabled(true);
+            admin.setCid(listdata.get("cid").toString());
+            admin.setUserCode(listdata.get("userCode")==null?null:listdata.get("userCode").toString());
+            HashSet<QxRoles> set = new HashSet<QxRoles>();
+            
+            if(value!=null&&!value.equals("null")){
+                String[] rolId = value.split(",");
+                for(int i=0;i<rolId.length;i++){
+                    if(rolId[i]!=null&&!rolId[i].equals("null")){
+                        
+                        QxRoles role = backendRoleService.get(QxRoles.class, Restrictions.eq("id", rolId[i]));
+                        
+                        set.add(role);
+                    }
+                }
+            }
+            admin.setQxRoles(new HashSet<QxRoles>(set));
+            admin.setIsDelete(0);
+            admin.setIsSystem(false);
+            admin.setIsDoc(listdata.get("isDoc")==null?null:Integer.parseInt(listdata.get("isDoc").toString()));
+            userDao.save(admin);
+            
+            for(String depId:depIds.split(",")){
+            	QxUseDep ud = new QxUseDep();//用户部门表
+                ud.setDepId(depId);
+                ud.setUserId(admin.getId());
+                ud.setCreateDate(new Date());
+                qxusedepService.save(ud);
+            } 
+            redirectUrl = "admin!add.action"; 
+            return redirectUrl;
+        }
+    }
+    
+    /**
+     * 首页-个人信息修改方法
+     */
+    @SuppressWarnings({ "rawtypes", "static-access" })
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveTwo(String data)throws Exception {
+        
+        JsonUtil sut = new JsonUtil();
+        
+        Map listdata = sut.parseProperties(data);
+        
+        QxUsers admin = new QxUsers();
+        
+        admin = this.get(QxUsers.class, Restrictions.eq("id", listdata.get("id").toString()));
+        
+        admin.setName(listdata.get("name").toString());
+        admin.setUsername(listdata.get("username").toString());
+        admin.setEmail(listdata.get("email").toString());
+        admin.setDepId(listdata.get("depId").toString());
+       
+        MessageDigestPasswordEncoder encoder = new MessageDigestPasswordEncoder("SHA-256");
+        
+        if(!listdata.get("password").toString().equals("")&&!listdata.get("password").toString().equals("null")){
+            if(listdata.get("rePassword").toString().equals(listdata.get("password").toString())){
+                admin.setPassword(encoder.encodePassword(listdata.get("password").toString(), listdata.get("username").toString()));
+            }else{
+                throw new Exception("您两次输入的密码不一致！");
+            }
+        }
+        if(listdata.get("reciveCode")!=null&&!listdata.get("reciveCode").toString().equals("")&&!listdata.get("reciveCode").toString().equals("null")){
+        	 admin.setReciveCode(MD5.encode(listdata.get("reciveCode").toString()));
+        }
+        admin.setUserAccountNonExpired(true);
+        admin.setUserAccountNonLocked(true);
+        admin.setUserCredentialsNonExpired(true);
+        admin.setUserEnabled(true);
+        //admin.setIsSystem("0");
+        
+        this.update(admin);
+        
+        //operate("首页-账号管理", "编辑",admin.getUsername());
+        List<QxUseDep> list = qxusedepService.getList(QxUseDep.class, Restrictions.eq("depId", listdata.get("depId").toString()),Restrictions.eq("userId", admin.getId()));
+        if(list==null||list.size()==0){
+            QxUseDep ud =new QxUseDep();
+            ud.setDepId(listdata.get("depId").toString());
+            ud.setUserId(admin.getId());
+            ud.setCreateDate(new Date());
+            qxusedepService.save(ud);
+        }
+       
+        return "success";
+    }
+    
+    /** 
+     * 根据部门id获取用户
+     * @throws ParseException 
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public HashMap getUsersByDepId(Pager pager,String depId,String key,String cid) throws ParseException {
+    	String ids =alldep(depId,"");
+        String[] idl = ids.split(",");//所有子部门id
+    	StringBuilder builder=new StringBuilder("SELECT COUNT(DISTINCT U.ID) FROM QX_USERS U " +
+    			//"INNER JOIN QX_USE_DEP UD ON UD.USER_ID=U.ID " +
+    			"INNER JOIN QX_DEPARTMENT D ON D.ID=U.DEPID " +
+    			"WHERE U.CID='"+cid+"' " +
+    			"AND U.IS_DELETE=0 "+
+				"AND D.ID IN(");
+    	for(int i=0,l=idl.length;i<l;i++){
+    		builder.append("'"+idl[i]+"'");
+    		if(i!=l-1){
+    			builder.append(",");
+    		}
+    	}
+    	builder.append(") ");
+    	if(StringUtils.isNotBlank(key)){
+    		builder.append("AND U.USERNAME LIKE '%"+key+"%' ");
+    	}
+    	String count_sql=builder.toString();
+    	String search_sql=count_sql.replace("COUNT(DISTINCT U.ID)"
+    			, "DISTINCT U.ID,U.CID,'',U.USERNAME,U.INPUT_CODE,U.NAME,U.EMAIL,U.SDISCOUNT,U.LDISCOUNT,U.ISLEADER,U.CREATEDATE,U.USERENABLED");
+    	//pager=divisionFaircheckDao.findPagerBySql(pager, count_sql, search_sql);
+    	pager=adminDao.findPagerBySql(pager, search_sql);
+    	List list = pager.getResult();
+    	ArrayList data = new ArrayList();
+        for(int i=0;i<list.size();i++){
+            HashMap<String,Object>record=new HashMap<String,Object>();
+            Object[] os=(Object[])list.get(i);
+            record.put("id", os[0]);
+            record.put("cid", os[1]);
+            record.put("bid", depId);
+            record.put("username", os[3]);
+            record.put("inputCode", os[4]);
+            record.put("name", os[5]);
+            record.put("email",os[6]);
+            record.put("sdiscount",os[7]);
+            record.put("ldiscount", os[8]); 
+            try {
+                record.put("isleader", os[9].toString().equals("0")?"否":"是");
+            } catch (Exception e) {
+                record.put("isleader", "");
+            }
+            record.put("createdate",os[10].toString());
+            try {
+                record.put("enable", os[11].toString().equals("0")?"禁用":"启用");
+            } catch (Exception e) {
+                record.put("enable", "");
+            }
+        	data.add(record);
+        }
+        HashMap result=new HashMap();
+        result.put("data", data);
+        result.put("total", pager.getTotalCount());
+        return result;
+    	
+        /**
+        List lite = new ArrayList();
+        //根据部门名称确定信息显示
+        
+        String ids = "";
+        ids = alldep(depId,ids);
+        String[] idl = ids.split(",");
+        
+        for(int j=0;j<idl.length;j++){
+            List data = adminDao.getUsersByDepId(pager,idl[j],key,cid);
+            if(data==null){
+                continue;
+            }else{
+                lite.addAll(data);
+            }
+            
+        }
+        
+        ArrayList data = new ArrayList();
+        //用于判断是否有重复的人
+        HashMap<String, String> cfmap = new HashMap<String, String>();
+        Integer len = 0;//重复项出现次数
+        for (int i = 0, l = lite.size(); i < l; i++){
+            HashMap<String, String> record = new HashMap<String, String>();
+            
+            QxUsers user = (QxUsers) lite.get(i);
+            if(cfmap.isEmpty()){
+                cfmap.put(user.getId(), "");
+            }else if(cfmap.containsKey(user.getId())){
+                record.clear();
+                len++;
+                continue;
+            }else{
+                cfmap.put(user.getId(), "");
+            }
+            record.put("id", user.getId());
+            record.put("cid", user.getCid());
+            record.put("bid", user.getDepId());
+            record.put("username", user.getUsername());
+            record.put("inputCode", user.getInputCode()==null?"":user.getInputCode());
+            record.put("name", user.getName());
+            record.put("email", user.getEmail());
+            record.put("sdiscount", String.valueOf(user.getSdiscount()).toString());
+            record.put("ldiscount", String.valueOf(user.getLdiscount()).toString());
+            record.put("isleader", user.getIsleader().equals("0")?"否":"是");
+            SimpleDateFormat mat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            record.put("createdate", mat.format(user.getCreateDate()));
+            
+            if (lite.get(i) == null) continue;
+                data.add(record);
+        }
+        
+        HashMap result = new HashMap();
+        
+        result.put("data", data);
+        //result.put("total", pager.getTotalCount()-len);
+        result.put("total", data.size());
+        /*if(depName.contains("销售")||depName.contains("中康国际体检")){
+            result.put("state", 0);
+        }else{
+            result.put("state", 1);
+        }
+        return result;*/
+    }
+    
+    /**
+     * 递归查询部门,父节点可以取到子节点的数据，子节点不能取到父部门的
+     * 20140724zmf
+     * @param cid 
+     */
+    public String alldep(String depId,String ids){
+        QxDepartment thisdep = this.get(QxDepartment.class,Restrictions.eq("id", depId));
+        if(ids.length()>0){
+            ids = ids+","+depId;
+        }else{
+            ids = ids + depId;
+        }
+        if(thisdep!=null&&!"".equals(thisdep)){
+            List<QxDepartment> list = this.getList(QxDepartment.class, Restrictions.eq("parent",thisdep.getId()),Restrictions.eq("isDelete", 0));
+            if(list.size()>0){
+                for(QxDepartment dep:list){
+                    ids = alldep(dep.getId(),ids);
+                }
+            }
+        }
+        
+        return ids;
+    }
+    
+    public QxUsers getUserByName(String name){
+        QxUsers user = adminDao.findUserByName(name);
+        
+        return user;
+    }
+    
+    /**
+     * 根据用户获取菜单层级
+     */
+    @Override
+    public int getMenuSize(String name) {
+        //判断当前链接是mysql还是oracle
+        if(jdbcUrl.indexOf("oracle")!=-1){
+            ActionContext.getContext().getSession().put("dataPro", "oracle");
+        }else if(jdbcUrl.indexOf("mysql")!=-1){
+            ActionContext.getContext().getSession().put("dataPro", "mysql");
+        }else{
+            ActionContext.getContext().getSession().put("dataPro", "msdn");
+        }
+        QxDictionary dic = this.get(QxDictionary.class, Restrictions.eq("type", "开启提醒"));
+        if(dic!=null){
+            ActionContext.getContext().getSession().put("remind", dic.getFlg());
+        }else{
+            ActionContext.getContext().getSession().put("remind", "F");
+        }
+        QxDictionary dic2 = this.get(QxDictionary.class, Restrictions.eq("type", "保存数据"));
+        if(dic2!=null){
+            ActionContext.getContext().getSession().put("keepdata", dic2.getFlg());
+        }else{
+            ActionContext.getContext().getSession().put("keepdata", "F");
+        }
+        return adminDao.getMenuSize(name);
+    }
+    
+    /**
+     * 根据用户获取菜单信息
+     */
+    @Override
+    public List<QxResource> getResourceByUserName(String name, int leve, String modelArea) {
+        
+        return adminDao.getResourceByUserName(name, leve, modelArea);
+    }
+    
+    /**
+     * 保存用户的变换后的部门
+     */
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String changedep(String[] ids, String data,String flag,String depId) throws Exception {
+        if(flag.equals("0")){
+            for(int i=0;i<ids.length;i++){
+                if(!ids[i].equals("")&&!ids[i].equals("null")){
+                    QxUsers admin = get(ids[i]);
+                    QxUseDep qud = qxusedepService.get(QxUseDep.class, Restrictions.eq("depId", data),Restrictions.eq("userId", admin.getId()));
+                    if(qud!=null&&!"".equals(qud)){
+                        throw new Exception("用户“"+admin.getName()+"”</br>转移的部门和原来的部门是同一个部门！");
+                    }else{
+                        qud = qxusedepService.get(QxUseDep.class, Restrictions.eq("depId", depId),Restrictions.eq("userId", admin.getId()));
+                        if(qud!=null){
+                            qxusedepService.delete(qud);
+                        }
+                        QxUseDep ud = new QxUseDep();
+                        ud.setDepId(data);
+                        ud.setUserId(admin.getId());
+                        ud.setCreateDate(new Date());
+                        qxusedepService.save(ud);
+                        
+                    }
+                    
+                    
+                   // operate("用户管理", "转移部门",admin.getUsername());
+                }
+            }
+        }else{//同时存在
+
+            for(int i=0;i<ids.length;i++){
+                if(!ids[i].equals("")&&!ids[i].equals("null")){
+                    QxUsers admin = get(ids[i]);
+                    QxUseDep qud = qxusedepService.get(QxUseDep.class, Restrictions.eq("depId", data),Restrictions.eq("userId", admin.getId()));
+                    if(qud!=null&&!"".equals(qud)){
+                        throw new Exception("用户“"+admin.getName()+"”</br>转移的部门和原来的部门是同一个部门！");
+                    }else{
+                        QxUseDep ud = new QxUseDep();
+                        ud.setDepId(data);
+                        ud.setUserId(admin.getId());
+                        ud.setCreateDate(new Date());
+                        qxusedepService.save(ud);
+                        
+                    }
+                    
+                    
+                   // operate("用户管理", "转移部门",admin.getUsername());
+                }
+            }
+        
+        }
+       
+        return "success";
+    }
+    
+    //////////////////////////////////////////////////////////////
+    public String getJdbcUrl() {
+        return jdbcUrl;
+    }
+
+    public void setJdbcUrl(String jdbcUrl) {
+        this.jdbcUrl = jdbcUrl;
+    }
+
+    public BackendRoleService getBackendRoleService() {
+        return backendRoleService;
+    }
+
+    public void setBackendRoleService(BackendRoleService backendRoleService) {
+        this.backendRoleService = backendRoleService;
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String remove(String ids) throws Exception {
+        String[] allId = ids.toString().split(",");
+        int idLength = allId.length;
+        int useSize = this.getList(QxUsers.class, Restrictions.eq("isDelete", 0)).size();
+        if(idLength>=useSize){
+            throw new Exception("请至少保留一个管理员，删除失败！");
+        }
+        for (String id : allId) {
+            QxUser user = userDao.get(id);
+            if(user.getIsSystem()!=null&&user.getIsSystem().equals("1")){
+                throw new Exception( "“"+user.getName()+"”为系统内置管理员，删除失败！");
+            }
+            List<QxUseDep> list = qxusedepService.getList(QxUseDep.class, Restrictions.eq("userId", id));
+            if(list!=null&&list.size()>0){
+                for(QxUseDep ud :list){
+                    qxusedepService.delete(ud);
+                }
+                
+            }
+            user.setQxRoles(new HashSet<QxRoles>());
+            user.setIsDelete(1);
+            userDao.update(user);
+           // this.operate("用户管理", "删除",user.getUsername());
+        }
+        return "success";
+    }
+
+    @Override
+    public String getks(String id,String key) {
+        QxUsers user = this.get(id);
+        String cid = user.getCid();
+        List<QxCenDep> list = qxcendepService.getList(QxCenDep.class,Restrictions.eq("cid", cid));
+        int l = list.size();
+        String[] ids = new String[l];
+        for(int i= 0 ; i < l ;i++){
+            QxCenDep cd = list.get(i);
+            ids[i] =cd.getDid(); 
+        }
+        List<QxDepartment> lists = null;
+        if(StringUtils.isNotBlank(key)){
+            key = key.toUpperCase();
+            lists = this.getOrderList(QxDepartment.class, Order.desc("createDate"),Restrictions.eq("is_function",1 ),Restrictions.in("id", ids),Restrictions.like("input_code", key,MatchMode.ANYWHERE));
+        }else{
+            lists = this.getOrderList(QxDepartment.class, Order.desc("createDate"),Restrictions.eq("is_function",1 ),Restrictions.in("id", ids));
+        }
+                
+        
+        return JsonUtil.Encode(lists);
+    }
+
+    @Override
+    public String getAuthManageMenu(String name, int leve) {
+        return adminDao.getAuthManageMenu(name, leve);
+    }
+    
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveDatauth(String userId,String depIds,String flgs){
+    	deleteByCriteria(QxUserDatauth.class, Restrictions.eq("userid",userId));
+    	if(StringUtils.isNotEmpty(depIds)){
+    		String[] depArr=depIds.split(",");
+    		String[] flgArr=flgs.split(",");
+    		for(int i=0,l=depArr.length;i<l;i++){
+    			QxUserDatauth datauth=new QxUserDatauth(userId, depArr[i], flgArr[i]);
+    			adminDao.save(datauth);
+    		}
+    	}
+    	return "success";
+    }
+}

@@ -1,0 +1,276 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Criterion;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryAgainDao;
+import com.lingnet.hcm.entity.salary.AssignationStaffSalary;
+import com.lingnet.hcm.entity.salary.SalaryAgain;
+import com.lingnet.hcm.entity.salary.SalaryAgainItems;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.hcm.service.salary.AssignationStaffSalaryService;
+import com.lingnet.hcm.service.salary.SalaryAgainItemsService;
+import com.lingnet.hcm.service.salary.SalaryAgainService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 二次分配总量主表
+ * @ClassName: SalaryAgainServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:13:58 
+ *
+ */
+@Service("salaryAgainService")
+public class SalaryAgainServiceImpl extends BaseServiceImpl<SalaryAgain, String>
+              implements SalaryAgainService {
+
+    @Resource(name="salaryAgainItemsService")
+    private SalaryAgainItemsService salaryAgainItemsService;
+    @Resource(name="assignationStaffSalaryService")
+    private AssignationStaffSalaryService assignationStaffSalaryService;
+    @Resource(name="salaryAgainDao")
+    private SalaryAgainDao salaryAgainDao;
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String companyId, String deptId, String period,
+            String fpqx, String griddata, String columns, String salaryNames) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        String assignId = "";
+        if (list.size() > 0) {
+            SalaryAgain salaryAgain = get(SalaryAgain.class,
+                    Restrictions.eq("companyId", companyId),
+                    Restrictions.eq("depId", deptId),
+                    Restrictions.eq("fpDate", period),
+                    Restrictions.eq("fpqx", Integer.valueOf(fpqx)),
+                    Restrictions.eq("isDelete", 0));
+            if (salaryAgain != null) {
+                // 已经提交、通过的不能再上报
+                if (salaryAgain.getIsSp() == 1 || salaryAgain.getIsSp() == 3) {
+                    return "该总量已经上报，不能再保存";
+                }
+                assignId = salaryAgain.getId();
+            } else {
+                // 增加
+                SalaryAgain sAgain = new SalaryAgain();
+                sAgain.setCompanyId(companyId);
+                sAgain.setDepId(deptId);
+                sAgain.setFpDate(period);
+                sAgain.setRewardTotal("0");
+                sAgain.setReportStatus(0);
+                sAgain.setIsSp(0);
+                sAgain.setFpqx(Integer.valueOf(fpqx));
+                sAgain.setIsDelete(0);
+                assignId = save(sAgain);
+                if (StringUtils.isBlank(assignId)) {
+                    return "保存失败";
+                }
+            }
+        }
+
+        String[] salaryId = columns.split(",");
+        String[] salaryNamesArray = salaryNames.split(",");
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, String> map = list.get(i);
+            if ("modified".equals(map.get("_state"))) {
+                String[] idsArray = map.get("id").split(",");
+                for (int j = 0, m = salaryId.length; j < m; j++) {
+                    SalaryAgainItems againItems = get(SalaryAgainItems.class,
+                            Restrictions.eq("id", idsArray[j]), Restrictions.eq("salaryItemsId", salaryId[j]));
+                    if (againItems != null) {
+                        if (againItems.getIsDelete() == 1) {
+                            throw new Exception(map.get("name") + "的" + salaryNamesArray[j] + "不存在，已经被删除");
+                        } else {
+                            againItems.setNeedAmount(map.get(salaryId[j] + "actual"));
+                            salaryAgainItemsService.update(againItems);
+                        }
+                    }
+                }
+            } else if ("added".equals(map.get("_state"))) {
+                String staffId  = map.get("staffId");
+                for (int j = 0, m = salaryId.length; j < m; j++) {
+                    SalaryAgainItems againItems = new SalaryAgainItems();
+                    againItems.setStaffId(staffId);
+                    againItems.setSalaryItemsId(salaryId[j]);
+                    againItems.setSalaryItemsName(salaryNamesArray[j]);
+                    againItems.setSalaryAgainId(assignId);
+                    againItems.setNeedAmount(map.get(salaryId[j] + "actual"));
+                    againItems.setIsDelete(0);
+                    String id = salaryAgainItemsService.save(againItems);
+                    if (StringUtils.isBlank(id)) {
+                        throw new Exception(map.get("name") + "的" + salaryNamesArray[j] + "保存失败");
+                    }
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getPeriodAmountListData(String searchData, String companyId, Pager pager) {
+        return salaryAgainDao.getPeriodAmountListData(searchData, companyId, pager);
+    }
+
+    @Override
+    public Map<String, Object> getAllSecondAmountListData(String period, String companyId, Pager pager) {
+        return salaryAgainDao.getAllSecondAmountListData(period, companyId, pager);
+    }
+
+    @Override
+    public List<?> getAllSecondForTypeSql(String period, String companyId, String searchData) {
+        return salaryAgainDao.getAllSecondForTypeSql(period, companyId, searchData);
+    }
+
+    @Override
+    public List<Map<String, Object>> getAllStaffSalaryGroup(String companyId) {
+        return salaryAgainDao.getAllStaffSalaryGroup(companyId);
+    }
+
+    @Override
+    public String updateSetReportStatus(String companyId, String period, String id, String salaryGroupId) {
+        // 查找总量表是否存在
+        List<SalaryAgain> again = getList(SalaryAgain.class, Restrictions.eq("companyId", companyId),
+                Restrictions.eq("fpDate", period));
+        if (again.size() == 0) {
+            return "请先保存总量数据";
+        } else {
+            for (SalaryAgain salaryAgain : again) {
+                if (salaryAgain.getIsDelete() == 1) {
+                    return "发生异常";
+                }
+
+                // 已经提交、通过的不能再上报
+                if (salaryAgain.getIsSp() == 1 || salaryAgain.getIsSp() == 3) {
+                    return "该总量已经上报";
+                }
+            }
+        }
+
+        // 检查该公司是否可以上报
+        if (!isCanReport(companyId)) {
+            return "该总量相关的分配过程已经提交审批或者已经通过，不能上报";
+        }
+
+        // 计算该公司总量合计
+        for (SalaryAgain salaryAgain : again) {
+            salaryAgain.setReportStatus(1);
+            salaryAgain.setIsSp(1);
+            List<SalaryAgainItems> againItems = getList(SalaryAgainItems.class,
+                    Restrictions.eq("salaryAgainId", salaryAgain.getId()), Restrictions.eq("isDelete", 0));
+            Double allAmout = 0d;
+            for (int i = 0, m = againItems.size(); i < m; i++) {
+                SalaryAgainItems items = againItems.get(i);
+                items.setReportAmount(items.getNeedAmount());
+                allAmout += Double.valueOf(items.getReportAmount());
+                salaryAgainItemsService.update(items);
+            }
+
+            salaryAgain.setRewardTotal(String.valueOf(allAmout));
+            update(salaryAgain);
+        }
+
+        // 更新员工薪酬核算数据
+        List<Map<String, Object>> periodStaffs = salaryAgainDao.getPeriodStaffInfo(companyId, period);
+        List<AssignationStaffSalary> salaries = new ArrayList<AssignationStaffSalary>();
+        for (int i = 0, l = periodStaffs.size(); i < l; i++) {
+            Map<String, Object> map = periodStaffs.get(i);
+            Object staffSalary = map.get("id");
+            Object salaryAgainItem = map.get("salaryAgainItems");
+            if (staffSalary != null && salaryAgainItem != null) {
+                String[] staffSalarys = map.get("id").toString().split(",");
+                String[] needAmount = map.get("needAmount").toString().split(",");
+                for (int j = 0, ll = staffSalarys.length; j < ll; j++) {
+                    AssignationStaffSalary assignationStaff = get(AssignationStaffSalary.class,
+                            Restrictions.eq("id", staffSalarys[j]),
+                            Restrictions.eq("isDelete", 0));
+                    if (assignationStaff != null) {
+                        assignationStaff.setAssignationCharge(needAmount[j]);
+                        salaries.add(assignationStaff);
+                    }
+                }
+            }
+        }
+
+        // 更新
+        if (salaries.size() > 0) {
+            assignationStaffSalaryService.saveBatch(salaries);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String updateSetCancelReportStatus(String companyId, String period, String salaryGroupId) {
+        List<SalaryAgain> again = getList(SalaryAgain.class, Restrictions.eq("companyId", companyId),
+                Restrictions.eq("fpDate", period));
+        if (again.size() == 0) {
+            return "请先保存总量数据";
+        } else {
+            for (SalaryAgain salaryAgain : again) {
+                if (salaryAgain.getIsDelete() == 1) {
+                    return "发生异常";
+                }
+
+                // 没有上报
+                if (salaryAgain.getIsSp() == 0) {
+                    return "该总量没有上报";
+                }
+            }
+        }
+
+        // 检查该公司是否可以取消上报
+        if (!isCanReport(companyId)) {
+            return "该总量相关的分配过程已经提交审批或者已经通过，不能上报";
+        }
+
+        for (SalaryAgain salaryAgain : again) {
+            salaryAgain.setReportStatus(0);
+            salaryAgain.setIsSp(0);
+            List<SalaryAgainItems> againItems = getList(SalaryAgainItems.class,
+                    Restrictions.eq("salaryAgainId", salaryAgain.getId()), Restrictions.eq("isDelete", 0));
+            for (int i = 0, m = againItems.size(); i < m; i++) {
+                SalaryAgainItems items = againItems.get(i);
+                items.setReportAmount("0");
+                salaryAgainItemsService.update(items);
+            }
+
+            salaryAgain.setRewardTotal("0");
+            update(salaryAgain);
+        }
+
+        return "success";
+    }
+
+    /**
+     * @Title: 判断是否存在已提交或者审批通过的薪资组
+     * @param companyId
+     * @return 
+     * Boolean 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    @Override
+    public Boolean isCanReport(String companyId) {
+        Criterion or = Restrictions.or(Restrictions.eq("isSp", 1), Restrictions.eq("isSp", 3));
+        List<SalaryAssignation> assignations = getList(SalaryAssignation.class,
+                Restrictions.eq("companyId", companyId),
+                Restrictions.eq("isDelete", 0), or);
+
+        return assignations.size() == 0;
+    }
+
+}

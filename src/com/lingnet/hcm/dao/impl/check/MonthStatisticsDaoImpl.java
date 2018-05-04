@@ -1,0 +1,690 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.MonthStatisticsDao;
+import com.lingnet.hcm.entity.check.CkMonthStatistics;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: MonthStatisticsDaoImpl 
+ * @Description: 员工月度考勤统计Dao 
+ * @author wangqiang
+ * @date 2017年5月15日 下午1:43:48 
+ *
+ */
+@Repository("monthStatisticsDao")
+public class MonthStatisticsDaoImpl extends BaseDaoImpl<CkMonthStatistics, String> 
+	implements MonthStatisticsDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getStatisticsInfoByCond(Pager pager,
+			String yearMonth, String depId, String jobNumber) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql="select a.ID,a.JOB_NUMBER,a.YEAR_MONTH,a.NAME,a.OUT_DUTY,a.CENTRE,a.NIGHT,a.OVERTIME_MODULUS,"
+		        + "a.VACATION_MODULUS, a.DELAYED_MODULUS,a.PIECE,a.YEARS,a.FLIP,a.CHANGES,a.THING,a.DISEASE,a.FREE,"
+		        + "a.INJURY,a.MARRY,a.LOST,a.EXPLORE,a.GIVE,a.STAY,a.OTHER, a.OUT_WORK,a.BIG_CLASS,a.SMALL_CLASS,"
+		        + "a.BIG_NIGHT,a.SMALL_NIGHT,a.ALLS,a.LATENCY,a.TAKE_WORK,a.REMARK,c.post,a.EMP_TYPE, a.INSTITUTE_NAME,"
+		        + "NVL(a.WAGE_FORM, ' ') WAGE_FORM,a.DAYTIME,a.OFF_DUTY,a.REST,a.TAKE,a.STUDY,a.VERY,a.BUSINESS,a.EVECTION, a.TEAM,"
+		        + "a.BORROW, a.RETREAT,a.DICTION,a.LEAVE,a.TOTALS, a.ATTENDANCE_DAYS,a.NIGHT_DAYS,a.OVERSEAS,"
+		        + "c.specific_post,a.SALARY_POST_NAME "
+		        + "from ck_month_statistics a "
+		        + "left join jc_basic_information c "
+		        + "on a.job_number=c.job_number "
+		        + " where a.IS_DELETE = '0' "; 
+		if (!"".equals(jobNumber)){//单个员工
+			sql += " and a.JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工 
+            //sql += " and instr('"+depId+"',a.DEP_ID)>0 ";and instr('"+depId+"',c.depart_id)>0 
+            sql += " and c.depart_id IN ('"+StringUtils.join(depId.split(","), "','")+"')";
+		}
+		if (!"".equals(yearMonth)){
+			sql += " and a.YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += " order by a.YEAR_MONTH desc, a.JOB_NUMBER asc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> objList = (List<Object[]>) pageInfo.getResult();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("yearMonth", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("outDuty", objs[4]+"");
+				map.put("centre", objs[5]+"");
+				map.put("night", objs[6]+"");
+				map.put("overtime", objs[7]+"");
+				map.put("vacation", objs[8]+"");
+				map.put("delayed", objs[9]+"");
+				map.put("piece", objs[10]+"");
+				map.put("years", objs[11]+"");
+				map.put("flip", objs[12]+"");
+				map.put("changes", objs[13]+"");
+				map.put("thing", objs[14]+"");
+				map.put("disease", objs[15]+"");
+				map.put("free", objs[16]+"");
+				map.put("injury", objs[17]+"");
+				map.put("marry", objs[18]+"");
+				map.put("lost", objs[19]+"");
+				map.put("explore", objs[20]+"");
+				map.put("give", objs[21]+"");
+				map.put("stay", objs[22]+"");
+				map.put("other", objs[23]+"");
+				map.put("outWork", objs[24]+"");
+				map.put("bigClass", objs[25]+"");
+				map.put("smallClass", objs[26]+"");
+				map.put("bigNight", objs[27]+"");
+				map.put("smallNight", objs[28]+"");
+				map.put("alls", objs[29]+"");
+				map.put("latency", objs[30]+"");
+				map.put("takeWork", objs[31]+"");
+				if (objs[32] != null){
+					map.put("remark", objs[32]+"");
+				} else {
+					map.put("remark", "");
+				}
+				if (objs[33] == null){
+					map.put("postName", "");
+				} else {
+					map.put("postName", objs[33]+"");
+				}
+				map.put("empType", objs[34]+"");
+				map.put("instituteName", objs[35]+"");
+				map.put("wageForm", objs[36]+"");
+				map.put("daytime", objs[37]+"");
+				map.put("offDuty", objs[38]+"");
+				map.put("rest", objs[39]+"");
+				map.put("take", objs[40]+"");
+				map.put("study", objs[41]+"");
+				map.put("very", objs[42]+"");
+				map.put("business", objs[43]+"");
+				map.put("evection", objs[44]+"");
+				map.put("team", objs[45]+"");
+				map.put("borrow", objs[46]+"");
+				map.put("retreat", objs[47]+"");
+				map.put("diction", objs[48]+"");
+				map.put("leave", objs[49]+"");
+				map.put("totals", objs[50]+"");
+				map.put("attendanceDays", objs[51]+"");
+				map.put("nightDays", objs[52]+"");
+				map.put("overseas", objs[53]+"");
+				if (objs[54] == null){
+					map.put("standardPostName", "");
+				} else {
+					map.put("standardPostName", objs[54]+"");
+				}
+				if (objs[55] == null){
+					map.put("salaryPostName", "");
+				} else {
+					map.put("salaryPostName", objs[55]+"");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getStatisInfoBySearchs(String yearMonth,
+			String depIds, String jobNumber) {
+	    depIds=depIds.replace("'", "");
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select cms.JOB_NUMBER, cms.YEAR_MONTH, cms.NAME, cms.POST_NAME, cms.EMP_TYPE, "
+				+ "cms.INSTITUTE_NAME, cms.WAGE_FORM, cms.DAYTIME, cms.NIGHT, cms.OFF_DUTY, cms.CENTRE, "
+				+ "cms.OVERSEAS, cms.REST, cms.ALLS, cms.TAKE, cms.FLIP, cms.TAKE_WORK, cms.CHANGES, "
+				+ "cms.DISEASE, cms.THING, cms.MARRY, cms.INJURY, cms.LOST, cms.GIVE, cms.EXPLORE, "
+				+ "cms.FREE, cms.STAY, cms.STUDY, cms.VERY, cms.BUSINESS, cms.EVECTION, cms.TEAM, cms.BORROW, "
+				+ "cms.RETREAT, cms.DICTION, cms.LEAVE, cms.PIECE, cms.YEARS, cms.OTHER, cms.OUT_WORK, cms.BIG_CLASS, "
+				+ "cms.SMALL_CLASS, cms.BIG_NIGHT, cms.SMALL_NIGHT, cms.TOTALS, cms.ATTENDANCE_DAYS, cms.NIGHT_DAYS, "
+				+ "cms.VACATION_MODULUS, cms.OVERTIME_MODULUS, cms.DELAYED_MODULUS, cms.LATENCY, cms.REMARK, "
+				+ "qd.depart_name as depName, cms.STANDARD_POST_NAME, cms.SALARY_POST_NAME, cms.dep_id as deptid,cms.OUT_DUTY "
+				+ "from ck_month_statistics cms "
+				+ "left join jc_basic_information qd on cms.job_number=qd.job_number "
+				+ "where cms.IS_DELETE = '0' ";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and cms.JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+			sql += "and instr('"+depIds+"',cms.DEP_ID)>0  ";
+		} 
+		if (!"".equals(yearMonth)){
+			sql += "and cms.YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += "order by cms.YEAR_MONTH desc, cms.JOB_NUMBER asc";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", objs[0]+"");
+				map.put("yearMonth", objs[1]+"");
+				map.put("name", objs[2]+"");
+				map.put("postName", objs[3]+"");
+				map.put("empType", objs[4]+"");
+				map.put("instituteName", objs[5]+"");
+				map.put("wageForm", objs[6]+"");
+				map.put("daytime", objs[7]+"");
+				map.put("night", objs[8]+"");
+				map.put("offDuty", objs[9]+"");
+				map.put("centre", objs[10]+"");
+				map.put("overseas", objs[11]+"");
+				map.put("rest", objs[12]+"");
+				map.put("alls", objs[13]+"");
+				map.put("take", objs[14]+"");
+				map.put("flip", objs[15]+"");
+				map.put("takeWork", objs[16]+"");
+				map.put("changes", objs[17]+"");
+				map.put("disease", objs[18]+"");
+				map.put("thing", objs[19]+"");
+				map.put("marry", objs[20]+"");
+				map.put("injury", objs[21]+"");
+				map.put("lost", objs[22]+"");
+				map.put("give", objs[23]+"");
+				map.put("explore", objs[24]+"");
+				map.put("free", objs[25]+"");
+				map.put("stay", objs[26]+"");
+				map.put("study", objs[27]+"");
+				map.put("very", objs[28]+"");
+				map.put("business", objs[29]+"");
+				map.put("evection", objs[30]+"");
+				map.put("team", objs[31]+"");
+				map.put("borrow", objs[32]+"");
+				map.put("retreat", objs[33]+"");
+				map.put("diction", objs[34]+"");
+				map.put("leave", objs[35]+"");
+				map.put("piece", objs[36]+"");
+				map.put("years", objs[37]+"");
+				map.put("other", objs[38]+"");
+				map.put("outWork", objs[39]+"");
+				map.put("bigClass", objs[40]+"");
+				map.put("smallClass", objs[41]+"");
+				map.put("bigNight", objs[42]+"");
+				map.put("smallNight", objs[43]+"");
+				map.put("totals", objs[44]+"");
+				map.put("attendanceDays", objs[45]+"");
+				map.put("nightDays", objs[46]+"");
+				map.put("vacationModulus", objs[47]+"");
+				map.put("overtimeModulus", objs[48]+"");
+				map.put("delayedModulus", objs[49]+"");
+				map.put("latency", objs[50]+"");
+				if (objs[51] != null){
+					map.put("remark", objs[51]+"");
+				} else {
+					map.put("remark", "");
+				}
+				map.put("depName", objs[52]+"");
+				if (objs[53] == null){
+					map.put("standardPostName", "");
+				} else {
+					map.put("standardPostName", objs[53]+"");
+				}
+				if (objs[54] == null){
+					map.put("salaryPostName", "");
+				} else {
+					map.put("salaryPostName", objs[54]+"");
+				}
+                if (objs[55] == null){
+                    map.put("depId", "");
+                } else {
+                    map.put("depId", objs[55]+"");
+                }
+                map.put("outDuty", objs[56]+"");
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getLastLatencyInfos(String depId,
+			String yearMonth) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select JOB_NUMBER, LATENCY from ck_month_statistics where IS_DELETE = '0' "
+				+ "and YEAR_MONTH ='" + yearMonth + "' and DEP_ID='"+depId+"'";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", objs[0]+"");
+				map.put("latency", objs[1]+"");
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getReportInfoByCond(Pager pager,
+			String yearMonth, String depId, String jobNumber, String searchTb) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select cms.ID, cms.JOB_NUMBER, cms.YEAR_MONTH, cms.NAME, cms.OUT_DUTY, cms.CENTRE, cms.NIGHT, "
+				+ "cms.OVERTIME_MODULUS, cms.VACATION_MODULUS, cms.DELAYED_MODULUS, cms.PIECE, cms.YEARS, cms.FLIP, "
+				+ "cms.CHANGES, cms.THING, cms.DISEASE, cms.FREE, cms.INJURY, cms.MARRY, cms.LOST, cms.EXPLORE, "
+				+ "cms.GIVE, cms.STAY, cms.OTHER, cms.OUT_WORK, cms.BIG_CLASS, cms.SMALL_CLASS, cms.BIG_NIGHT, "
+				+ "cms.SMALL_NIGHT, cms.ALLS, cms.LATENCY, cms.TAKE_WORK, cms.REMARK, uinfo.post, cms.EMP_TYPE, "
+				+ "cms.INSTITUTE_NAME, cms.WAGE_FORM, cms.DAYTIME, cms.OFF_DUTY, cms.REST, cms.TAKE, cms.STUDY, "
+				+ "cms.VERY, cms.BUSINESS, cms.EVECTION, cms.TEAM, cms.BORROW, cms.RETREAT, cms.DICTION, cms.LEAVE, "
+				+ "cms.TOTALS, cms.ATTENDANCE_DAYS, cms.NIGHT_DAYS, cms.OVERSEAS, cei.DAY1, cei.DAY2, cei.DAY3, "
+				+ "cei.DAY4, cei.DAY5, cei.DAY6, cei.DAY7, cei.DAY8, cei.DAY9, cei.DAY10, cei.DAY11, cei.DAY12, "
+				+ "cei.DAY13, cei.DAY14, cei.DAY15, cei.DAY16, cei.DAY17, cei.DAY18, cei.DAY19, cei.DAY20, "
+				+ "cei.DAY21, cei.DAY22, cei.DAY23, cei.DAY24, cei.DAY25, cei.DAY26, cei.DAY27, cei.DAY28, "
+				+ "cei.DAY29, cei.DAY30, cei.DAY31,  uinfo.specific_post, cms.SALARY_POST_NAME "
+				+ "from ck_month_statistics cms "
+				+ "left join " + searchTb+ " cei on cei.JOB_NUMBER=cms.JOB_NUMBER "
+				+" left join jc_basic_information uinfo on cms.job_number=uinfo.job_number  "
+				+ "where cms.IS_DELETE = '0' and cei.MONTH_CALENDAR='"+yearMonth+"' ";
+		if (jobNumber!=null&&!"".equals(jobNumber)){//单个员工
+			sql += " and cms.JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+		    depId=depId.replace("'", "");
+			sql += " and (cms.DEP_ID like '%"+depId+"%' or instr('"+depId+"',cms.DEP_ID)>0 )";
+		    sql+= "  and instr('"+depId+"',uinfo.depart_id)>0";
+		}
+		if (!"".equals(yearMonth)){
+			sql += " and cms.YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += " order by cms.YEAR_MONTH desc, cms.JOB_NUMBER asc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> objList = (List<Object[]>) pageInfo.getResult();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", objs[0]+"");
+				map.put("jobNumber", objs[1]+"");
+				map.put("yearMonth", objs[2]+"");
+				map.put("name", objs[3]+"");
+				map.put("outDuty", objs[4]+"");
+				map.put("centre", objs[5]+"");
+				map.put("night", objs[6]+"");
+				map.put("overtime", objs[7]+"");
+				map.put("vacation", objs[8]+"");
+				map.put("delayed", objs[9]+"");
+				map.put("piece", objs[10]+"");
+				map.put("years", objs[11]+"");
+				map.put("flip", objs[12]+"");
+				map.put("changes", objs[13]+"");
+				map.put("thing", objs[14]+"");
+				map.put("disease", objs[15]+"");
+				map.put("free", objs[16]+"");
+				map.put("injury", objs[17]+"");
+				map.put("marry", objs[18]+"");
+				map.put("lost", objs[19]+"");
+				map.put("explore", objs[20]+"");
+				map.put("give", objs[21]+"");
+				map.put("stay", objs[22]+"");
+				map.put("other", objs[23]+"");
+				map.put("outWork", objs[24]+"");
+				map.put("bigClass", objs[25]+"");
+				map.put("smallClass", objs[26]+"");
+				map.put("bigNight", objs[27]+"");
+				map.put("smallNight", objs[28]+"");
+				map.put("alls", objs[29]+"");
+				map.put("latency", objs[30]+"");
+				map.put("takeWork", objs[31]+"");
+				if (objs[32] != null){
+					map.put("remark", objs[32]+"");
+				} else {
+					map.put("remark", "");
+				}
+				if (objs[33] == null){
+					map.put("postName", "");
+				} else {
+					map.put("postName", objs[33]+"");
+				}
+				map.put("empType", objs[34]+"");
+				map.put("instituteName", objs[35]+"");
+				map.put("wageForm", objs[36]+"");
+				map.put("daytime", objs[37]+"");
+				map.put("offDuty", objs[38]+"");
+				map.put("rest", objs[39]+"");
+				map.put("take", objs[40]+"");
+				map.put("study", objs[41]+"");
+				map.put("very", objs[42]+"");
+				map.put("business", objs[43]+"");
+				map.put("evection", objs[44]+"");
+				map.put("team", objs[45]+"");
+				map.put("borrow", objs[46]+"");
+				map.put("retreat", objs[47]+"");
+				map.put("diction", objs[48]+"");
+				map.put("leave", objs[49]+"");
+				map.put("totals", objs[50]+"");
+				map.put("attendanceDays", objs[51]+"");
+				map.put("nightDays", objs[52]+"");
+				map.put("overseas", objs[53]+"");
+				map.put("day1", objs[54]+"");
+				map.put("day2", objs[55]+"");
+				map.put("day3", objs[56]+"");
+				map.put("day4", objs[57]+"");
+				map.put("day5", objs[58]+"");
+				map.put("day6", objs[59]+"");
+				map.put("day7", objs[60]+"");
+				map.put("day8", objs[61]+"");
+				map.put("day9", objs[62]+"");
+				map.put("day10", objs[63]+"");
+				map.put("day11", objs[64]+"");
+				map.put("day12", objs[65]+"");
+				map.put("day13", objs[66]+"");
+				map.put("day14", objs[67]+"");
+				map.put("day15", objs[68]+"");
+				map.put("day16", objs[69]+"");
+				map.put("day17", objs[70]+"");
+				map.put("day18", objs[71]+"");
+				map.put("day19", objs[72]+"");
+				map.put("day20", objs[73]+"");
+				map.put("day21", objs[74]+"");
+				map.put("day22", objs[75]+"");
+				map.put("day23", objs[76]+"");
+				map.put("day24", objs[77]+"");
+				map.put("day25", objs[78]+"");
+				map.put("day26", objs[79]+"");
+				map.put("day27", objs[80]+"");
+				map.put("day28", objs[81]+"");
+				if (objs[82] == null){
+					map.put("day29", "");
+				} else {
+					map.put("day29", objs[82]+"");
+				}
+				if (objs[83] == null){
+					map.put("day30", "");
+				} else {
+					map.put("day30", objs[83]+"");
+				}
+				if (objs[84] == null){
+					map.put("day31", "");
+				} else {
+					map.put("day31", objs[84]+"");
+				}
+				if (objs[85] == null){
+					map.put("standardPostName", "");
+				} else {
+					map.put("standardPostName", objs[85]+"");
+				}
+				if (objs[86] == null){
+					map.put("salaryPostName", "");
+				} else {
+					map.put("salaryPostName", objs[86]+"");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getCheckInfoBySearchs(String yearMonth,
+			String depIds, String jobNumber, String searchTb) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select cms.JOB_NUMBER, cms.YEAR_MONTH, cms.NAME, cms.POST_NAME, cms.EMP_TYPE, "
+				+ "cms.INSTITUTE_NAME, cms.WAGE_FORM, cms.DAYTIME, cms.NIGHT, cms.OFF_DUTY, cms.CENTRE, "
+				+ "cms.OVERSEAS, cms.REST, cms.ALLS, cms.TAKE, cms.FLIP, cms.TAKE_WORK, cms.CHANGES, "
+				+ "cms.DISEASE, cms.THING, cms.MARRY, cms.INJURY, cms.LOST, cms.GIVE, cms.EXPLORE, "
+				+ "cms.FREE, cms.STAY, cms.STUDY, cms.VERY, cms.BUSINESS, cms.EVECTION, cms.TEAM, cms.BORROW, "
+				+ "cms.RETREAT, cms.DICTION, cms.LEAVE, cms.PIECE, cms.YEARS, cms.OTHER, cms.OUT_WORK, cms.BIG_CLASS, "
+				+ "cms.SMALL_CLASS, cms.BIG_NIGHT, cms.SMALL_NIGHT, cms.TOTALS, cms.ATTENDANCE_DAYS, cms.NIGHT_DAYS, "
+				+ "cms.VACATION_MODULUS, cms.OVERTIME_MODULUS, cms.DELAYED_MODULUS, cms.LATENCY, cms.REMARK, "
+				+ "qd.Name as depName, cei.DAY1, cei.DAY2, cei.DAY3, cei.DAY4, cei.DAY5, cei.DAY6, cei.DAY7, "
+				+ "cei.DAY8, cei.DAY9, cei.DAY10, cei.DAY11, cei.DAY12, cei.DAY13, cei.DAY14, cei.DAY15, cei.DAY16, "
+				+ "cei.DAY17, cei.DAY18, cei.DAY19, cei.DAY20, cei.DAY21, cei.DAY22, cei.DAY23, cei.DAY24, "
+				+ "cei.DAY25, cei.DAY26, cei.DAY27, cei.DAY28, cei.DAY29, cei.DAY30, cei.DAY31, cms.STANDARD_POST_NAME, "
+				+ "cms.SALARY_POST_NAME "
+				+ "from ck_month_statistics cms "
+				+ "left join " + searchTb+ " cei on cei.JOB_NUMBER=cms.JOB_NUMBER "
+				+ "left join qx_department qd on cms.DEP_ID=qd.ID "
+				+ "where cms.IS_DELETE = '0' and cei.MONTH_CALENDAR='"+yearMonth+"' ";
+		if (!"".equals(jobNumber)){//单个员工
+			sql += "and cms.JOB_NUMBER ='"+jobNumber+"' ";
+		} else {//部门下员工
+
+		    depIds=depIds.replace("'", "");
+            sql += "and (cms.DEP_ID like '%"+depIds+"%' or instr('"+depIds+"',cms.DEP_ID)>=0 )";
+//			sql += "and cms.DEP_ID in("+depIds+") ";
+		}
+		if (!"".equals(yearMonth)){
+			sql += "and cms.YEAR_MONTH ='" + yearMonth + "' ";
+		}
+		sql += "order by cms.YEAR_MONTH desc, cms.JOB_NUMBER asc";
+		List<Object[]> objList = this.getSession().createSQLQuery(sql).list();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", objs[0]+"");
+				map.put("yearMonth", objs[1]+"");
+				map.put("name", objs[2]+"");
+				map.put("postName", objs[3]+"");
+				map.put("empType", objs[4]+"");
+				map.put("instituteName", objs[5]+"");
+				map.put("wageForm", objs[6]+"");
+				map.put("daytime", objs[7]+"");
+				map.put("night", objs[8]+"");
+				map.put("offDuty", objs[9]+"");
+				map.put("centre", objs[10]+"");
+				map.put("overseas", objs[11]+"");
+				map.put("rest", objs[12]+"");
+				map.put("alls", objs[13]+"");
+				map.put("take", objs[14]+"");
+				map.put("flip", objs[15]+"");
+				map.put("takeWork", objs[16]+"");
+				map.put("changes", objs[17]+"");
+				map.put("disease", objs[18]+"");
+				map.put("thing", objs[19]+"");
+				map.put("marry", objs[20]+"");
+				map.put("injury", objs[21]+"");
+				map.put("lost", objs[22]+"");
+				map.put("give", objs[23]+"");
+				map.put("explore", objs[24]+"");
+				map.put("free", objs[25]+"");
+				map.put("stay", objs[26]+"");
+				map.put("study", objs[27]+"");
+				map.put("very", objs[28]+"");
+				map.put("business", objs[29]+"");
+				map.put("evection", objs[30]+"");
+				map.put("team", objs[31]+"");
+				map.put("borrow", objs[32]+"");
+				map.put("retreat", objs[33]+"");
+				map.put("diction", objs[34]+"");
+				map.put("leave", objs[35]+"");
+				map.put("piece", objs[36]+"");
+				map.put("years", objs[37]+"");
+				map.put("other", objs[38]+"");
+				map.put("outWork", objs[39]+"");
+				map.put("bigClass", objs[40]+"");
+				map.put("smallClass", objs[41]+"");
+				map.put("bigNight", objs[42]+"");
+				map.put("smallNight", objs[43]+"");
+				map.put("totals", objs[44]+"");
+				map.put("attendanceDays", objs[45]+"");
+				map.put("nightDays", objs[46]+"");
+				map.put("vacationModulus", objs[47]+"");
+				map.put("overtimeModulus", objs[48]+"");
+				map.put("delayedModulus", objs[49]+"");
+				map.put("latency", objs[50]+"");
+				if (objs[51] != null){
+					map.put("remark", objs[51]+"");
+				} else {
+					map.put("remark", "");
+				}
+				map.put("depName", objs[52]+"");
+				map.put("day1", objs[53]+"");
+				map.put("day2", objs[54]+"");
+				map.put("day3", objs[55]+"");
+				map.put("day4", objs[56]+"");
+				map.put("day5", objs[57]+"");
+				map.put("day6", objs[58]+"");
+				map.put("day7", objs[59]+"");
+				map.put("day8", objs[60]+"");
+				map.put("day9", objs[61]+"");
+				map.put("day10", objs[62]+"");
+				map.put("day11", objs[63]+"");
+				map.put("day12", objs[64]+"");
+				map.put("day13", objs[65]+"");
+				map.put("day14", objs[66]+"");
+				map.put("day15", objs[67]+"");
+				map.put("day16", objs[68]+"");
+				map.put("day17", objs[69]+"");
+				map.put("day18", objs[70]+"");
+				map.put("day19", objs[71]+"");
+				map.put("day20", objs[72]+"");
+				map.put("day21", objs[73]+"");
+				map.put("day22", objs[74]+"");
+				map.put("day23", objs[75]+"");
+				map.put("day24", objs[76]+"");
+				map.put("day25", objs[77]+"");
+				map.put("day26", objs[78]+"");
+				map.put("day27", objs[79]+"");
+				map.put("day28", objs[80]+"");
+				if (objs[81] == null){
+					map.put("day29", "");
+				} else {
+					map.put("day29", objs[81]+"");
+				}
+				if (objs[82] == null){
+					map.put("day30", "");
+				} else {
+					map.put("day30", objs[82]+"");
+				}
+				if (objs[83] == null){
+					map.put("day31", "");
+				} else {
+					map.put("day31", objs[83]+"");
+				}
+				if (objs[84] == null){
+					map.put("standardPostName", "");
+				} else {
+					map.put("standardPostName", objs[84]+"");
+				}
+				if (objs[85] == null){
+					map.put("salaryPostName", "");
+				} else {
+					map.put("salaryPostName", objs[85]+"");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getAbsenceReportByCond(Pager pager,
+			String yearMonth, String depIds, String isAbsence, String searchTb) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+        depIds=depIds.replace("'", "");
+		String sql = "select cms.JOB_NUMBER, cms.YEAR_MONTH, cms.NAME, depart_name as depName, cms.INSTITUTE_NAME, "
+				+ "uinfo.specific_post, uinfo.post, cms.SALARY_POST_NAME, cms.DISEASE, cms.THING, "
+				+ "cms.INJURY, cms.EXPLORE, cms.GIVE, cms.FREE "
+				+ "from ck_month_statistics cms "
+				+ "left join " + searchTb+ " cei on cei.JOB_NUMBER=cms.JOB_NUMBER "
+				+ "left join qx_department qd on cms.DEP_ID=qd.ID "
+				+ "left join jc_basic_information uinfo on cms.job_number=uinfo.job_number "
+				+ "where cms.IS_DELETE = '0' and cei.MONTH_CALENDAR='"+yearMonth+"' and (cms.DEP_ID like '%"+depIds+"%' or instr('"+depIds+"',cms.DEP_ID)>=0 )";
+ 
+//        sql += "and (cms.DEP_ID like '%"+depIds+"%' or instr('"+depIds+"',cms.DEP_ID)>=0 )";
+		if ("1".equals(isAbsence)){//是缺勤全月
+			List<String> institutes = new ArrayList<String>();
+			institutes.add("休");
+			institutes.add("病");
+			institutes.add("事");
+			institutes.add("伤");
+			institutes.add("探");
+			institutes.add("产");
+			institutes.add("旷");
+			String instituteStr = "";
+			for (String institute:institutes){
+				instituteStr += "'"+institute+"', ";
+			}
+			instituteStr = instituteStr.substring(0, instituteStr.length()-2);
+			for (int i=1; i<=31; i++){
+				sql += "and (cei.DAY"+i+" in("+instituteStr+") or cei.DAY"+i+" is null) ";
+			}
+		}
+		if (!"".equals(yearMonth)){
+			sql += "and cms.YEAR_MONTH ='" + yearMonth + "' ";
+            sql+= " and instr('"+depIds+"',uinfo.depart_id)>0";
+		}
+		sql += "order by cms.YEAR_MONTH desc, cms.JOB_NUMBER asc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> objList = (List<Object[]>) pageInfo.getResult();
+		if (objList != null && objList.size() > 0){
+			for (Object[] objs:objList){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("jobNumber", objs[0]+"");
+				map.put("yearMonth", objs[1]+"");
+				map.put("name", objs[2]+"");
+				map.put("deptName", objs[3]+"");
+				map.put("instituteName", objs[4]+"");
+				if (objs[5] == null){
+					map.put("standardPostName", "");
+				} else {
+					map.put("standardPostName", objs[5]+"");
+				}
+				if (objs[6] == null){
+					map.put("postName", "");
+				} else {
+					map.put("postName", objs[6]+"");
+				}
+				if (objs[7] == null){
+					map.put("salaryPostName", "");
+				} else {
+					map.put("salaryPostName", objs[7]+"");
+				}
+				map.put("disease", objs[8]+"");
+				map.put("thing", objs[9]+"");
+				map.put("injury", objs[10]+"");
+				map.put("explore", objs[11]+"");
+				map.put("give", objs[12]+"");
+				map.put("free", objs[13]+"");
+				list.add(map);
+			}
+		}
+		return list;
+	}
+ 
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Map<String, String>> getEmpNumsByDepId(Pager pager, String yearMonth, String depIds) {
+        depIds=depIds.replace("'", "");
+        List<Map<String, String>> depInfos = new ArrayList<Map<String, String>>();
+        String sql = "select DEP_ID, COUNT(ID)  "
+                + "from ck_month_statistics "
+                + "where YEAR_MONTH='"+yearMonth+"' and instr('"+depIds+"',DEP_ID)>0  "
+                + "group by DEP_ID order by DEP_ID";
+        Pager pageInfo = this.findPagerBySql(pager, sql);
+        List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+        if (list.size() > 0){
+            for (Object[] objs:list){
+                Map<String, String> map = new HashMap<String, String>();
+                map.put("depId", objs[0]+"");//部门ID
+                map.put("depNum", objs[1]+"");//部门人数
+                map.put("restDays", "0");//公休日                             VACATION_MODULUS
+                map.put("holidayDays",  "0");//节假日                   OVERTIME_MODULUS
+                map.put("shouldOutDays",  "0");//应出勤工日   OUT_DUTY
+                map.put("actualOutDays",  "0");//实出勤工日   ATTENDANCE_DAYS
+                map.put("total",  "0");//合计                                             ATTENDANCE_DAYS
+                map.put("disease", "0");//病                                          disease
+                map.put("injury",  "0");//伤                                              injury     
+                map.put("thing",  "0");//事                                                    thing
+                map.put("free",  "0");//旷                                                        free
+                map.put("marry",  "0");//婚                                                      marry
+                map.put("lost", "0");//丧                                                        lost
+                map.put("explore",  "0");//探                                             explore
+                map.put("give",  "0");//产                                                        give
+                map.put("publicDays",  "0");//公假                              
+                map.put("attendanceRate",  "0");//出勤率 
+                map.put("workRate",  "0");//出工率                              
+                depInfos.add(map);
+            }
+        }
+        return depInfos;
+    }
+}

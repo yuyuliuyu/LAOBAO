@@ -1,0 +1,63 @@
+package com.lingnet.qxgl.dao.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import org.hibernate.SQLQuery;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.qxgl.dao.BranchDao;
+import com.lingnet.qxgl.entity.Branch;
+@Repository("branchDao")
+public class BranchDaoImpl extends BaseDaoImplInit<Branch , String> implements BranchDao{
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public List<HashMap> findHistortData(String flg) {
+        List<HashMap> mapList = new ArrayList<HashMap>();
+        StringBuffer sql = new StringBuffer();
+        sql.append(" select extract(year from h.effective_date) yy, ");
+        sql.append(" extract(month from h.effective_date) mm, ");
+        sql.append(" extract(day from h.effective_date) dd, ");
+        sql.append(" h.change_type, ");
+        sql.append(" h.change_reason ");
+        sql.append(" from ORG_HIS_MIDDLE h ");
+        sql.append(" where 1=1 ");
+        sql.append(" and flg= "+flg);
+        sql.append(" order by h.createdate desc ");
+        //查询语句--按时间倒叙排序
+        SQLQuery query = this.getSession().createSQLQuery(sql.toString());
+        List<Object[]> list = query.list();
+        for (Object[] ob : list) {
+            HashMap map = new HashMap();
+            map.put("year", ob[0]);//年
+            String month = "";
+            if(ob[1]==null){
+                month="00";
+            }else if(ob[1].toString().length()==1){
+                month = "0"+ob[1];
+            }else{
+                month = ob[1].toString();
+            }
+            String date = "";
+            
+            if(ob[2]==null){
+                date="00";
+            }else if(ob[2].toString().length()==1){
+                date = "0"+ob[2];
+            }else{
+                date = ob[2].toString();
+            }
+            map.put("md", month+date);//月日
+            map.put("title","");//标题 ob[3]
+            map.put("discription", ob[4]);//具体描述
+            
+            mapList.add(map);
+        }
+        return mapList;
+    }
+
+    
+}

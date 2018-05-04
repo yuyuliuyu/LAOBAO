@@ -1,0 +1,59 @@
+package com.lingnet.hcm.service.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.Period;
+import com.lingnet.hcm.entity.salary.Perioddata;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬期间主表
+ * @ClassName: PeriodService 
+ * @Description: 薪酬期间主表
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+public interface PeriodService extends BaseService<Period, String> {
+
+    /**
+     * @Title: 保存或者更新薪酬区间  
+     * @param formdata
+     * @param gridData
+     * @return
+     * @throws Exception 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String saveOrUpdate(String formdata, String gridData) throws Exception;
+
+    /**
+     * @Title: 获取薪酬区间  
+     * @param depId
+     * @param searchData
+     * @param pager
+     * @return 
+     * List 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    @SuppressWarnings("rawtypes")
+    public Map getSalaryPeriodListData(String depId, String searchData, Pager pager);
+
+    /**
+     * @Title: 删除薪酬期间 
+     * @param id
+     * @param depId
+     * @return
+     * @throws Exception 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String remove(String id, String depId) throws Exception;
+
+    public List<Perioddata> periodDataService(String id);
+}

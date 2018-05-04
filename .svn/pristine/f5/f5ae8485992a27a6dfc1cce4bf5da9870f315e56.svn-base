@@ -1,0 +1,106 @@
+package com.lingnet.hcm.entity.salary;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 薪酬类别
+ * XcSalryItemType entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "XC_SALRY_ITEM_TYPE")
+public class SalaryItemType extends BaseEntity implements java.io.Serializable {
+
+
+    private static final long serialVersionUID = -6568399292943166462L;
+    private String depId;// 部门ID
+    private String name;// 名称
+    private String note;// 描述
+    private String pid;// 父ID
+    private Integer isControl; // 集团管控标志 0:不是集团管控 1：集团管控
+    private Integer isDelete; // 0:未删除 1：删除
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public SalaryItemType() {
+    }
+
+    @Column(name = "DEP_ID", length = 32)
+    public String getDepId() {
+        return this.depId;
+    }
+
+    public void setDepId(String depId) {
+        this.depId = depId;
+    }
+
+    @Column(name = "NAME", length = 200)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Column(name = "NOTE", length = 2000)
+    public String getNote() {
+        return this.note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    @Column(name = "PID", length = 32)
+    public String getPid() {
+        return this.pid;
+    }
+
+    public void setPid(String pid) {
+        this.pid = pid;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+    @Column(name = "IS_DELETE", precision = 1, scale = 0)
+    public Integer getIsDelete() {
+        return isDelete;
+    }
+
+    public void setIsDelete(Integer isDelete) {
+        this.isDelete = isDelete;
+    }
+
+    @Column(name = "IS_CONTROL", precision = 1, scale = 0)
+    public Integer getIsControl() {
+        return isControl;
+    }
+
+    public void setIsControl(Integer isControl) {
+        this.isControl = isControl;
+    }
+
+}

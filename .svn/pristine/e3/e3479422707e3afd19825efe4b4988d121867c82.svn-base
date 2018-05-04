@@ -1,0 +1,165 @@
+package com.lingnet.hcm.entity.salary;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * 企业缴费信息汇总
+ * JcSalaryNjTotal entity. @author MyEclipse Persistence Tools
+ */
+@Entity
+@Table(name = "JC_SALARY_NJ_TOTAL")
+public class SalaryNjTotal extends BaseEntity implements java.io.Serializable {
+
+    private static final long serialVersionUID = -6331847064976784055L;
+    private String companyId;// 单位ID
+    private String companyName;// 单位名称
+    private Integer joinNjCount;// 参加年金计划人数
+    private Integer ztjfCount;// 暂停缴费人数
+    private String sndqyygzze;// 上年度企业月工资总额
+    private String qyjfbl;// 企业缴费比例
+    private String qyjfze;// 企业缴费总额
+    private String yqxjfze;// 月倾斜性缴费总额
+    private String yjbjfze;// 月基本缴费总额
+    private String qxxjfzb;// 倾斜性缴费占比
+    private String jbjfzb;// 基本缴费占比
+    private Boolean isDelete;// 删除标志 0:未删除 1：删除
+    private String field1;
+    private String field2;
+
+    // Constructors
+
+    /** default constructor */
+    public SalaryNjTotal() {
+    }
+
+    @Column(name = "COMPANY_ID", length = 32)
+    public String getCompanyId() {
+        return this.companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    @Column(name = "COMPANY_NAME", length = 300)
+    public String getCompanyName() {
+        return this.companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    @Column(name = "JOIN_NJ_COUNT", precision = 8, scale = 0)
+    public Integer getJoinNjCount() {
+        return this.joinNjCount;
+    }
+
+    public void setJoinNjCount(Integer joinNjCount) {
+        this.joinNjCount = joinNjCount;
+    }
+
+    @Column(name = "ZTJF_COUNT", precision = 8, scale = 0)
+    public Integer getZtjfCount() {
+        return this.ztjfCount;
+    }
+
+    public void setZtjfCount(Integer ztjfCount) {
+        this.ztjfCount = ztjfCount;
+    }
+
+    @Column(name = "SNDQYYGZZE", length = 20)
+    public String getSndqyygzze() {
+        return this.sndqyygzze;
+    }
+
+    public void setSndqyygzze(String sndqyygzze) {
+        this.sndqyygzze = sndqyygzze;
+    }
+
+    @Column(name = "QYJFBL", length = 20)
+    public String getQyjfbl() {
+        return this.qyjfbl;
+    }
+
+    public void setQyjfbl(String qyjfbl) {
+        this.qyjfbl = qyjfbl;
+    }
+
+    @Column(name = "QYJFZE", length = 20)
+    public String getQyjfze() {
+        return this.qyjfze;
+    }
+
+    public void setQyjfze(String qyjfze) {
+        this.qyjfze = qyjfze;
+    }
+
+    @Column(name = "YQXJFZE", length = 20)
+    public String getYqxjfze() {
+        return this.yqxjfze;
+    }
+
+    public void setYqxjfze(String yqxjfze) {
+        this.yqxjfze = yqxjfze;
+    }
+
+    @Column(name = "YJBJFZE", length = 20)
+    public String getYjbjfze() {
+        return this.yjbjfze;
+    }
+
+    public void setYjbjfze(String yjbjfze) {
+        this.yjbjfze = yjbjfze;
+    }
+
+    @Column(name = "QXXJFZB", length = 20)
+    public String getQxxjfzb() {
+        return this.qxxjfzb;
+    }
+
+    public void setQxxjfzb(String qxxjfzb) {
+        this.qxxjfzb = qxxjfzb;
+    }
+
+    @Column(name = "JBJFZB", length = 20)
+    public String getJbjfzb() {
+        return this.jbjfzb;
+    }
+
+    public void setJbjfzb(String jbjfzb) {
+        this.jbjfzb = jbjfzb;
+    }
+
+    @Column(name = "IS_DELETE", precision = 1, scale = 0)
+    public Boolean getIsDelete() {
+        return this.isDelete;
+    }
+
+    public void setIsDelete(Boolean isDelete) {
+        this.isDelete = isDelete;
+    }
+
+    @Column(name = "FIELD1", length = 2000)
+    public String getField1() {
+        return this.field1;
+    }
+
+    public void setField1(String field1) {
+        this.field1 = field1;
+    }
+
+    @Column(name = "FIELD2", length = 2000)
+    public String getField2() {
+        return this.field2;
+    }
+
+    public void setField2(String field2) {
+        this.field2 = field2;
+    }
+
+}

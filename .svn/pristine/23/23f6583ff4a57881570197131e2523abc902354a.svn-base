@@ -1,0 +1,296 @@
+package com.lingnet.hcm.action.personnel;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Education;
+import com.lingnet.hcm.service.empdata.EducationService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 分中心action
+ * @ClassName: BranchAction 
+ * @Description: TODO 
+ * @author lsp
+ * @date 2016-8-3 下午1:50:42 
+ *
+ */
+@Controller
+public class PersonnelAction extends BaseAction{
+
+    private static final long serialVersionUID = 1L;
+    
+    @Resource(name="personnelService")
+    private PersonnelService personnelService;
+    
+    @Resource(name="educationService")
+    private EducationService educationService;
+    
+    private BasicInformation information;
+    private Education education;
+    private Education education2;
+    
+    private String formdata;//添加数据的JSON串
+    private String flag;//标志位
+    private String departId;//部门ID
+    private String branchId;//单位ID
+    private String jobNumber;//
+
+    //所有人员list页面
+    public String list(){
+        return "list";
+    }
+    //总页面
+    public String all(){
+        return "all";
+    }
+    // 其他页面调用的选择页
+    public String show(){
+        return "show";
+    }
+    
+    //普通员工中的正式工list页面
+    public String zsglist(){
+        return "zsglist";
+    }
+    //劳务外包list页面
+    public String lwwblist(){
+        return "lwwblist";
+    }
+    //业务外包list页面
+    public String ywwblist(){
+        return "ywwblist";
+    }
+    
+    //获取人员list列表数据
+    public String getPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getPersonByDepId(pager,searchData));
+    	return ajax(Status.success,josn);
+    }
+    //人事资料添加页
+    public String add(){
+    	information=this.getBeanById(BasicInformation.class, id);
+    	if(information!=null&&!"".equals(information)){
+    		education=educationService.get(Education.class, Restrictions.eq("jobNumber", information.getJobNumber()),
+    	    		Restrictions.eq("isAllday", 0),Restrictions.eq("highestEducation", 1));//全日制
+    	    education2=educationService.get(Education.class, Restrictions.eq("jobNumber", information.getJobNumber()),
+    	    		Restrictions.eq("isAllday", 1),Restrictions.eq("highestEducation", 1));//在职
+    	}
+        return "add";
+    }
+    //人事资料保存
+    public String saveOrUpdate() {
+    	try {
+            return ajax(Status.success, personnelService.saveOrUpdate(formdata,branchId));
+        } catch (Exception e) {
+            return ajax(Status.success, e.getMessage());
+        }
+    }
+
+    //获取正式工list列表数据
+    public String getZsgPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getZsgPerson(pager,searchData));
+    	return ajax(Status.success,josn);
+    }
+    
+    //获取实习生list列表数据
+    public String getSxsPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getSxsPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    
+    //获取劳务外包list列表数据
+    public String getLwwbPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getLwwbPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    
+    //获取业务外包list列表数据
+    public String getYwwbPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getYwwbPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    //获取离职人员list列表数据
+    public String getLzPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getLzPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    //获取退休人员list列表数据
+    public String getTxPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getTxPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    //获取返聘人员list列表数据
+    public String getFpPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getFpPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    //获取复原军人人员list列表数据
+    public String getFyjrPersonData(){
+    	String josn=JsonUtil.Encode(personnelService.getFyjrPerson(pager, branchId));
+    	return ajax(Status.success,josn);
+    }
+    
+    //离职，退休
+    public String lizhi(){
+        return "lizhi";
+    }
+    public String tuixiu(){
+        return "tuixiu";
+    }
+    //退休页面
+    public String txlist(){
+        return "txlist";
+    }
+    //离职页面
+    public String lzlist(){
+        return "lzlist";
+    }
+    //返聘页面
+    public String fplist(){
+        return "fplist";
+    }
+    //技术工人页面
+    public String jsgrlist(){
+        return "jsgrlist";
+    }
+    //非在岗人员页面
+    public String fzglist(){
+        return "fzglist";
+    }
+    //复员军人页面
+    public String fyjrlist(){
+        return "fyjrlist";
+    }
+    //复转情况
+    public String armylist(){
+        return "armylist";
+    }
+    public String armyadd(){
+        return "armyadd";
+    }
+    //教育经历
+    public String edulist(){
+        return "edulist";
+    }
+    public String eduadd(){
+        return "eduadd";
+    }
+    //职业履历
+    public String worklist(){
+        return "worklist";
+    }
+    
+    public String workadd(){
+        return "workadd";
+    }
+
+    //电子档案
+    public String recordlist(){
+        return "recordlist";
+    }
+    public String recordadd(){
+        return "recordadd";
+    }
+    //证照管理
+    public String paperslist(){
+        return "paperslist";
+    }
+    public String papersadd(){
+        return "papersadd";
+    }
+    
+    //合同管理
+    public String pactlist(){
+        return "pactlist";
+    }
+    public String pactadd(){
+        return "pactadd";
+    }
+
+    //员工关注
+    public String attentionlist(){
+        return "attentionlist";
+    }
+    public String attentionadd(){
+        return "attentionadd";
+    }
+    
+    //职称记录
+    public String prolist(){
+        return "prolist";
+    }
+    public String proadd(){
+        return "proadd";
+    }
+   
+    //人员异动
+    public String ryydlist(){
+        return "ryydlist";
+    }
+    //请假
+    public String leavelist(){
+        return "leavelist";
+    }
+    
+    
+//////////////////////////////////////////////////////////////////////////
+
+    public String getFormdata() {
+        return formdata;
+    }
+    public void setFormdata(String formdata) {
+        this.formdata = formdata;
+    }
+
+	public String getFlag() {
+		return flag;
+	}
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public BasicInformation getInformation() {
+		return information;
+	}
+	public void setInformation(BasicInformation information) {
+		this.information = information;
+	}
+	public String getDepartId() {
+		return departId;
+	}
+	public void setDepartId(String departId) {
+		this.departId = departId;
+	}
+	public String getBranchId() {
+		return branchId;
+	}
+	public void setBranchId(String branchId) {
+		this.branchId = branchId;
+	}
+	public Education getEducation() {
+		return education;
+	}
+	public void setEducation(Education education) {
+		this.education = education;
+	}
+	public Education getEducation2() {
+		return education2;
+	}
+	public void setEducation2(Education education2) {
+		this.education2 = education2;
+	}
+	public String getJobNumber() {
+		return jobNumber;
+	}
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+
+  
+}

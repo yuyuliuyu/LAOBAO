@@ -1,0 +1,98 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>班制表树信息</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<script src="../template/miniui/boot.js" type="text/javascript"></script>
+<link rel="stylesheet" href="../template/system/css/base.css"
+	type="text/css"></link>
+<link href="../template/miniui/themes/other/skin.css" rel="stylesheet"
+	type="text/css" />
+<style type="text/css">
+body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.myrow {
+	background: #fceee2;
+}
+</style>
+</head>
+<body>
+	<div class="mini-splitter" style="width:100%;height:100%;" handlerSize="9">
+		<div size="260" showCollapseButton="true">
+			<input type="hidden" id="userType" value="${userType }"/>
+			<div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;" name="form1">
+			</div>
+			<div class="mini-fit">
+				<ul id="tree1" class="mini-tree" url="../basis/branch!treeList.action" style="width:100%;height:100%;"
+                    showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true">
+				</ul>
+			</div>
+		</div>
+		<div showCollapseButton="flase">
+			<iframe id="mainframe" frameborder="0" name="main" style="width:100%;height:100%;" border="0"></iframe>
+		</div>
+	</div>
+	<script type="text/javascript">
+		mini.parse();
+		var grid = mini.get("tree1");
+		var firstLeafNode;
+		var leftTree = mini.get("tree1");
+		//默认显示案源登记tab页
+		$().ready(function() {
+			var iframe = document.getElementById("mainframe");
+			iframe.src = "../check/statistics!instituteList.action?hdSequence=1";
+		});
+
+		//获取第一个层级的第一个叶子节点
+		function getLeafNode(root) {
+			var firstNode = leftTree.getChildNodes(root)[0];
+			if (leftTree.isLeaf(firstNode)) {
+				firstLeafNode = firstNode;
+			} else {
+				getLeafNode(firstNode);
+			}
+		}
+
+		function showTab(node) {
+			var messageid = mini.loading("打开中，请稍候……", "提示");
+	    	var iframe = document.getElementById("mainframe");
+	    	iframe.src = node.FormUrl;
+	       	mini.hideMessageBox(messageid);
+		}
+
+		function getMainTabs() {
+			return mini.get("mainTabs");
+		}
+
+		function onNodeclick(e) {
+			var node = e.node;
+			showTab(node);
+			grid.reload();
+		}
+		function onNodeSelect(e) {
+			var node = e.node;
+			var isLeaf = e.isLeaf;
+			if (isLeaf) {
+				showTab(node);
+			}
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>员工工资调整</title>
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <script src="../template/plugin/public/add.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div id="form1">
+        <input class="mini-hidden" id="id" name="id" value="${salaryRecord.id}"/>
+        <input class="mini-hidden" id="staffId" name="staffId" value="${id}"/>
+        <input class="mini-hidden" id="companyId" value="${mapInfo.companyId}"/>
+        <table style="width:100%;" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="list_left_box1" valign="top">工号：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowInput="false" style="width:90%" value="${mapInfo.jobNumber}"/>
+                </td>
+                <td class="list_left_box1" valign="top">姓名：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowInput="false" style="width:90%" value="${mapInfo.name}"/>
+                </td>
+                <td class="list_left_box1" valign="top">公司：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width:90%" value="${mapInfo.company}"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">部门：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowInput="false" style="width:90%" value="${mapInfo.detpName}"/>
+                </td>
+                <td class="list_left_box1" valign="top">岗位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowInput="false" style="width:90%" value="${mapInfo.post}"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">*员工缴税类型：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" style="width:90%" id="jsType" name="jsType" value="${salaryRecord.jsType == null? 1:salaryRecord.jsType}"
+                        data="[{id:1,text:'本国员工'},{id:2,text:'外籍员工'},{id:3,text:'劳务用工'},{id:4,text:'免税员工'}]" onvaluechanged = "onValueChanged"required="true"/>
+                </td>
+                <td class="list_left_box1" valign="top">起征点：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" id="qzd" allowInput="false" style="width:90%"/>
+                </td>
+                <td class="list_left_box1" valign="top">*开始日期：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker" style="width:90%" id="startDate" name="startDate" value="${salaryRecord.startDate}"required="true"
+                        format="yyyy年MM月dd日"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">*异动薪酬生效日期：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker"style="width:90%" id="effectDate" name="effectDate" value="${salaryRecord.effectDate}" required="true"
+                        format="yyyy年MM月dd日"/>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-fit">
+        <div class="mini-toolbar" style="padding:0px;">
+            <table style="width:100%;">
+                <tr>
+                    <td style="width:100%;">
+                        <a class="mini-button" iconCls="icon-add" onclick="addRow()">增加</a>
+                        <a class="mini-button" iconCls="icon-remove" onclick="removes()">删除</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="grid" class="mini-datagrid" style="width:100%;" pageSize="20" url="../salary/salary_items!getPersonalGroupListData.action?ids=${id}"
+            allowAlternating="true" idField="id" allowResize="false"showPager="false"borderStyle="border-top : 1px solid #C9C9C9;"
+            allowCellEdit="true" allowCellSelect="true" multiSelect="true" oncellcommitedit="onCellCommitEdit">
+            <div property="columns">
+                <div type="checkcolumn" width="30"></div>
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center"  width="40">序列</div>
+                <div field="salaryGroupId" displayField="groupName" width="120" headerAlign="center" align="center" vType="required;">薪资组*
+                    <input property="editor" class="mini-buttonedit" onbuttonclick="onButtonEditAlert" allowInput="false"/>
+                </div>
+                <div field="startDate" width="110" headerAlign="center" align="center"vType="required;" renderer="ondayRenderer2">开始日期*
+                    <input property="editor" class="mini-datepicker"format="yyyy年MM月dd日"/>
+                </div>
+                <div type="comboboxcolumn" field="salaryComId" width="120" headerAlign="center" align="center"vType="required;">发薪单位*
+                    <div property="editor" class="mini-combobox" popupWidth="200" url="../salary/salary_manage!getBranches.action" 
+                        valueField="id" textField="fzx"valueFromSelect="true">
+                            <div property="columns">
+                                <div field="fzx" width="180"></div>
+                            </div>
+                    </div>
+                </div>
+                <div type="comboboxcolumn" field="isSalary" width="80" headerAlign="center" align="center" vType="required;">是否发薪*
+                    <input property="editor" class="mini-combobox" data="[{id:0, text:'否'},{id:1, text:'是'}]" style="width:100%"/>
+                </div>
+                <div type="comboboxcolumn" field="costComId" width="120" headerAlign="center" align="center" >成本单位
+                    <div property="editor" class="mini-combobox" popupWidth="200" url="../salary/salary_manage!getBranches.action" 
+                        valueField="id" textField="fzx"valueFromSelect="true">
+                            <div property="columns">
+                                <div field="fzx" width="180"></div>
+                            </div>
+                    </div>
+                </div>
+                <div field="costDeptId" displayField="name" width="130" headerAlign="center" align="center">成本部门
+                    <div property="editor" class="mini-combobox" popupWidth="200" 
+                        valueField="id" textField="name"valueFromSelect="true" >
+                            <div property="columns">
+                                <div field="name" width="180"></div>
+                            </div>
+                    </div>
+                </div>
+                <div field="costScale" width="60" headerAlign="center" align="center">成本比例
+                    <input property="editor" class="mini-spinner" style="width:100%" minValue="0" maxValue="100"/>
+                </div>
+            </div>
+        </div>
+        <div id="grid2" class="mini-datagrid" style="width:100%;" url="../salary/salary_record!getSalaryGroupValueListData.action?id=${id}" pageSize="20"
+            allowAlternating="true" idField="id" allowResize="false" showPager="false"
+            allowCellEdit="true" allowCellSelect="true" oncellbeginedit="onCellBeginEdit" oncellendedit="onCellEndEdit">
+            <div property="columns">
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center"  width="40">序列</div>
+                <div field="salaryGroupId" displayField="groupName" readOnly="true" width="100" headerAlign="center" align="center">薪资组</div>
+                <div field="salaryItemsId" displayField="itemName" readOnly="true" width="80" headerAlign="center" align="center">固定薪资项目</div>
+                <div field="staticValue" width="40" headerAlign="center" align="center" vtype="float;required;maxLength:50">值*
+                    <input property="editor" class="mini-textbox" style="width:100%" minValue="-99999.9" maxValue="999999.9"/>
+                </div>
+                <div field="target" name="target" readOnly="true" width="80" headerAlign="center" align="center">值</div>
+                <div field="js" width="80" headerAlign="center" align="center"></div>
+            </div>
+        </div>
+        <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+            <span style="padding-left:5px;">员工账户信息：</span>
+        </div>
+        <div class="mini-toolbar" style="padding:0px;">
+            <table style="width:100%;">
+                <tr>
+                    <td style="width:100%;">
+                        <a class="mini-button" iconCls="icon-add" onclick="addRows()">增加</a>
+                        <a class="mini-button" iconCls="icon-remove" onclick="removeRows()">删除</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="grid3" class="mini-datagrid" style="width:100%;" url="../salary/salary_record!getSalaryAccountListData.action?id=${id}" pageSize="20"
+            allowAlternating="true" idField="id" allowResize="false" showPager="false" multiSelect="true"
+            allowCellEdit="true" allowCellSelect="true" oncellvalidation="onCellValidation" >
+            <div property="columns">
+                <div type="checkcolumn" width="30"></div>
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="comboboxcolumn" field="accountType" width="80" headerAlign="center" align="center" vtype="required;">账号类型*
+                    <input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881855ba41a89015ba41d28f30008"
+                        valueField="dicvalue" textField="dicname"/>
+                </div>
+                <div type="comboboxcolumn" field="accountBank" width="80" headerAlign="center" align="center" vtype="required;">金融政府机构*
+                    <input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881945bd6397b015bd66c787e0009"
+                        valueField="dicvalue" textField="dicname"/>
+                </div>
+                <div field="account" width="80" headerAlign="center" align="center" vtype="required;maxLength:50">账号*
+                    <input property="editor" class="mini-textbox" style="width:100%"/>
+                </div>
+                <div field="userName" width="60" headerAlign="center" align="center" vtype="maxLength:50">用户名
+                    <input property="editor" class="mini-textbox" style="width:100%"/>
+                </div>
+                <div field="note" name="target" width="120" headerAlign="center" align="center" vtype="maxLength:1000">描述
+                    <input property="editor" class="mini-textbox" style="width:100%"/>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;" borderStyle="border:0;">
+        <a class="mini-hidden" onclick="onOKClose()" style="margin-right:20px;" iconCls="icon-save">提交审批</a>
+        <a class="mini-button" onclick="onOKClose()" style="width:60px;margin-right:20px;" iconCls="icon-save">保存</a>
+        <a class="mini-button" onclick="onCancel" style="width:60px;" iconCls="icon-close">取消</a>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var grid = mini.get("grid");
+        grid.load();
+        var grid2 = mini.get("grid2");
+        grid2.hideColumn("id");
+        grid2.hideColumn("target");
+        grid2.load();
+        var grid3 = mini.get("grid3");
+        grid3.hideColumn("id");
+        grid3.load();
+        var jsType = mini.get("jsType");
+        jsType.doValueChanged();
+        var startDate = mini.get("startDate");
+        if ("${salaryRecord.startDate}" == null || "${salaryRecord.startDate}" == "") {
+            startDate.setValue(new Date());
+        }
+        var effectDate = mini.get("effectDate");
+        if ("${salaryRecord.effectDate}" == null || "${salaryRecord.effectDate}" == "") {
+            effectDate.setValue(new Date());
+        }
+
+        function onValueChanged(e) {
+            var value = e.value;
+            window.parent.loading();
+            $.ajax({
+                url: "../salary/salary_rate!getLaoWuData.action",
+                type:"GET",
+                data: {
+                    id: value,
+                },
+                success: function(text) {
+                    window.parent.unmask();
+                    var data = mini.decode(text);
+                    var v = 0;
+                    if (data != null) {
+                        if (value==1) {
+                            v = data.nativeMoney;
+                        } else if (value==2) {
+                            v = data.foreignMoney;
+                        }
+                    }
+                    // 起征点赋值
+                    mini.get("qzd").setValue(v);
+                }
+            });
+        }
+
+        function onButtonEditAlert(e) {
+            onButtonEdit1(e.sender, "选择薪资组", "../salary/salary_items!salary.action?companyId=${mapInfo.companyId}", 720, 480,"groupName","","");
+        }
+
+        function onButtonEdit1(btnEdit,title,url,width,height,property,names,columns,inputs,attrs,gridId,inputId){
+            var w=400;
+            var h=300;
+            if(width)w=width;
+            if(height)h=height;
+            if(names && columns){
+                var nameArray=names.split(",");
+                var columnArray=columns.split(",");
+                for(var i=0;i<nameArray.length;i++){
+                    if(i==0){
+                        url=url+"?"+columnArray[0]+"="+mini.get(nameArray[0]).getValue();
+                    }else{
+                        url=url+"&"+columnArray[i]+"="+mini.get(nameArray[i]).getValue();
+                    }
+                }
+            }
+            mini.open({
+                url: url,
+                showMaxButton: false,
+                title: title,
+                width: w,
+                height: h,
+                ondestroy: function (action) {
+                    if (action == "ok") {
+                        var iframe = this.getIFrameEl();
+                        var data = iframe.contentWindow.GetData();
+                        data = mini.clone(data);
+                        if (data) {
+                            // 判断是否存在相同的薪资组
+                            var gridRow = grid.getData();
+                            for (var i=0;i < gridRow.length;i++) {
+                                var rr = gridRow[i];
+                                if (data.id == rr.salaryGroupId) {
+                                    mini.alert("存在相同的薪资组：" + rr.groupName);
+                                    return;
+                                }
+                            }
+                            if(property){
+                                btnEdit.setText(data[property]);
+                            }else{
+                                btnEdit.setText(data.text);
+                            }
+                            btnEdit.setValue(data.id);
+                            
+                            if(inputs && attrs){
+                                var inputsArray=inputs.split(",");
+                                var attrsArray=attrs.split(",");
+                                for(var i=0;i<inputsArray.length;i++){
+                                    var button=mini.get(inputsArray[i]);
+                                    button.setValue(data[attrsArray[i]]);
+                                }
+                            }
+                            if(gridId)mini.get(gridId).load();
+                            if(inputId){
+                                mini.get(inputId).setValue("");
+                                if(mini.get(inputId).setText)mini.get(inputId).setText("");
+                            }
+                            $.ajax({
+                                url: "../salary/salary_items!getSalaryGroupItems.action",
+                                type:"POST",
+                                data: {
+                                    id: data.id
+                                },
+                                success: function(text) {
+                                    var parseData = mini.decode(text);
+                                    var arr = [];
+                                    for (var j=0;j<parseData.length;j++) {
+                                        var rr = parseData[j];
+                                        var newRow = {salaryGroupId : rr.groupId, groupName: rr.groupName, salaryItemsId: rr.id, itemName: rr.name, staticValue: rr.xs};
+                                        arr.push(newRow);
+                                    }
+                                    if (arr.length > 0) {
+                                        grid2.addRows(arr, false);
+                                    }
+                                }
+                            });
+                        }
+                    }else{
+                        btnEdit.setValue("");
+                        btnEdit.setText("");
+                        
+                        if(inputs && attrs){
+                            var inputsArray=inputs.split(",");
+                            for(var i=0;i<inputsArray.length;i++){
+                                var button=mini.get(inputsArray[i]);
+                                button.setValue("");
+                            }
+                        }
+                        if(gridId)mini.get(gridId).load();
+                        if(inputId){
+                            mini.get(inputId).setValue("");
+                            if(mini.get(inputId).setText)mini.get(inputId).setText("");
+                        }
+                    }
+                }
+            });
+        }
+
+        function removes() {
+            var rowsData = grid.getData();
+            var rows = grid.getSelecteds();
+            if (rows.length > 0) {
+                if (rowsData.length == rows.length) {
+                    mini.alert("薪资组不能为空");
+                    return;
+                }
+                var f = false;
+                var rowData = grid2.getData();
+                var r = [];
+                for (var i=0; i< rows.length;i++) {
+                    if (rows[i].isPei == 1) {
+                        mini.alert("该薪资组:"+rows[i].groupName+" 已生效，不能删除");
+                        f = true;
+                        return;
+                    }
+                    // 遍历属于此薪资组的值
+                    for (var j=0;j < rowData.length;j++) {
+                        if (rows[i].salaryGroupId == rowData[j].salaryGroupId) {
+                            r.push(rowData[j]);
+                        }
+                    }
+                }
+                if (!f) {
+                    grid.removeRows(rows, false);
+                    grid2.removeRows(r, false);
+                }
+            }else{
+                mini.alert("请选择需要删除的记录!");
+            }
+        }
+
+        grid.on("drawcell", function(e) {
+            var field = e.field, record= e.record;
+            if (field == "salaryGroupId" || field == "startDate") {
+                if (record.isPei == 1) {
+                    e.cellStyle = "background:#ecedef";
+                }
+            }
+        });
+
+        grid.on("cellbeginedit", function(e) {
+            var field = e.field, record= e.record;
+            if (field == "salaryGroupId" || field == "startDate") {
+                if (record.isPei == 1) {
+                    e.cancel = true;
+                }
+            }
+        });
+
+        grid2.on("drawcell", function(e) {
+            var field = e.field, record= e.record;
+            if (field == "salaryGroupId" || field == "salaryItemsId") {
+                e.cellStyle = "background:#ecedef";
+            }
+
+            // 计算
+            if (field == "js") {
+                e.cellHtml="<a href='javascript:void(0);' onclick='js("+e.rowIndex+")'>计算</a>";
+            }
+        });
+
+        var global = {};
+        // 大集合
+        var newValue = "";
+        // 属性值
+        var newProperty = [];
+
+        function onCellBeginEdit(e) {
+            var field = e.field, record = e.record;
+
+            newValue = "";
+            newProperty = [];
+            // 查找是否存在
+            var nId = record.salaryGroupId;
+            if (global[nId]) {
+                newValue = global[nId];
+            } else {
+                newValue = global[nId] = {};
+            }
+
+            // 薪资项目ID
+            var data = record.salaryItemsId;
+            // 判断属性是否存在
+            if (!newValue[data]) {
+                newProperty[0] = record[field];
+                newValue[data] = newProperty;
+                global[nId] = newValue;
+            } else {
+                newProperty = newValue[data];
+            }
+            if (!record.id) {
+                newProperty[2] = "分配薪资组初始化";
+            } else newProperty[2] = "";
+        }
+
+        function onCellEndEdit(e) {
+            var field = e.field, record = e.record;
+            // 值
+            if (field == "staticValue") {
+                // 将值转换为目标格式
+                var v = parseFloat(record.staticValue).toFixed(record.target);
+                grid2.updateRow(e.record, {staticValue: v});
+                newProperty[1] = v;
+            }
+        }
+
+        function js(rowIndex) {
+            var row = grid2.getRow(rowIndex);
+            mini.open({
+                url : "../salary/salary_record!financial.action?id="+row.salaryItemsId,
+                title : "选择公式",
+                width : 540,
+                height : 320,
+                onload : function() {
+                },
+                ondestroy : function(action) {
+                    if (action == "ok") {
+                        var iframe = this.getIFrameEl();
+                        var data = iframe.contentWindow.GetData();
+                        data = mini.clone(data);
+                        if (data.length > 0) {
+                            var v = parseFloat(data).toFixed(row.target);
+                            grid2.updateRow(row, {staticValue : v});
+                        }
+                    }
+                }
+            });
+        }
+
+        /**时间格式化
+         * 形式:yyyy年MM月dd日'
+         * */
+        function ondayRenderer2(e) {
+            var value = e.value;
+            if(value != null){
+                value = new Date(value);
+                if (value) return mini.formatDate(value, 'yyyy年MM月dd日');
+            }else{
+                return "";
+            }
+        }
+
+        function onOKClose() {
+            // 表单部分
+            var form = new mini.Form("#form1");
+            var formjson="";
+            if(form){
+                form.validate();
+                if (form.isValid() == false)return;
+                var formdata = form.getData();
+                formdata.adjust = mini.encode(global);
+                formjson = mini.encode(formdata);
+            }
+            // 表格部分
+            var gridjson="";
+            if(grid){
+                // 验证
+                grid.validate();
+                if (grid.isValid() == false) {
+                    gridError(grid);
+                    return;
+                }
+                var data = grid.getData();
+                if(data.length<1){// 空行也算length
+                    mini.alert("详细信息为空，保存失败！");
+                    return;
+                }
+                // 判断grid是否多个是否发薪
+                for ( var i = 0, l = data.length; i < l; i++) {
+                    var row = data[i];
+                    var row = data[i];
+                    if(row.id == ""||typeof(row.id)== "undefined"){
+                        row._state="added";
+                        grid.updateRow(row,row);
+                    }else{
+                        row._state="modified";
+                        grid.updateRow(row,row);
+                    }
+                }
+                var griddata = grid.getChanges();
+                gridjson= mini.encode(griddata);
+            }
+
+            var gridjson2="";
+            if(grid2){
+                // 验证
+                grid2.validate();
+                if (grid2.isValid() == false) {
+                    gridError(grid2);
+                    return;
+                }
+                var data = grid2.getData();
+                // 判断grid是否多个是否发薪
+                for ( var i = 0, l = data.length; i < l; i++) {
+                    var row = data[i];
+                    var row = data[i];
+                    if(row.id == ""||typeof(row.id)== "undefined"){
+                        row._state="added";
+                        grid2.updateRow(row,row);
+                    }else{
+                        row._state="modified";
+                        grid2.updateRow(row,row);
+                    }
+                }
+                var griddata = grid2.getChanges();
+                gridjson2= mini.encode(griddata);
+            }
+            var gridjson3="";
+            if(grid3){
+                // 验证
+                grid3.validate();
+                if (grid3.isValid() == false) {
+                    gridError(grid3);
+                    return;
+                }
+                var data = grid3.getData();
+                if(data.length<1){// 空行也算length
+                    mini.alert("账号详细信息为空，保存失败！");
+                    return;
+                }
+                // 判断grid是否多个是否发薪
+                for ( var i = 0, l = data.length; i < l; i++) {
+                    var row = data[i];
+                    var row = data[i];
+                    if(row.id == ""||typeof(row.id)== "undefined"){
+                        row._state="added";
+                        grid3.updateRow(row,row);
+                    }else{
+                        row._state="modified";
+                        grid3.updateRow(row,row);
+                    }
+                }
+                var griddata = grid3.getChanges();
+                gridjson3= mini.encode(griddata);
+            }
+
+            window.parent.loading();
+            $.ajax({
+                url : "../salary/salary_record!saveOrUpdateToStaff.action",
+                type : "post",
+                data : {
+                    formdata : formjson,
+                    griddata : gridjson,
+                    gridData : gridjson2,
+                    gridAccountData : gridjson3
+                },
+                success : function(text) {
+                    window.parent.unmask();
+                    if (text == "success") {
+                        mini.showMessageBox({
+                            title: "提醒",
+                            width: 250,
+                            iconCls: "mini-messagebox-warning",
+                            buttons: ["ok"],
+                            message: "保存成功",
+                            callback: function (action) {
+                                document.location.reload();
+                                window.CloseOwnerWindow();
+                            }
+                        });
+                    } else {
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                }
+            });
+        }
+        /*******************************************************************************
+         * grid 错误提示
+         ******************************************************************************/
+        function gridError(grid){
+            var error = grid.getCellErrors()[0];
+            var head = error.column.header.replace(/[\r\n]/g,"").replace(/[ ]/g,"");
+            var errorText = error.errorText;
+            mini.showMessageBox({
+                 title: "提醒",
+                 iconCls: "mini-messagebox-warning",
+                 buttons: ["ok"],
+                 message: head+":"+errorText+",请修改后重新操作!",
+                 callback: function (action) {
+                      grid.setSelected(error.record);
+                      grid.beginEditCell(error.record, error.column);
+                      return;
+                   }
+                 });
+        }
+
+        /** 增加行 */
+        function addRows() {
+            var newRow = {};
+            grid3.selectAll(false);
+            var leng = grid3.getData().length;
+            grid3.addRow(newRow, leng);
+            var row=grid3.getRow(leng);
+            grid3.updateRow(row,row);
+            grid3.deselectAll (false);
+        }
+
+        /** 添加页面用到的删除行方法 */
+        function removeRows() {
+            var rows = grid3.getSelecteds();
+            if (rows.length > 0) {
+                grid3.removeRows(rows, false);
+            }else{
+                mini.alert("请选择需要删除的记录!");
+            }
+        }
+
+        function onCellValidation(e) {
+            var field = e.field, record = e.record;
+
+            // 账号
+            if (field == "account") {
+                onEnglishAndNumberValidation(e);
+            }
+        }
+
+        function onEnglishAndNumberValidation(e) {
+            if (e.isValid) {
+                if (isEnglishAndNumber(e.value) == false) {
+                    e.errorText = "必须输入英文+数字";
+                    e.isValid = false;
+                }
+            }
+        }
+
+        // 成本单位改变
+        function onCellCommitEdit(e) {
+            var record = e.record;
+            var field = e.field;
+
+            // 成本单位
+            if (field == "costComId") {
+            	var editor = grid.getCellEditor(8, e.row);
+            	editor.setUrl("../basis/branch!depData.action?cid=" + e.value);
+            }
+        }
+
+    </script>
+</body>
+</html>

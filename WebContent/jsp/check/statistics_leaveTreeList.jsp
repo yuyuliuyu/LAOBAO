@@ -1,0 +1,219 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>年假树信息</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<script src="../template/miniui/boot.js" type="text/javascript"></script>
+<link rel="stylesheet" href="../template/system/css/base.css"
+	type="text/css"></link>
+<link href="../template/miniui/themes/other/skin.css" rel="stylesheet"
+	type="text/css" />
+<style type="text/css">
+body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+</head>
+<body>
+	<div class="mini-splitter" style="width:100%;height:100%;" handlerSize="9">
+		<div size="300" showCollapseButton="true">
+			<!-- ckId -->
+			<input type="hidden" value="${sessionScope.depId}" id="depId" />
+			<div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+				<span style="padding-left:5px;">组织机构：</span>
+			</div>
+			<div class="mini-fit" style=" border-top:0;">
+				<ul id="deptree" class="mini-tree" url="../basis/branch!getTreeListByUser.action" style="width:100%;height:100%;"
+					showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true" >
+				</ul>
+			</div>
+		</div>
+		<div showCollapseButton="flase">
+			<div class="mini-toolbar" style="padding:0px;border-top:0;border-left:0;">
+		        <table style="width:100%;">
+		            <tr>
+		                <td style="width:250px;padding-left:20px;">年度：
+<!-- 		                    <input class="mini-textbox" id="year" name="year" emptyText="请输入年度，如：2017" style="width:150px;"/> -->
+		                	<input name="year" id="year" class="mini-spinner" value="" minValue="2010" maxValue="" style="width:150px;"/>
+		                </td>
+		                <td style="white-space:nowrap;">
+		                    <a class="mini-button" iconCls="icon-search" onclick="search('year', 'year')" onenter="onKeyEnter">查询</a>
+		                </td>
+		            </tr>
+		        </table>
+		    </div>
+		    <div class="mini-toolbar" style="border-left:0;padding:0px;">
+				<table style="width:100%;">
+					<tr>
+						<td>
+							<a class="mini-button" iconCls="icon-upload" onclick="exportAnnualLeaveInfo()">导出</a> 
+						</td>
+					</tr>
+				</table>
+			</div>
+		    <div class="mini-fit">
+		        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+		             url="../check/statistics!getAnnualLeaveData.action" idField="id" multiSelect="true" 
+		             allowAlternating="true" pageSize="20" >
+		            <div property="columns">
+		                <div type="indexcolumn" width="50" headerAlign="center">序列</div>
+		                <div field="jobNumber" width="80" headerAlign="center" align="center" >职工号</div>
+		                <div field="name" width="100" headerAlign="center" align="center" >姓名</div>
+		                <div field="className" width="100" headerAlign="center" align="center" >班组</div>
+		                <div field="legalDay" width="50" headerAlign="center" align="center" >全部</div>
+		                <div field="shouldTake" width="50" headerAlign="center" align="center" >应休</div>
+		                <div field="month1" width="50" headerAlign="center" align="center" >一月</div>
+		                <div field="month2" width="50" headerAlign="center" align="center" >二月</div>
+		                <div field="month3" width="50" headerAlign="center" align="center" >三月</div>
+		                <div field="month4" width="50" headerAlign="center" align="center" >四月</div>
+		                <div field="month5" width="50" headerAlign="center" align="center" >五月</div>
+		                <div field="month6" width="50" headerAlign="center" align="center" >六月</div>
+		                <div field="month7" width="50" headerAlign="center" align="center" >七月</div>
+		                <div field="month8" width="50" headerAlign="center" align="center" >八月</div>
+		                <div field="month9" width="50" headerAlign="center" align="center" >九月</div>
+		                <div field="month10" width="50" headerAlign="center" align="center" >十月</div>
+		                <div field="month11" width="50" headerAlign="center" align="center" >十一月</div>
+		                <div field="month12" width="50" headerAlign="center" align="center" >十二月</div>
+		                <div field="haveTake" width="50" headerAlign="center" align="center" >已休</div>
+		                <div field="surplus" width="50" headerAlign="center" align="center" >剩余</div>
+		            </div>
+		        </div>
+		    </div>
+	    </div>
+	</div>
+	<script type="text/javascript">
+		var date=new Date;
+ 		var year=date.getFullYear(); 
+ 		$("#year").attr("maxValue", year);
+		$("#year").val(year);
+		
+		mini.parse();
+		var grid = mini.get("grid");
+		
+		$(function(){ 
+        	grid.load();
+        	var year = mini.get("year").getValue();
+			//如果有树
+			var tree=mini.get("deptree");
+			if(tree && grid){
+				//默认选中
+				var depId = $("#depId").val();
+				if(depId){
+					var originalNode=tree.getNode();
+					tree.selectNode(originalNode);
+				}
+				
+				tree.on("nodeclick", function (e) {
+					var tree=mini.get("deptree");
+					var node = tree.getSelectedNode();
+					//可见即可选
+					/*if(!tree.isAncestor ( originalNode, node )){
+						tree.selectNode ( originalNode );//选中原节点
+						//tree.unSelectNode( node );//取消选中当前节点
+						return;
+					}*/
+					if (node) {
+						if(document.getElementById("searchButton")){ 
+							$("#searchButton").click();
+						}else { 
+							var ids = "";
+							var tree=mini.get("deptree");
+							if(tree){
+								var node = tree.getSelectedNode();
+								if(node){
+									var ids = "";
+									ids = depAll(ids,tree,node);
+								}
+							}
+							grid.load({ searchData:"{\"depId\":\""+ids+"\", \"year\":\""+year+"\"}" });
+						}
+					} else {
+						grid.setData([]);
+						grid.setTotalCount(0);
+					}
+				});
+			}
+		});
+		
+		/**查询
+		 * name:所有查询条件框的name字符串
+		 * attr:所有查询条件的属性名
+		 * */
+		function search(name,attr){
+			var grid=mini.get("grid");
+			var searchData="{";
+			if(name&&attr){
+				var names=name.split(",");
+				var attrs=attr.split(",");
+				for(var i=0;i<names.length;i++){
+					if(mini.get(names[i])){
+						var value=mini.get(names[i]).getValue();
+						searchData=searchData+"\""+attrs[i]+"\""+":\""+value+"\"";
+						if(i!=names.length-1)searchData=searchData+",";
+					}
+				}
+			}
+			//searchData=searchData+",\"start\""+":\""+mini.get("start").getFormValue()
+			//			+"\","+"\"end\""+":\""+mini.get("end").getFormValue()+"\"";
+			//如果有树
+			var tree=mini.get("deptree");
+			if(tree){
+				var node = tree.getSelectedNode();
+				if(node){
+					var ids = "";
+					ids = depAll(ids,tree,node);
+					if (searchData == "{"){
+						searchData=searchData+"\"depId\":\""+ids+"\"";
+					} else {
+						searchData=searchData+",\"depId\":\""+ids+"\"";
+					}
+				    
+				}
+			}
+			searchData=searchData+"}";
+			grid.load({ searchData: searchData });
+		}
+		
+		function depAll(ids,tree,node){
+			if(node.flg==1){
+				ids += node.id+",";
+				return ids;
+			}else{
+				var list = tree.getChildNodes(node);
+				if(list.length>0){
+					 for ( var i = 0; i < list.length; i++) {
+					    	if(list[i].flg==1){
+					    		ids = ids + "," + list[i].id;
+					    	}else{
+					    		node = list[i];
+					    		ids = depAll(ids,tree,node);
+					    	}
+					 }
+				}
+				return ids;
+			}
+		}
+		
+		//导出年假信息集合
+		function exportAnnualLeaveInfo(){
+			var year = mini.get("year").getValue();
+			window.location.href="../check/statistics!exportAnnualLeaveInfo.action?year="+year;
+		}
+	</script>
+</body>
+</html>

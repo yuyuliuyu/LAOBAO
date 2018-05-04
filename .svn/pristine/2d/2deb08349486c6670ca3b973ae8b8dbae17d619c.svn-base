@@ -1,0 +1,356 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.entity.basic.InsuranceBenefits;
+import com.lingnet.hcm.entity.salary.Formula;
+import com.lingnet.hcm.entity.salary.SalaryFormula;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.hcm.service.salary.FormulaService;
+import com.lingnet.hcm.service.salary.SalaryFormulaService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.SpringUtil;
+
+/**
+ * 计算公式表
+ * @ClassName: SalaryFormulaServiceImpl 
+ * @Description: 计算公式表
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+@Service("salaryFormulaService")
+public class SalaryFormulaServiceImpl extends BaseServiceImpl<SalaryFormula, String>
+              implements SalaryFormulaService {
+
+    /**
+     * 运用运算符ASCII码-40做索引的运算符优先级
+     */
+    private int[] operatPriority = new int[] { 0, 3, 2, 1, -1, 1, 0, 2 };
+
+    @Resource(name="formulaService")
+    private FormulaService formulaService;
+
+    @Override
+    public String saveOrUpdate(String formdata) {
+        SalaryFormula formula = JsonUtil.toObject(formdata, SalaryFormula.class);
+        if (formula != null) {
+            if (StringUtils.isBlank(formula.getId())) {
+                // 查找默认
+                SalaryFormula def = get(SalaryFormula.class,
+                        Restrictions.eq("bindId", formula.getBindId()),
+                        Restrictions.eq("isDefault", 1),
+                        Restrictions.eq("isDelete", 0));
+                if (def == null) {
+                    formula.setIsDefault(1);
+                } else {
+                    formula.setIsDefault(0);
+                }
+                formula.setIsDelete(0);
+
+                // 解析公式
+                try {
+                    formula.setCntMath(jx(formula.getContent()));
+                } catch (Exception e) {
+                    return e.getMessage();
+                }
+                String id = save(formula);
+                if (StringUtils.isBlank(id)) {
+                    return "保存失败";
+                }
+            } else {
+                // 查找默认
+                SalaryFormula def = get(SalaryFormula.class,
+                        Restrictions.ne("id", formula.getId()),
+                        Restrictions.eq("bindId", formula.getBindId()),
+                        Restrictions.eq("isDefault", 1),
+                        Restrictions.eq("isDelete", 0));
+                if (def == null) {
+                    formula.setIsDefault(1);
+                } else {
+                    formula.setIsDefault(0);
+                }
+                SalaryFormula newFumula = get(SalaryFormula.class, Restrictions.eq("id", formula.getId()), Restrictions.eq("isDelete", 0));
+                if (newFumula != null) {
+                    // 解析公式
+                    try {
+                        formula.setCntMath(jx(formula.getContent()));
+                    } catch (Exception e) {
+                        return e.getMessage();
+                    }
+                    newFumula.copyFrom(formula);
+                    update(newFumula);
+                }
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getWageFormulaListData(String bindId, Pager pager) {
+        pager = findPager(SalaryFormula.class, pager, Restrictions.eq("bindId", bindId), Restrictions.eq("isDelete", 0));
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", pager.getResult());
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            SalaryFormula formula = get(SalaryFormula.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (formula != null) {
+                formula.setIsDelete(1);
+                this.update(formula);
+            } else {
+                return "第"+(i+1)+"条记录不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String saveDefault(String id) {
+        SalaryFormula formula = get(SalaryFormula.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (formula != null) {
+            SalaryFormula def = get(SalaryFormula.class,
+                    Restrictions.eq("bindId", formula.getBindId()),
+                    Restrictions.eq("isDefault", 1),
+                    Restrictions.eq("isDelete", 0));
+            if (def != null) {
+                def.setIsDefault(0);
+            }
+            update(def);
+            formula.setIsDefault(1);
+
+            update(formula);
+        } else {
+            return "该条信息不存在";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<Map<String, Object>> getFormulasList(String searchData) {
+        List<Map<String, Object>> list = new ArrayList<Map<String,Object>>();
+        Map<String, Object> map = new HashMap<String, Object>();
+        // 公式
+        map.put("function", new String[] {"函数", "../salary/formula!getFullFormulaListData.action"});
+        map.put("fun_items", new String[] {"薪资项目", "../salary/salary_items!getSalaryItemToTypeData.action"});
+        map.put("func_type", new String[] {"项目类别项目", "../salary/salary_items!getSalaryItemToItemTypeData.action"});
+        map.put("insuranceItems", new String[] {"福利项目", "../basis/insurance_benefits!getAllItemsListData.action"});
+        list.add(map);
+
+        return list;
+    }
+
+    /**
+     * @Title: 解析公式 
+     * @param content
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月1日 V 1.0
+     */
+    @Override
+    public String jx(String content) throws Exception {
+        if (StringUtils.isBlank(content)) {
+            return "";
+        }
+
+        // 放入栈中
+        Stack<String> stack = prepare(content);
+        for (;;) {
+            if (!stack.isEmpty()) {
+                String item = stack.pop().trim();
+                int r_l = item.indexOf("result");
+                int r_d = item.indexOf("=");
+                String name = "";
+                if (r_l >= 0 && r_d > 0 && r_l < r_d) {
+                    name = item.substring(r_d+1, item.length()).trim();
+                }
+                // 函数
+                int fIndex = item.indexOf("F_");
+                int lIndex = item.indexOf("L_");// 福利项目
+                int sIndex = item.indexOf("L_");// 薪资项目
+                String conn = item.substring(0, fIndex);
+                if (fIndex >= 0) {
+                    name = item.substring(fIndex+2, item.length());
+                    Formula formula = formulaService.get(Formula.class, Restrictions.eq("method", name.trim()), Restrictions.eq("isDelete", 0));
+                    if (formula == null) {
+                        throw new Exception(item + " 方法不存在!");
+                    }
+                    String mothodEn = formula.getMethodEn();
+
+                    // 存在获取行数据的函数
+                    String yu = "";
+                    if (mothodEn.contains("noJoin")) {
+                        yu = mothodEn.replace("noJoin", "true");
+                        int position = yu.indexOf("(");
+                        int rPosition = yu.indexOf(")") + 1;
+                        yu = yu.substring(position, rPosition);
+                    }
+                    String method = mothodEn.substring(0, mothodEn.indexOf("("));
+                    String[] param = mothodEn.substring(mothodEn.indexOf("(")+1, mothodEn.indexOf(")")).split(",");
+                    if (!StringUtils.isBlank(yu)) {
+                        item += "()";
+                    }
+                    content = content.replace(item, conn+"formulaService." + method + yu);
+                }
+
+                // 福利项目项目
+                else if (lIndex >= 0) {
+                    String insurance = item.trim().substring(2);
+                    InsuranceBenefits benefits = get(InsuranceBenefits.class, Restrictions.eq("name", insurance));
+                    if (benefits == null) {
+                        throw new Exception(insurance + " 福利项目不存在!");
+                    }
+                    content = content.replace(item, benefits.getId());
+                }
+
+                // 薪资项目
+                else if (sIndex >= 0) {
+                    SalaryItems items = get(SalaryItems.class, Restrictions.eq("name", conn));
+                    if (items != null) {
+                        
+                    } else throw new Exception(conn + " 薪资项目不存在!");
+                }
+            } else {
+                return content;
+            }
+        }
+
+    }
+
+    @Override
+    public Object getFormulaResult(String formula) {
+        Object result = 0;
+        if (StringUtils.isBlank(formula)) {
+            return result;
+        }
+
+        // 获取对应的解析公式
+        try {
+            result = formula(formula);
+        } catch (Exception e) {
+            result = "fail";
+        }
+
+        return result==null? 0 : result;
+    }
+
+    @Override
+    public Object formula(String cntMath) {
+        JexlEngine jexl=new JexlEngine();  
+        Expression e = jexl.createExpression("result= " + cntMath);
+        JexlContext jc = new MapContext();
+        jc.set("formulaService", SpringUtil.getBean("formulaService"));
+        jc.set("date", new Date());
+        e.evaluate(jc);
+
+        return jc.get("result");
+    }
+
+    /**
+     * 利用ASCII码-40做下标去算术符号优先级
+     *
+     * @param cur
+     * @param peek
+     * @return
+     */
+    public boolean compare(char cur, char peek) {// 如果是peek优先级高于cur，返回true，默认都是peek优先级要低
+        boolean result = false;
+        if (operatPriority[(peek) - 40] >= operatPriority[(cur) - 40]) {
+            result = true;
+        }
+        return result;
+    }
+
+    /**
+     * 判断是否为算术符号
+     *
+     * @param c
+     * @return
+     */
+    private boolean isOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/' || c == '(' || c == ')';
+    }
+
+    /**
+     * @Title: 数据准备阶段将表达式转换成为后缀式栈 
+     * @param expression
+     * @return 
+     * Stack<String> 
+     * @author zhanghj
+     * @since 2017年4月5日 V 1.0
+     */
+    private Stack<String> prepare(String expression) {
+        Stack<String> postfixStack = new Stack<String>();// 后缀式栈
+        Stack<Character> opStack = new Stack<Character>();// 运算符栈
+        opStack.push(',');// 运算符放入栈底元素逗号，此符号优先级最低
+        char[] arr = expression.toCharArray();
+        int currentIndex = 0;// 当前字符的位置
+        int count = 0;// 上次算术运算符到本次算术运算符的字符的长度便于或者之间的数值
+        char currentOp, peekOp;// 当前操作符和栈顶操作符
+        for (int i = 0; i < arr.length; i++) {
+            currentOp = arr[i];
+            if (isOperator(currentOp)) {// 如果当前字符是运算符
+                if (count > 0) {
+                    postfixStack.push(new String(arr, currentIndex, count));// 取两个运算符之间的数字
+                }
+                peekOp = opStack.peek();
+                if (currentOp == ')') {// 遇到反括号则将运算符栈中的元素移除到后缀式栈中直到遇到左括号
+                    while (opStack.peek() != '(') {
+                        postfixStack.push(String.valueOf(opStack.pop()));
+                    }
+                    opStack.pop();
+                } else {
+                    while (currentOp != '(' && peekOp != ',' && compare(currentOp, peekOp)) {
+                        postfixStack.push(String.valueOf(opStack.pop()));
+                        peekOp = opStack.peek();
+                    }
+                    opStack.push(currentOp);
+                }
+                count = 0;
+                currentIndex = i + 1;
+            } else {
+                count++;
+            }
+        }
+        if (count > 1 || (count == 1 && !isOperator(arr[currentIndex]))) {// 最后一个字符不是括号或者其他运算符的则加入后缀式栈中
+            postfixStack.push(new String(arr, currentIndex, count));
+        }
+
+        while (opStack.peek() != ',') {
+            postfixStack.push(String.valueOf(opStack.pop()));// 将操作符栈中的剩余的元素添加到后缀式栈中
+        }
+
+        return postfixStack;
+    }
+
+}

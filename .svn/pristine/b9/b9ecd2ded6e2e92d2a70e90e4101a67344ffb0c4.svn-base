@@ -1,0 +1,835 @@
+package com.lingnet.hcm.action.salary;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.common.service.UploadService;
+import com.lingnet.hcm.entity.basic.AreasInfo;
+import com.lingnet.hcm.entity.basic.PayAreas;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.PaymentCheckMonth;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.service.salary.SalaryBaseProcessService;
+import com.lingnet.hcm.service.salary.SalaryFormulaService;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.hcm.service.salary.SalaryWageService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.ToolUtil;
+
+/**
+ * 保险管理
+ * @ClassName: SalaryInsuranceAction 
+ * @Description: 保险管理 
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryInsuranceAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private SalaryInsurance salaryInsurance;
+    private String area;// 缴费地区
+    private String effectiveYear;// 计算年
+    private String effectiveMonth;// 计算月
+    private String companyId;// 公司ID
+    private String insuranceId;// 福利ID
+    private String column;// 列表列字段
+    private int jsYear;// 缴费年
+    private int jsMonth;// 缴费月
+    private Map<String, Object> mapInfo;
+    private File uploadFile;// 导入的文件
+    private List<Map<String, Object>> formulas;
+    private int type;// 类型
+    private String content;// 公式内容
+    private String recordMainId;// 档案表ID
+
+    @Resource(name="salaryInsuranceService")
+    private SalaryInsuranceService salaryInsuranceService;
+    @Resource(name = "uploadService")
+    private UploadService uploadService;
+    @Resource(name="salaryFormulaService")
+    private SalaryFormulaService salaryFormulaService;
+    @Resource(name="salaryBaseProcessService")
+    private SalaryBaseProcessService salaryBaseProcessService;
+    @Resource(name="salaryWageService")
+    private SalaryWageService salaryWageService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 修改页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        return "edit";
+    }
+
+    /**
+     * @Title: 保险类型
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String type() {
+        return "type";
+    }
+
+    /**
+     * @Title: 保险类型编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeAdd() {
+        // 获取选中公司以及上级公司
+        companyId = salaryWageService.getItemsCompanys(depId, LingUtil.userinfo().getId());
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 保险类型编辑
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String typeEdit() {
+        salaryInsurance = salaryInsuranceService.get(SalaryInsurance.class,
+                Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        if (salaryInsurance != null) {
+            depId = salaryInsurance.getCompanyId();
+            PayAreas payAreas = salaryInsuranceService.get(PayAreas.class, Restrictions.eq("id", salaryInsurance.getArea()));
+            if (payAreas != null) {
+                AreasInfo areasInfo = salaryInsuranceService.get(AreasInfo.class, Restrictions.eq("id", payAreas.getCity()));
+                area = areasInfo.getName();
+            }
+            // 获取选中公司以及上级公司
+            companyId = salaryWageService.getItemsCompanys(depId, LingUtil.userinfo().getId());
+        }
+
+        return "typeadd";
+    }
+
+    /**
+     * @Title: 缴费地区展示页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String area() {
+        return "area";
+    }
+
+    /**
+     * @Title: 生效日期内的保险项目展示页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String items() {
+        return "items";
+    }
+
+    /**
+     * @Title: 办理社保
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String socialsecurity() {
+        return "socialsecurity";
+    }
+
+    /**
+     * @Title: 停保处理页面
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String stop() {
+        return "stop";
+    }
+
+    /**
+     * @Title: 计算月平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String month() {
+        return "month";
+    }
+
+    /**
+     * @Title: 计算月平均工资增加
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String monthAdd() {
+        return "monthadd";
+    }
+
+    /**
+     * @Title: 社保缴费
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String payment() {
+        return "payment";
+    }
+
+    /**
+     * @Title: 缴费历史
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String histroy() {
+        mapInfo = salaryInsuranceService.getEmployeeBaseInfo(id);
+        return "histroy";
+    }
+
+    /**
+     * @Title: 每月缴费核对列表页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String check() {
+        return "check";
+    }
+
+    /**
+     * @Title: 每月缴费核对页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String checkList() {
+        PaymentCheckMonth checkMonth = getBeanByCriteria(PaymentCheckMonth.class, Restrictions.eq("id", id));
+        if (checkMonth != null) {
+            companyId = checkMonth.getCompanyId();
+            jsYear = checkMonth.getEffectiveYear();
+            jsMonth = checkMonth.getEffectiveMonth();
+        }
+
+        return "checklist";
+    }
+
+    /**
+     * @Title: 导入社保缴费信息展示页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String audit() {
+        return "audit";
+    }
+
+    /**
+     * @Title: 每月PDF缴费单据上传页面
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String doc() {
+        return "doc";
+    }
+
+    /**
+     * @Title: 参保员工展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoList() {
+        return "canbaolist";
+    }
+
+    /**
+     * @Title: 参保员工增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoAdd() {
+        return "canbaoadd";
+    }
+
+    /**
+     * @Title: 缴费基数公式
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月10日 V 1.0
+     */
+    public String formula() {
+        // 公式
+        formulas = salaryFormulaService.getFormulasList(formdata, depId);
+
+        return "formula";
+    }
+
+    /**
+     * @Title: 参保员工编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String canbaoEdit() {
+        mapInfo = salaryInsuranceService.getEmployeeBaseInfo(id);
+        return "canbaoedit";
+    }
+
+    /**
+     * @Title: 计算员工缴费基数展现页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String baseList() {
+        return "baselist";
+    }
+
+    /**
+     * @Title: 计算员工缴费基数增加页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String baseAdd() {
+        return "baseadd";
+    }
+
+    /**
+     * @Title: 计算员工缴费基数编辑页
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String baseEdit() {
+        mapInfo = salaryBaseProcessService.getBaseJfProcessData(id);
+        return "baseadd";
+    }
+
+    /**
+     * @Title: 参保员工编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String joinList() {
+        return "joinlist";
+    }
+
+    /**
+     * @Title: 获取缴纳标准列表数据 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getPaymentInsuranceListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getPaymentInsuranceListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 缴纳标准保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        return ajax(Status.success, salaryInsuranceService.saveOrUpdate(formdata));
+    }
+
+    /**
+     * @Title: 删除缴纳标准
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryInsuranceService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取已参保人员信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getInsuranceItemsListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getInsuranceItemsListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 参保人员信息绑定保险信息
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdateToInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.saveOrUpdateToInsurance(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 根据计算出的缴费基数更新员工社保缴费
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年8月20日 V 1.0
+     */
+    public String updateInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateInsurance(formdata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 查询无参保人员 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getNoInsuranceOfStaffListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNoInsuranceOfStaffListData(depId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 查询已选择的无参保人员 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月19日 V 1.0
+     */
+    public String getNoChoseStaffListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNoChoseStaffListData(ids, recordMainId)));
+    }
+
+    /**
+     * @Title: 获取参保项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月20日 V 1.0
+     */
+    public String getNeedJoinInsuranceItemsData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getNeedJoinInsuranceItemsData(ids, searchData, recordMainId)));
+    }
+
+    /**
+     * @Title: 获取选中的员工 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String getChoseStaff() {
+        String[] idsArray = ids.split(",");
+        List<BasicInformation> basicInformations = getBeanListByCriteria(BasicInformation.class, Restrictions.in("id", idsArray));
+
+        return ajax(Status.success, JsonUtil.Encode(basicInformations));
+    }
+
+    /**
+     * @Title: 获取选中的员工的福利项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String getChoseStaffInsurances() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getChoseStaffInsurances(id)));
+    }
+
+    /**
+     * @Title: 停保处理 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月21日 V 1.0
+     */
+    public String updateStopInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateStopInsurance(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取员工保险信息 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String getStaffCanBaoInfo() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getStaffCanBaoInfo(id)));
+    }
+
+    /**
+     * @Title: 更新缴费基数
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String updateToJfJs() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateToJfJs(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取已经核对的保险信息
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月7日 V 1.0
+     */
+    public String getInsuranceCheckListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getInsuranceCheckListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取员工保险缴费核对情况
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月6日 V 1.0
+     */
+    public String getInsuranceStaffListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getInsuranceStaffListData(searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取当前公司或者部门中所有人员选择的福利项目
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月6日 V 1.0
+     */
+    public String getCurCompanyInsurance() {
+        return ajax(Status.success, JsonUtil.Encode(salaryInsuranceService.getCurCompanyInsurance(depId, effectiveYear, effectiveMonth)));
+    }
+
+    /**
+     * @Title: 批量核对
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月6日 V 1.0
+     */
+    public String beachCheck() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        // 获取上传文件的名字
+        String[] fileName=wrapper.getFileNames("uploadFile");
+        if (fileName.length == 0) {
+            return ajax(Status.success, "请选择上传文件！");
+        }
+        // 文件后缀
+        String endSuffix= fileName[0].substring(fileName[0].lastIndexOf("."), fileName[0].length());
+        if (!endSuffix.toLowerCase().endsWith("xls")
+                && !endSuffix.toLowerCase().endsWith("xlsx")) {
+            return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
+        }
+        try {
+            String message = salaryInsuranceService.beachCheck(formdata, endSuffix, uploadFile);
+            return ajax(Status.success, message);
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 上传单据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月9日 V 1.0
+     */
+    public String uploadDoc() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        String conf_path = ToolUtil.getPropert("config.properties", "real_path");
+        try {
+            String path = "/insurance/"+companyId+"/"+insuranceId;
+            String fileurl = uploadService.uploadFile(wrapper, conf_path.trim()+path);
+            if (StringUtils.isBlank(fileurl)) {
+                return ajax(Status.error, "上传失败");
+            } else {
+                // 保存文件
+                PaymentCheckMonth checkMonth = getBeanByCriteria(PaymentCheckMonth.class, Restrictions.eq("id", id),
+                        Restrictions.eq("isDelete", 0));
+                if (checkMonth==null) {
+                    return ajax(Status.error, "该月缴纳核对数据不存在，已经被删除");
+                }
+                checkMonth.setDocLocation(path+"/"+fileurl);
+                this.update(checkMonth);
+            }
+
+            return ajax(Status.success, "success");
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 下载单据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月9日 V 1.0
+     */
+    public String downDoc() {
+        PaymentCheckMonth checkMonth = getBeanByCriteria(PaymentCheckMonth.class, Restrictions.eq("id", id),
+                Restrictions.eq("isDelete", 0));
+        Map<String, String> map = new HashMap<String, String>();
+        if (checkMonth==null) {
+            map.put("success", "fail");
+            map.put("info", "该月缴纳核对数据不存在，已经被删除");
+
+            return ajax(Status.error, JsonUtil.Encode(map));
+        }
+        if (StringUtils.isBlank(checkMonth.getDocLocation())) {
+            map.put("success", "fail");
+            map.put("info", "该月单据不存在");
+
+            return ajax(Status.error, JsonUtil.Encode(map));
+        } else {
+            map.put("success", "success");
+            map.put("info", checkMonth.getDocLocation());
+
+            return ajax(Status.error, JsonUtil.Encode(map));
+        }
+    }
+
+    /**
+     * @Title: 获取保险类别计算公式
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月10日 V 1.0
+     */
+    public String getCntMath() {
+        Map<String, Object> map = new HashMap<String, Object>();
+        try {
+            String cntMath = salaryFormulaService.jx(content);
+            map.put("success", "success");
+            map.put("cntMath", cntMath);
+
+            return ajax(Status.success, JsonUtil.Encode(map));
+        } catch (Exception e) {
+            map.put("success", "fail");
+            map.put("cntMath", e.getMessage());
+
+            return ajax(Status.error, JsonUtil.Encode(map));
+        }
+    }
+
+    /**
+     * @Title: 更新员工缴费金额
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月26日 V 1.0
+     */
+    public String updateStaffBaseInsurance() {
+        try {
+            return ajax(Status.success, salaryInsuranceService.updateStaffBaseInsurance(griddata, column));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    public SalaryInsurance getSalaryInsurance() {
+        return salaryInsurance;
+    }
+
+    public void setSalaryInsurance(SalaryInsurance salaryInsurance) {
+        this.salaryInsurance = salaryInsurance;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public Map<String, Object> getMapInfo() {
+        return mapInfo;
+    }
+
+    public void setMapInfo(Map<String, Object> mapInfo) {
+        this.mapInfo = mapInfo;
+    }
+
+    public String getEffectiveYear() {
+        return effectiveYear;
+    }
+
+    public void setEffectiveYear(String effectiveYear) {
+        this.effectiveYear = effectiveYear;
+    }
+
+    public String getEffectiveMonth() {
+        return effectiveMonth;
+    }
+
+    public void setEffectiveMonth(String effectiveMonth) {
+        this.effectiveMonth = effectiveMonth;
+    }
+
+    public File getUploadFile() {
+        return uploadFile;
+    }
+
+    public void setUploadFile(File uploadFile) {
+        this.uploadFile = uploadFile;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public String getInsuranceId() {
+        return insuranceId;
+    }
+
+    public void setInsuranceId(String insuranceId) {
+        this.insuranceId = insuranceId;
+    }
+
+    public int getJsYear() {
+        return jsYear;
+    }
+
+    public void setJsYear(int jsYear) {
+        this.jsYear = jsYear;
+    }
+
+    public int getJsMonth() {
+        return jsMonth;
+    }
+
+    public void setJsMonth(int jsMonth) {
+        this.jsMonth = jsMonth;
+    }
+
+    public String getColumn() {
+        return column;
+    }
+
+    public void setColumn(String column) {
+        this.column = column;
+    }
+
+    public List<Map<String, Object>> getFormulas() {
+        return formulas;
+    }
+
+    public void setFormulas(List<Map<String, Object>> formulas) {
+        this.formulas = formulas;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getRecordMainId() {
+        return recordMainId;
+    }
+
+    public void setRecordMainId(String recordMainId) {
+        this.recordMainId = recordMainId;
+    }
+
+}

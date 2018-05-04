@@ -1,0 +1,141 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.sql.Clob;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.AuditInfosDao;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.util.LingUtil;
+/**
+ * 
+ * @ClassName: AuditInfosDaoImpl 
+ * @Description: 员工考勤审核记录DaoImpl 
+ * @author wangqiang
+ * @date 2017年4月19日 上午11:23:52 
+ *
+ */
+@Repository("auditInfosDao")
+public class AuditInfosDaoImpl extends BaseDaoImpl<CkInfoCommit, String> implements AuditInfosDao{
+
+	@Override
+	public Map<String, String> getAuditStatusByCond(String userId, String yearMonth) {
+		Map<String, String> map = new HashMap<String, String>();
+//		CkInfoCommit commit = (CkInfoCommit) this.getSession().createCriteria(CkInfoCommit.class)
+//				.add(Restrictions.eq("empId", userId)).add(Restrictions.eq("monthCalendar", yearMonth)).uniqueResult();
+        List<CkInfoCommit> commit = (List<CkInfoCommit>)getSession().createCriteria(CkInfoCommit.class)
+                .add(Restrictions.eq("empId", userId))
+                .add(Restrictions.eq("monthCalendar", yearMonth))
+                .addOrder(Order.desc("createDate")).list();
+		if (commit.size() > 0){
+			map.put("commitId", commit.get(0).getId());
+			if(commit.get(0).getAuditStatus() == 0){
+				map.put("auditStatus", "待审核");
+			} else if (commit.get(0).getAuditStatus() == 1){
+				map.put("auditStatus", "审核通过");
+			} else if (commit.get(0).getAuditStatus() == 2){
+				map.put("auditStatus", "审核不通过");
+			}
+		}
+		return map;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getInfoByCond(String depIds, String yearMonth) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String sql = "select ID, EMP_ID, MONTH_CALENDAR, to_char(COMMIT_DATE,'yyyy-MM-dd HH24:mi'), "
+				+ "DEP_ID, AUDIT_STATUS, PERSON_IDS from ck_info_commit "
+				+ "where MONTH_CALENDAR = '"+yearMonth+"' and DEP_ID  like '%"+depIds+"%'   ";
+		List<Object[]> objs = this.getSession().createSQLQuery(sql).list();
+		if (objs != null && objs.size() > 0){
+			for (Object[] obj:objs){
+				Map<String, String> map = new HashMap<String, String>();
+				map.put("id", obj[0]+"");
+				map.put("empId", obj[1]+"");
+				map.put("monthCalendar", obj[2]+"");
+				map.put("commitDate", obj[3]+"");
+				map.put("depId", obj[4]+"");
+				map.put("auditStatus", obj[5]+"");
+				try {
+					map.put("personIds", LingUtil.ClobToString((Clob)obj[6]));
+				} catch (Exception e) {
+					e.printStackTrace();
+					map.put("personIds", "");
+				}
+				list.add(map);
+			}
+		}
+		return list;
+	} 
+	@Override
+	public Map<String, String> getAuditInfoByCond(String depId, String yearMonth) {
+		Map<String, String> map = new HashMap<String, String>();
+		StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT CDATA.ID,  CDATA.AUDIT_STATUS                                                            ");
+        sql.append("   FROM                                                                                            ");
+        sql.append("     (SELECT CIC.ID, REGEXP_SUBSTR (CIC.DEP_ID, '[^,]+', 1,LEVEL, 'i') DEPT, CIC.AUDIT_STATUS, CIC.CREATEDATE      ");
+        sql.append("        FROM CK_INFO_COMMIT CIC                                                                    ");
+        sql.append("       WHERE CIC.MONTH_CALENDAR = '"+yearMonth+"'                                                  ");
+        sql.append("       CONNECT BY LEVEL <= LENGTH (CIC.DEP_ID) - LENGTH (REGEXP_REPLACE (CIC.DEP_ID, ',', ''))+1   ");
+        sql.append("     ) CDATA                                                                                       ");
+        sql.append("   WHERE CDATA.DEPT = '"+depId+"'                                                                  ");
+        sql.append("   ORDER BY CDATA.CREATEDATE DESC                                                                  ");
+		List<?> list = findBySql(sql.toString());
+		if (list.size() > 0) {
+		    Object[] obj = (Object[]) list.get(0);
+		    if (obj != null){
+		        map.put("id", obj[0]+"");
+		        if ("0".equals(obj[1]+"")){
+		            map.put("auditStatus", "待审核");
+		        } else if ("1".equals(obj[1]+"")){
+		            map.put("auditStatus", "审核通过");
+		        } else if ("2".equals(obj[1]+"")){
+		            map.put("auditStatus", "审核不通过");
+		        } else {
+		            map.put("auditStatus", "");
+		        }
+		    }
+		}
+		return map;
+	} 
+
+	@Override
+	public Map<String, String> getReportStatus(String depId, String yearMonth) {
+	    Map<String, String> map = new HashMap<String, String>();
+	    String sql = "select ID, AUDIT_STATUS from ck_info_commit "
+                + "where MONTH_CALENDAR = '"+yearMonth+"' and DEP_ID in ('"+depId+"') ORDER BY CREATEDATE DESC";
+        List<?> list = findBySql(sql.toString());
+        if (list.size() > 0) {
+            Object[] obj = (Object[]) list.get(0);
+            if (obj != null){
+                map.put("id", obj[0]+"");
+                if ("0".equals(obj[1]+"")){
+                    map.put("auditStatus", "待审核");
+                } else if ("1".equals(obj[1]+"")){
+                    map.put("auditStatus", "审核通过");
+                } else if ("2".equals(obj[1]+"")){
+                    map.put("auditStatus", "审核不通过");
+                } else {
+                    map.put("auditStatus", "");
+                }
+            }
+        }
+        return map;
+	}
+
+	@Override
+	public CkInfoCommit getInfoByYearMonth(String userId, String yearMonth) {
+		return (CkInfoCommit) this.getSession().createCriteria(CkInfoCommit.class)
+				.add(Restrictions.eq("monthCalendar", yearMonth))
+				.add(Restrictions.eq("empId", userId)).uniqueResult();
+	}
+	
+}

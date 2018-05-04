@@ -1,0 +1,879 @@
+package com.lingnet.qxgl.action.basis;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.DeptPosition;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.post.PostService;
+import com.lingnet.qxgl.entity.BaseAttachment;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxCenDep;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUserDatauth;
+import com.lingnet.qxgl.entity.QxUserShowauth;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BranchService;
+import com.lingnet.qxgl.service.QxcendepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.ToolUtil;
+
+/**
+ * 分中心action
+ * 
+ * @ClassName: BranchAction
+ * @Description: TODO
+ * @author lsp
+ * @date 2016-8-3 下午1:50:42
+ *
+ */
+@Controller
+public class BranchAction extends BaseAction {
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1L;
+
+    @Resource(name = "branchService")
+    private BranchService branchService;
+    @Resource(name = "backendDepService")
+    private BackendDepService backendDepService;
+    @Resource(name = "qxcendepService")
+    private QxcendepService qxcendepService;
+
+    @Resource(name = "postService")
+    private PostService postService;
+
+    private String id;
+    private String name;
+    private String jm;// 简码
+    private String srm; // 缩写码
+    private String pid;// 父id
+    private String child;// 子节点
+    private Branch branch;//
+    private String pname;// 父名称
+    private String formdata;
+    private String cid;// 分中心id
+    private String did;// 部门id
+    private String imgpath;// 图片地址
+    private QxDepartment department;
+    private QxCenDep cd;
+    private List<BaseAttachment> imgList;
+    private String img;
+    private String path;// 营业执照路径
+    private String firparent;
+    private String firparentAll;
+    private String secparent;
+    private String secparentAll;
+    private String branchId;//
+    private String flg;
+    private String children;// 子部门集合
+    private String formations;// 编制集合
+    @SuppressWarnings("rawtypes")
+    private List<HashMap> historyData;// 历史前沿数据
+    private String currentYear;// 当前
+
+    public String treelist() {
+        return "treelist";
+    }
+    /**
+     * 分中心树
+     * 
+     * @Title: tree
+     * @return String
+     * @author lsp
+     * @since 2016-8-4 V 1.0
+     */
+    public String tree() {
+        return "tree";
+    }
+    /**
+     * 获取公司树
+     * @Title: tree
+     * @return String
+     * @author lsp
+     * @since 2016-8-4 V 1.0
+     */
+    public String comptree() {
+        return "comptree";
+    }
+
+    /**
+     * 历史前沿页面
+     * 
+     * @Title: history
+     * @return String
+     * @author duanjj
+     * @since 2017年3月23日 V 1.0
+     */
+    public String history() {
+        // 获取历史前言数据最晚的时间作为第一个时间
+        Calendar c = Calendar.getInstance();
+        currentYear = String.valueOf(c.get(Calendar.YEAR));
+        historyData = branchService.findHistortData(flg,id);
+
+        return "history";
+    }
+
+    /**
+     * 获取分中心树-部门树
+     * 
+     * @Title: treeList
+     * @return String
+     * @author lsp
+     * @since 2016-8-3 V 1.0
+     */
+    public String treeList() {
+        String json = "";
+        json = branchService.treeList();
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 获取分中心树-部门树
+     * 
+     * @Title: treeList
+     * @return String
+     * @author lsp
+     * @since 2016-8-3 V 1.0
+     */
+    public String treeShow() {
+        String json = "";
+        json = branchService.treeList();
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 获取当前用户数据权限
+     * 
+     * @Title: getTreeListByUser
+     * @return String
+     * @author xuhp
+     * @since 2017-3-16 V 1.0
+     */
+    public String getTreecompByUser() {
+        String json = "";
+        try {
+            json = branchService.getTreecompByUser();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ajax(Status.success, json);
+    }
+    /**
+     * 获取当前用户展示权限
+     * 
+     * @Title: getTreeListByUser
+     * @return String
+     * @author xuhp
+     * @since 2017-3-16 V 1.0
+     */
+    public String getTreeListByUser() {
+        String json = "";
+        try {
+            json = branchService.getTreeListByUser();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * @Title: 获取当前用户数据权限树
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年8月6日 V 1.0
+     */
+    public String getDataAuth() {
+        String userId = LingUtil.userinfo().getId();
+        return ajax(Status.success, JsonUtil.Encode(branchService.getDataAuth(userId)));
+    }
+
+    /**
+     * 获取当前用户的组织架构图
+     * 
+     * @Title: getTreeListByUser
+     * @return String
+     * @author xuhp
+     * @since 2017-3-16 V 1.0
+     */
+    public String getTreeshowByUser() {
+        String json = "";
+        try {
+            json = branchService.getTreeShowByUser();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ajax(Status.success, json);
+    }
+    /**
+     * 获取单位树
+     * 
+     * @Title: treeList
+     * @return String
+     * @author lsp
+     * @since 2016-8-3 V 1.0
+     */
+    public String getBranchList() {
+        String json = "";
+        json = branchService.getBranchList();
+        return ajax(Status.success, json);
+    }
+
+    public String  getBranchappList(){
+        String json = LingUtil.userinfo().getId();
+//        json = branchService.getBranchList();
+        List<QxUserShowauth> userlist =new ArrayList<QxUserShowauth>();
+        try {
+            userlist= this.getBeanListByCriteria(QxUserShowauth.class, 
+                    Restrictions.eq("userid", LingUtil.userinfo().getId()),
+                    Restrictions.eq("flg", 0+""));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        List<HashMap<String,String>> list = new ArrayList<HashMap<String,String>>();
+                for(QxUserShowauth b : userlist){
+                    HashMap<String, String> map = new HashMap<String, String>();
+                    try { 
+                        branch=this.getBeanById(Branch.class, b.getBranchDep());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    map.put("id", b.getBranchDep());
+                    map.put("pid","");
+                    map.put("name", branch.getFzx());
+                    map.put("flg",0+"");
+                    map.put("branchId",b.getBranchDep());
+                    map.put("img", "../jsp/basis/company.gif");
+                    list.add(map);
+                }
+        return ajax(Status.success, JsonUtil.Encode(list));
+    }
+
+    public String list() {
+        return "list";
+    }
+
+    public String info() {
+        branch = this.getBeanByCriteria(Branch.class, Restrictions.eq("id", id));
+        String pathbase = ToolUtil.getPropert("config.properties", "file_path");
+        branch.setImgpath(pathbase + "/baseInfo" + branch.getImgpath());
+        if (!"-1".equals(branch.getPid())) {
+            Branch branchf = this.getBeanByCriteria(Branch.class,
+                    Restrictions.eq("id", branch.getPid()));
+            firparentAll = branchf.getFzx();
+            firparent = branchf.getSrm();
+            if (!"-1".equals(branchf.getPid())) {
+                Branch branchs = this.getBeanByCriteria(Branch.class,
+                        Restrictions.eq("id", branchf.getPid()));
+                secparentAll = branchs.getFzx();
+                secparent = branchs.getSrm();
+            }
+        } 
+        formdata=getbranch(id);
+        return "info"; 
+    } 
+    public String getdept(String id ){
+        String branchname="";
+        List<QxDepartment> deptlist=this.getBeanListByCriteria(QxDepartment.class, Restrictions.eq("pid", id));
+        if(deptlist!=null&&deptlist.size()>0){
+            for (int i = 0; i < deptlist.size(); i++) {
+                if(i==0){
+                    branchname=branchname+""+deptlist.get(i).getName();
+                }else{
+                    branchname=branchname+"、"+deptlist.get(i).getName();
+                }
+                
+            }
+        }
+        return branchname;
+    }
+    
+    public String getbranch(String id) { 
+        String branchname="";
+        List<Branch> branchlist=this.getBeanListByCriteria(Branch.class, Restrictions.eq("pid", id));
+        if(branchlist!=null&&branchlist.size()>0){
+            for (int i = 0; i < branchlist.size(); i++) {
+                if(i==0){
+                    branchname=branchname+""+branchlist.get(i).getFzx();
+                }else{
+                    branchname=branchname+"、"+branchlist.get(i).getFzx();
+                }
+                
+            }
+        }
+        return branchname;
+    }
+    public String add() {
+        Branch pBranch = branchService.get(pid);
+        branch = new Branch();
+        branch.setPid(pid);
+        if (pBranch != null) {
+            pname = pBranch.getFzx();
+        }
+
+        return "add";
+    }
+
+    /**
+     * 编辑
+     */
+    public String edit() {
+        branch = branchService.get(id);
+        String p_id = branch.getPid();
+        if (!p_id.equals("-1")) {
+            Branch pb = branchService.get(branch.getPid());
+            pname = pb.getFzx();
+        } else {
+            pname = "ROOT";
+        }
+        imgList = new ArrayList<BaseAttachment>();
+        imgList = this.getBeanListByCriteria(BaseAttachment.class,
+                Restrictions.eq("modelName", "branch"),
+                Restrictions.eq("parentId", id));
+        return "add";
+    }
+
+    /**
+     * 获取分中心数据
+     * 
+     * @Title: getTreedata
+     * @return String
+     * @author lsp
+     * @since 2016-8-4 V 1.0
+     */
+    public String getTreedata() {
+        String json = "";
+        json = branchService.getTreedata(pager);
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 下属单位保存更新
+     * 
+     * @Title: updata
+     * @return String
+     * @author duanjj
+     * @since 207-3-27 V1.0
+     */
+    public String saveOrUpdate() {
+        String flg;
+        QxUser userinfo = LingUtil.userinfo();
+        try {
+            flg = branchService.saveOrUpdata(formdata, child, img, userinfo);
+            if (flg.equals("success")) {
+                return ajax(Status.success, "success");
+            } else {
+                return ajax(Status.error, flg);
+            }
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+
+    }
+
+    /**
+     * 删除
+     * 
+     * @Title: remove
+     * @return String
+     * @author lsp
+     * @since 2016-8-4 V 1.0
+     */
+    public String remove() {
+        String json = "success";
+        try {
+            if (child != null && child.length() > 0) {
+                json = backendDepService.remove(pager, child);
+            }
+            if (!"success".equals(json)) {
+                return ajax(Status.success, json);
+            }
+            if (id != null && id.length() > 0) {
+                json = branchService.remove(id);
+            }
+
+        } catch (Exception e) {
+
+            return ajax(Status.error, e.getMessage());
+        }
+
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 部门分中心展现
+     * 
+     * @Title: DepList
+     * @return String
+     * @author lsp
+     * @since 2016-8-11 V 1.0
+     */
+    public String depList() {
+        return "dep_list";
+    }
+
+    /**
+     * 部门分中心增加
+     * 
+     * @Title: DepAdd
+     * @return String
+     * @author duanjj
+     * @since 2017-3-15 V 1.0
+     */
+    public String depAdd() {
+        department = new QxDepartment();
+        if ("1".equals(flg)) {
+            department.setParent(pid);
+        } else {
+            department.setParent("ROOT");
+        }
+        department.setBarchId(branchId);
+        branch = branchService.get(Branch.class, branchId);
+
+        imgpath = "";
+        return "dep_add";
+    }
+
+    /**
+     * 部门分中心编辑
+     * 
+     * @Title: DepEdit
+     * @return String
+     * @author duanjj
+     * @since 2017-3-15 V 1.0
+     */
+    public String depEdit() {
+        department = backendDepService.get(QxDepartment.class,
+                Restrictions.eq("id", id));
+        if (department != null) {
+            branch = branchService.get(Branch.class, department.getBarchId());
+
+        }
+
+        return "dep_add";
+    }
+
+    /**
+     * 部门分中心查看
+     * 
+     * @Title: DepLook
+     * @return String
+     * @author duanjj
+     * @since 2017-3-15 V 1.0
+     */
+    public String depLook() {
+        department = backendDepService.get(QxDepartment.class,
+                Restrictions.eq("id", id));
+        if (department != null) {
+            // 部门--一级部门和二级部门
+            branch = branchService.get(Branch.class, department.getBarchId());
+            if (!"-1".equals(branch.getPid())) {
+                firparentAll = branch.getFzx();
+                firparent = branch.getSrm();
+                if (!"-1".equals(branch.getPid())) {
+                    Branch branchs = this.getBeanByCriteria(Branch.class,
+                            Restrictions.eq("id", branch.getPid()));
+                    secparentAll = branchs.getFzx();
+                    secparent = branchs.getSrm();
+                }
+            }
+            // 下级子部门数据集合。
+            List<QxDepartment> deps = backendDepService.getList(
+                    QxDepartment.class,
+                    Restrictions.eq("parent", department.getId()));
+            children = "";
+            for (QxDepartment dep : deps) {
+                children += dep.getName() + ",";
+            }
+            if (children != null && !"".equals(children)) {
+                children = children.substring(0, children.length() - 1);
+            }
+            List<DeptPosition> postlist = postService.getList(
+                    DeptPosition.class,
+                    Restrictions.eq("deptId", department.getId()),
+                    Restrictions.eq("isDelete", 0));
+            formations = "";
+            if (postlist == null || postlist.size() == 0) {
+                formations = "";
+            } else {
+                for (int i = 0; i < postlist.size(); i++) {
+                    List<BasicInformation> yhlist =new ArrayList<BasicInformation>();
+                    try {
+                        yhlist = this.getBeanListByCriteria(BasicInformation.class,
+                                Restrictions.eq( "specificPostId", postlist.get(i).getId()),
+                                Restrictions.eq( "isDelete", 0));
+                    } catch (Exception e) {
+                        yhlist =new ArrayList<BasicInformation>();  
+                    }
+                    if(yhlist==null){
+                        formations +=postlist.get(i).getPositionName()+"（0）人；";
+                    }else{
+                        formations += "<a class='linkg' href='javascript:void(0);' onclick='onGwbzLook(\""+id+"\", \""+postlist.get(i).getPositionName()+"\")'>" +
+                                postlist.get(i).getPositionName()+"</a>（"+yhlist.size()+"）人；";
+                    }
+                }
+            }
+            // 编制集fdepAdd合----待实现
+        }
+        return "dep_look";
+    }
+
+    public String depDelete() {
+        String json = "";
+        try {
+            json = backendDepService.remove(pager, id);
+        } catch (Exception e) {
+
+            return ajax(Status.error, e.getMessage());
+        }
+
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * @Title: 弹出高拍仪页面
+     * @return String
+     * @author zhanghj
+     * @since 2017年3月10日 V 1.0
+     */
+    public String camera() {
+        return "camera";
+    }
+
+    /**
+     * 部门分中心删除
+     * 
+     * @Title: DepRemove
+     * @return String
+     * @author lsp
+     * @since 2016-8-11 V 1.0
+     */
+    public String depRemove() {
+        String json = "";
+        try {
+            json = branchService.depRemove(id, cid);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ajax(Status.error, e.getMessage());
+        }
+
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 获取分中心的部门
+     * 
+     * @Title: depData
+     * @return String
+     * @author lsp
+     * @since 2016-8-11 V 1.0
+     */
+    public String depData() {
+        String json = "";
+        try {
+            json = branchService.depData(cid);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 保存分中心部门表
+     * 
+     * @Title: cenDepSaveOrUpdate
+     * @return String
+     * @author duanjj
+     * @since 2017-3-15 V 1.0
+     */
+    public String cenDepSaveOrUpdate() {
+        String flg = "";
+        QxUser userinfo = LingUtil.userinfo();
+        try {
+            flg = branchService.cenDepSaveOrUpdate(formdata, userinfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ajax(Status.error, e.getMessage());
+        }
+        return ajax(Status.success, flg);
+    }
+
+    /**
+     * 
+     * @Title: setDeafult
+     * @return String
+     * @author xuhp
+     * @since 2016-11-7 V 1.0
+     */
+    public String setDefault() {
+        String msg = "";
+        try {
+            msg = branchService.setDefault(id);
+        } catch (Exception e) {
+            e.printStackTrace();
+            msg = e.getMessage();
+        }
+        return ajax(Status.success, msg);
+    }
+
+    /**
+     * 获得所有数据权限的部门树数据
+     * 
+     * @Title: getAllTreeList
+     * @return
+     * @author wangqiang
+     * @since 2017年3月27日 V 1.0
+     */
+    public String getAllTreeList() {
+        String json = "";
+        try {
+            json = branchService.getAllTreeList();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ajax(Status.success, json);
+    }
+
+    /**
+     * 获取分中心树-公司树
+     * 
+     * @Title: compList
+     * @return String
+     * @author lsp
+     * @since 2016-8-3 V 1.0
+     */
+    public String compList() {
+        String json = "";
+        json = branchService.compList();
+        return ajax(Status.success, json);
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getJm() {
+        return jm;
+    }
+
+    public void setJm(String jm) {
+        this.jm = jm;
+    }
+
+    public String getSrm() {
+        return srm;
+    }
+
+    public void setSrm(String srm) {
+        this.srm = srm;
+    }
+
+    public String getPid() {
+        return pid;
+    }
+
+    public void setPid(String pid) {
+        this.pid = pid;
+    }
+
+    public String getChild() {
+        return child;
+    }
+
+    public void setChild(String child) {
+        this.child = child;
+    }
+
+    public Branch getBranch() {
+        return branch;
+    }
+
+    public void setBranch(Branch branch) {
+        this.branch = branch;
+    }
+
+    public String getPname() {
+        return pname;
+    }
+
+    public void setPname(String pname) {
+        this.pname = pname;
+    }
+
+    public String getFormdata() {
+        return formdata;
+    }
+
+    public void setFormdata(String formdata) {
+        this.formdata = formdata;
+    }
+
+    public String getCid() {
+        return cid;
+    }
+
+    public void setCid(String cid) {
+        this.cid = cid;
+    }
+
+    public QxDepartment getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(QxDepartment department) {
+        this.department = department;
+    }
+
+    public String getImgpath() {
+        return imgpath;
+    }
+
+    public void setImgpath(String imgpath) {
+        this.imgpath = imgpath;
+    }
+
+    public String getDid() {
+        return did;
+    }
+
+    public void setDid(String did) {
+        this.did = did;
+    }
+
+    public QxCenDep getCd() {
+        return cd;
+    }
+
+    public void setCd(QxCenDep cd) {
+        this.cd = cd;
+    }
+
+    public List<BaseAttachment> getImgList() {
+        return imgList;
+    }
+
+    public void setImgList(List<BaseAttachment> imgList) {
+        this.imgList = imgList;
+    }
+
+    public String getImg() {
+        return img;
+    }
+
+    public void setImg(String img) {
+        this.img = img;
+    }
+
+    public String getFirparent() {
+        return firparent;
+    }
+
+    public void setFirparent(String firparent) {
+        this.firparent = firparent;
+    }
+
+    public String getFirparentAll() {
+        return firparentAll;
+    }
+
+    public void setFirparentAll(String firparentAll) {
+        this.firparentAll = firparentAll;
+    }
+
+    public String getSecparent() {
+        return secparent;
+    }
+
+    public void setSecparent(String secparent) {
+        this.secparent = secparent;
+    }
+
+    public String getSecparentAll() {
+        return secparentAll;
+    }
+
+    public void setSecparentAll(String secparentAll) {
+        this.secparentAll = secparentAll;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getBranchId() {
+        return branchId;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
+    public String getFlg() {
+        return flg;
+    }
+
+    public void setFlg(String flg) {
+        this.flg = flg;
+    }
+
+    public List<HashMap> getHistoryData() {
+        return historyData;
+    }
+
+    public void setHistoryData(List<HashMap> historyData) {
+        this.historyData = historyData;
+    }
+
+    public String getCurrentYear() {
+        return currentYear;
+    }
+
+    public void setCurrentYear(String currentYear) {
+        this.currentYear = currentYear;
+    }
+
+    public String getChildren() {
+        return children;
+    }
+
+    public void setChildren(String children) {
+        this.children = children;
+    }
+
+    public String getFormations() {
+        return formations;
+    }
+
+    public void setFormations(String formations) {
+        this.formations = formations;
+    }
+
+}

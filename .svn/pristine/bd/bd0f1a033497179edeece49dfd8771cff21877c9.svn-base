@@ -1,0 +1,381 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.CheckInfosDao;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: CheckInfosDaoImpl 
+ * @Description: 考勤动态Dao实现类 
+ * @author wangqiang
+ * @date 2017年4月11日 下午4:24:56 
+ *
+ */
+@Repository("checkInfosDao")
+public class CheckInfosDaoImpl extends BaseDaoImpl<CkCheckInfo, String> implements CheckInfosDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getInfoByCond(Pager pager,
+			String searchData, String depIds) {
+		List<Map<String, Object>> mapList = new ArrayList<Map<String,Object>>();
+		String sql = "select cei.ID, cei.JOB_NUMBER, cc.CLASS_NAME, jbi.NAME, jbi.POST, jbi.ON_POST, jbi.IS_MONITOR, "
+				+ "cei.MONTH_CALENDAR, cei.MONTH_DAYS, cei.day1, cei.day2, cei.day3, cei.day4, cei.day5, cei.day6, "
+				+ "cei.day7, cei.day8, cei.day9, cei.day10, cei.day11, cei.day12, cei.day13, cei.day14, cei.day15, "
+				+ "cei.day16, cei.day17, cei.day18, cei.day19, cei.day20, cei.day21, cei.day22, cei.day23, cei.day24, "
+				+ "cei.day25, cei.day26, cei.day27, cei.day28, cei.day29, cei.day30, cei.day31, cei.remark "
+				+ "from ck_emp_info cei "
+				+ "left join jc_basic_information jbi on cei.JOB_NUMBER=jbi.JOB_NUMBER "
+				+ "left join ck_class cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where cei.IS_DELETE = 0 ";
+		if (searchData != null){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("depId") != null && !"".equals(dataMap.get("depId"))){
+				String[] depIdArrs = dataMap.get("depId").split(",");
+				sql += "and jbi.CHECK_UNIT_ID in(";
+				for (int i = 0; i < depIdArrs.length; i++){
+					if (!"".equals(depIdArrs[i])){
+						sql += ("'" + depIdArrs[i] + "', ");
+					}
+				}
+				sql = sql.substring(0, sql.length()-2);
+				sql += ") ";
+			} else {
+				sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+			}
+		} else {
+			sql += "and jbi.CHECK_UNIT_ID IN("+ depIds +") ";
+		}
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, Object> hashmap = new HashMap<String, Object>();
+				hashmap.put("id", list.get(i)[0]);
+				hashmap.put("jobNumber", list.get(i)[1]);
+				hashmap.put("className", list.get(i)[2]);
+				hashmap.put("name", list.get(i)[3]);
+				if (list.get(i)[4] != null){//标准岗位
+					hashmap.put("post", list.get(i)[4]);
+				} else {
+					hashmap.put("post", "");
+				}
+				if (list.get(i)[5] != null){////在岗状态：0在岗，1长期病假，2内退
+					if ("0".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "在岗");
+					} else if ("1".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "长期病假");
+					} else if ("2".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "内退");
+					} else {
+						hashmap.put("onPost", "");
+					}
+				} else {
+					hashmap.put("onPost", "");
+				}
+				if (list.get(i)[6] != null){//是否班长：0 否，1 是
+					if ("1".equals(list.get(i)[6]+"")){
+						hashmap.put("isMonitor", "是");
+					} else {
+						hashmap.put("isMonitor", "否");
+					}
+				} else {
+					hashmap.put("isMonitor", "否");
+				}
+				hashmap.put("monthCalendar", list.get(i)[7]);
+				hashmap.put("monthDays", list.get(i)[8]);
+				hashmap.put("day1", list.get(i)[9]);
+				hashmap.put("day2", list.get(i)[10]);
+				hashmap.put("day3", list.get(i)[11]);
+				hashmap.put("day4", list.get(i)[12]);
+				hashmap.put("day5", list.get(i)[13]);
+				hashmap.put("day6", list.get(i)[14]);
+				hashmap.put("day7", list.get(i)[15]);
+				hashmap.put("day8", list.get(i)[16]);
+				hashmap.put("day9", list.get(i)[17]);
+				hashmap.put("day10", list.get(i)[18]);
+				hashmap.put("day11", list.get(i)[19]);
+				hashmap.put("day12", list.get(i)[20]);
+				hashmap.put("day13", list.get(i)[21]);
+				hashmap.put("day14", list.get(i)[22]);
+				hashmap.put("day15", list.get(i)[23]);
+				hashmap.put("day16", list.get(i)[24]);
+				hashmap.put("day17", list.get(i)[25]);
+				hashmap.put("day18", list.get(i)[26]);
+				hashmap.put("day19", list.get(i)[27]);
+				hashmap.put("day20", list.get(i)[28]);
+				hashmap.put("day21", list.get(i)[29]);
+				hashmap.put("day22", list.get(i)[30]);
+				hashmap.put("day23", list.get(i)[31]);
+				hashmap.put("day24", list.get(i)[32]);
+				hashmap.put("day25", list.get(i)[33]);
+				hashmap.put("day26", list.get(i)[34]);
+				hashmap.put("day27", list.get(i)[35]);
+				hashmap.put("day28", list.get(i)[36]);
+				hashmap.put("day29", list.get(i)[37]);
+				hashmap.put("day30", list.get(i)[38]);
+				hashmap.put("day31", list.get(i)[39]);
+				hashmap.put("remark", list.get(i)[40]);
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Object[]> getOldDataByCond(String monthDate) {
+		String sql = "select cei.JOB_NUMBER, cc.CLASS_NAME, jbi.NAME, jbi.POST, jbi.ON_POST, jbi.IS_MONITOR, cei.MONTH_CALENDAR, "
+				+ "cei.MONTH_DAYS, cei.day1, cei.day2, cei.day3, cei.day4, cei.day5, cei.day6, cei.day7, cei.day8, "
+				+ "cei.day9, cei.day10, cei.day11, cei.day12, cei.day13, cei.day14, cei.day15, cei.day16, cei.day17, "
+				+ "cei.day18, cei.day19, cei.day20, cei.day21, cei.day22, cei.day23, cei.day24, cei.day25, cei.day26, "
+				+ "cei.day27, cei.day28, cei.day29, cei.day30, cei.day31, cei.overtime1, cei.overtime2, cei.overtime3, "
+				+ "cei.overtime4, cei.overtime5, cei.overtime6, cei.overtime7, cei.overtime8, cei.overtime9, cei.overtime10, "
+				+ "cei.overtime11, cei.overtime12, cei.overtime13, cei.overtime14, cei.overtime15, cei.overtime16, "
+				+ "cei.overtime17, cei.overtime18, cei.overtime19, cei.overtime20, cei.overtime21, cei.overtime22, "
+				+ "cei.overtime23, cei.overtime24, cei.overtime25, cei.overtime26, cei.overtime27, cei.overtime28, "
+				+ "cei.overtime29, cei.overtime30, cei.overtime31, cei.remark, cei.CHECK_DEP_ID "
+				+ "from ck_emp_info cei "
+				+ "left join jc_basic_information jbi on cei.JOB_NUMBER=jbi.JOB_NUMBER "
+				+ "left join ck_class cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where cei.MONTH_CALENDAR <> '"+monthDate+"'";
+		return this.getSession().createSQLQuery(sql).list();
+	}
+
+	@Override
+	public void removeByCond(String monthDate) {
+		String sql = "delete from ck_emp_info where MONTH_CALENDAR <> '"+monthDate+"'";
+		this.getSession().createSQLQuery(sql).executeUpdate();
+	}
+
+	@Override
+	public Map<String, Object> getMonthDaysAndYearMonth() {
+		Map<String, Object> map = new HashMap<String, Object>();
+		String sql = "select MONTH_CALENDAR, MONTH_DAYS from ck_emp_info where rownum = 1";
+		Object[] objs = (Object[]) this.getSession().createSQLQuery(sql).uniqueResult();
+		if (objs != null){
+			map.put("yearMonth", objs[0]);
+			if (objs[1] != null){
+				map.put("monthDays", objs[1]);
+			} else {
+				map.put("monthDays", 0);
+			}
+		}
+		return map;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, String>> getDataByEmpIds(Pager pager,
+			List<String> empIdLists) {
+		List<Map<String, String>> mapList = new ArrayList<Map<String, String>>();
+		String sql = "select cei.ID, cei.JOB_NUMBER, cc.CLASS_NAME, jbi.NAME, jbi.POST, jbi.ON_POST, jbi.IS_MONITOR, "
+				+ "cei.MONTH_CALENDAR, cei.MONTH_DAYS, cei.day1, cei.day2, cei.day3, cei.day4, cei.day5, cei.day6, "
+				+ "cei.day7, cei.day8, cei.day9, cei.day10, cei.day11, cei.day12, cei.day13, cei.day14, cei.day15, "
+				+ "cei.day16, cei.day17, cei.day18, cei.day19, cei.day20, cei.day21, cei.day22, cei.day23, cei.day24, "
+				+ "cei.day25, cei.day26, cei.day27, cei.day28, cei.day29, cei.day30, cei.day31, cei.remark "
+				+ "from ck_emp_info cei "
+				+ "left join jc_basic_information jbi on cei.JOB_NUMBER=jbi.JOB_NUMBER "
+				+ "left join ck_class cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where cei.IS_DELETE = 0 ";
+		if (empIdLists.size() > 0){
+			String depIds = "";
+			for (String empId:empIdLists){
+				depIds += ("'" + empId + "', ");
+			}
+			sql += "and jbi.ID IN("+ depIds.substring(0, depIds.length()-2) +") ";
+		}
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, String> hashmap = new HashMap<String, String>();
+				hashmap.put("empId", list.get(i)[0]+"");
+				hashmap.put("jobNumber", list.get(i)[1]+"");
+				hashmap.put("className", list.get(i)[2]+"");
+				hashmap.put("name", list.get(i)[3]+"");
+				if (list.get(i)[4] != null){//标准岗位
+					hashmap.put("post", list.get(i)[4]+"");
+				} else {
+					hashmap.put("post", "");
+				}
+				if (list.get(i)[5] != null){////在岗状态：0在岗，1长期病假，2内退
+					if ("0".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "在岗");
+					} else if ("1".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "长期病假");
+					} else if ("2".equals(list.get(i)[5]+"")){
+						hashmap.put("onPost", "内退");
+					} else {
+						hashmap.put("onPost", "");
+					}
+				} else {
+					hashmap.put("onPost", "");
+				}
+				if (list.get(i)[6] != null){//是否班长：0 否，1 是
+					if ("1".equals(list.get(i)[6]+"")){
+						hashmap.put("isMonitor", "是");
+					} else {
+						hashmap.put("isMonitor", "否");
+					}
+				} else {
+					hashmap.put("isMonitor", "否");
+				}
+				hashmap.put("monthCalendar", list.get(i)[7]+"");
+				hashmap.put("monthDays", list.get(i)[8]+"");
+				hashmap.put("day1", list.get(i)[9]+"");
+				hashmap.put("day2", list.get(i)[10]+"");
+				hashmap.put("day3", list.get(i)[11]+"");
+				hashmap.put("day4", list.get(i)[12]+"");
+				hashmap.put("day5", list.get(i)[13]+"");
+				hashmap.put("day6", list.get(i)[14]+"");
+				hashmap.put("day7", list.get(i)[15]+"");
+				hashmap.put("day8", list.get(i)[16]+"");
+				hashmap.put("day9", list.get(i)[17]+"");
+				hashmap.put("day10", list.get(i)[18]+"");
+				hashmap.put("day11", list.get(i)[19]+"");
+				hashmap.put("day12", list.get(i)[20]+"");
+				hashmap.put("day13", list.get(i)[21]+"");
+				hashmap.put("day14", list.get(i)[22]+"");
+				hashmap.put("day15", list.get(i)[23]+"");
+				hashmap.put("day16", list.get(i)[24]+"");
+				hashmap.put("day17", list.get(i)[25]+"");
+				hashmap.put("day18", list.get(i)[26]+"");
+				hashmap.put("day19", list.get(i)[27]+"");
+				hashmap.put("day20", list.get(i)[28]+"");
+				hashmap.put("day21", list.get(i)[29]+"");
+				hashmap.put("day22", list.get(i)[30]+"");
+				hashmap.put("day23", list.get(i)[31]+"");
+				hashmap.put("day24", list.get(i)[32]+"");
+				hashmap.put("day25", list.get(i)[33]+"");
+				hashmap.put("day26", list.get(i)[34]+"");
+				hashmap.put("day27", list.get(i)[35]+"");
+				hashmap.put("day28", list.get(i)[36]+"");
+				hashmap.put("day29", list.get(i)[37]+"");
+				hashmap.put("day30", list.get(i)[38]+"");
+				hashmap.put("day31", list.get(i)[39]+"");
+				if (list.get(i)[40] != null){
+					hashmap.put("remark", list.get(i)[40]+"");
+				} else {
+					hashmap.put("remark", "");
+				}
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getDayInfoByCond(Pager pager, String day, String jobNumbers) {
+		List<Map<String, Object>> mapList = new ArrayList<Map<String,Object>>();
+		String sql = "select cei.ID, cei.JOB_NUMBER, cc.CLASS_NAME, jbi.NAME, "
+				+ "jbi.POST, cei.MONTH_CALENDAR, cei.DAY"+day+", cei.OVERTIME"+day+" "
+				+ "from ck_emp_info cei "
+				+ "left join jc_basic_information jbi on cei.JOB_NUMBER=jbi.JOB_NUMBER "
+				+ "left join ck_class cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where cei.IS_DELETE = 0 and jbi.JOB_NUMBER IN("+ jobNumbers +") ";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, Object> hashmap = new HashMap<String, Object>();
+				hashmap.put("id", list.get(i)[0]);
+				hashmap.put("jobNumber", list.get(i)[1]);
+				hashmap.put("className", list.get(i)[2]);
+				hashmap.put("name", list.get(i)[3]);
+				if (list.get(i)[4] != null){//标准岗位
+					hashmap.put("post", list.get(i)[4]);
+				} else {
+					hashmap.put("post", "");
+				}
+				hashmap.put("monthCalendar", list.get(i)[5]);
+				hashmap.put("content", list.get(i)[6]);
+				if ("0".equals(list.get(i)[7]+"")){
+					hashmap.put("overtime", "否");
+				} else if ("1".equals(list.get(i)[7]+"")){
+					hashmap.put("overtime", "是");
+				} else {
+					hashmap.put("overtime", "");
+				}
+				hashmap.put("startTime", "");
+				hashmap.put("endTime", "");
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+
+	@Override
+	public Map<String, String> getInfoById(String id, String day) {
+		Map<String, String> map = new HashMap<String, String>();
+		String sql = "select cei.ID, cei.JOB_NUMBER, cc.CLASS_NAME, jbi.NAME, "
+				+ "jbi.POST, cei.DAY"+day+", cei.OVERTIME"+day+", cei.MONTH_CALENDAR "
+				+ "from ck_emp_info cei "
+				+ "left join jc_basic_information jbi on cei.JOB_NUMBER=jbi.JOB_NUMBER "
+				+ "left join ck_class cc on jbi.CLASS_NO = cc.CLASS_NO "
+				+ "where cei.ID ='"+id+"'";
+		Object[] objs = (Object[]) this.getSession().createSQLQuery(sql).uniqueResult();
+		if (objs != null){
+			map.put("id", objs[0]+"");
+			map.put("jobNumber", objs[1]+"");
+			map.put("className", objs[2]+"");
+			map.put("name", objs[3]+"");
+			if (objs[4] != null){//标准岗位
+				map.put("post", objs[4]+"");
+			} else {
+				map.put("post", "");
+			}
+			map.put("content", objs[5]+"");
+			map.put("overtime", objs[6]+"");
+			map.put("monthCalendar", objs[7]+"");
+		}
+		return map;
+	}
+
+	@Override
+	public void updateDepIdByJobNumbers(String jobNumbers, String depIds) {
+		String sql = "update ck_emp_info set CHECK_DEP_ID ="+depIds+" where JOB_NUMBER in("+jobNumbers+")";
+		this.getSession().createSQLQuery(sql).executeUpdate();
+	}
+
+	@Override
+	public void updateCheckInfoByDate(String instituteName, List<String> dayList, 
+			String jobNumber, String yearMonth) {
+		if (dayList.size() > 0){
+			String content = "";
+			for (String dayTime:dayList){
+				content += ("day"+dayTime+"='"+instituteName+"', ");
+			}
+			content = content.substring(0, content.length()-2);
+			String sql = "update ck_emp_info set "+content+" where JOB_NUMBER='"+jobNumber
+					+"' and MONTH_CALENDAR='"+yearMonth+"'";
+			this.getSession().createSQLQuery(sql).executeUpdate();
+		}
+	}
+
+	@Override
+	public void updateOverTimeByDate(String overtime, List<String> dayList,
+			String jobNumber, String yearMonth) {
+		if (dayList.size() > 0){
+			String content = "";
+			for (String dayTime:dayList){
+				content += ("overtime"+dayTime+"='"+overtime+"', ");
+			}
+			content = content.substring(0, content.length()-2);
+			String sql = "update ck_emp_info set "+content+" where JOB_NUMBER='"+jobNumber
+					+"' and MONTH_CALENDAR='"+yearMonth+"'";
+			this.getSession().createSQLQuery(sql).executeUpdate();
+		}
+	}
+
+}

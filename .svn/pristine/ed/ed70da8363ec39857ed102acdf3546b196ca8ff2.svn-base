@@ -1,0 +1,254 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryInsuranceDao;
+import com.lingnet.hcm.entity.basic.InsuranceBenefits;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.salary.InsuranceItems;
+import com.lingnet.hcm.entity.salary.InsuranceMiddle;
+import com.lingnet.hcm.entity.salary.SalaryInsurance;
+import com.lingnet.hcm.service.salary.InsuranceItemsService;
+import com.lingnet.hcm.service.salary.InsuranceMiddleService;
+import com.lingnet.hcm.service.salary.SalaryInsuranceService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 缴费标准表
+ * @ClassName: SalaryInsuranceServiceImpl 
+ * @Description: 缴费标准表 
+ * @author zhanghj
+ * @date 2017年4月19日 上午10:27:46 
+ *
+ */
+@Service("salaryInsuranceService")
+public class SalaryInsuranceServiceImpl extends BaseServiceImpl<SalaryInsurance, String>
+              implements SalaryInsuranceService {
+
+    @Resource(name="insuranceItemsService")
+    private InsuranceItemsService insuranceItemsService;
+    @Resource(name="insuranceMiddleService")
+    private InsuranceMiddleService insuranceMiddleService;
+    @Resource(name="salaryInsuranceDao")
+    private SalaryInsuranceDao salaryInsuranceDao;
+
+    @Override
+    public Map<String, Object> getPaymentInsuranceListData(String depId, String searchData, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+        if (!StringUtils.isBlank(depId)) {
+            and.add(Restrictions.eq("companyId", depId));
+        }
+        pager = findPager(SalaryInsurance.class, pager, and, Restrictions.eq("isDelete", 0));
+        List<?> list = pager.getResult();
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", list);
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String saveOrUpdate(String formdata) {
+        SalaryInsurance insurance = JsonUtil.toObject(formdata, SalaryInsurance.class);
+        if (insurance == null) {
+            return "数据不能为空";
+        }
+
+        // 新增
+        if (StringUtils.isBlank(insurance.getId())) {
+            // 查询是否存在相同的福利项目
+            SalaryInsurance ins = get(SalaryInsurance.class,
+                    Restrictions.eq("name", insurance.getName()),
+                    Restrictions.eq("isDelete", 0),
+                    Restrictions.eq("companyId", insurance.getCompanyId()));
+            if (ins != null) {
+                return "存在相同的缴费标准";
+            }
+            insurance.setIsDelete(0);
+            String id = save(insurance);
+            if (StringUtils.isBlank(id)) {
+                return "保存失败";
+            }
+        } else {
+            SalaryInsurance insuranceNew = get(SalaryInsurance.class,
+                    Restrictions.eq("id", insurance.getId()), Restrictions.eq("isDelete", 0));
+            if (insuranceNew != null) {
+                // 查询是否存在相同的福利项目
+                SalaryInsurance ins = get(SalaryInsurance.class,
+                        Restrictions.ne("id", insurance.getId()),
+                        Restrictions.eq("name", insurance.getName()),
+                        Restrictions.eq("isDelete", 0),
+                        Restrictions.eq("companyId", insurance.getCompanyId()));
+                if (ins != null) {
+                    return "存在相同的缴费标准";
+                }
+                insuranceNew.copyFrom(insurance);
+                update(insuranceNew);
+            } else {
+                return "当前缴费标准不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0,l=idArray.length; i < l; i++) {
+            SalaryInsurance insurance = get(SalaryInsurance.class,
+                    Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (insurance != null) {
+                insurance.setIsDelete(1);
+                update(insurance);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getInsuranceItemsListData(String depId, String searchData, Pager pager) {
+        return salaryInsuranceDao.getInsuranceItemsListData(searchData, pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToInsurance(String formdata, String griddata) throws Exception {
+        List<Map<String, String>> staffList = JsonUtil.getMapList(formdata);
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = staffList.size(); i < l; i++) {
+            Map<String, String> staffMap = staffList.get(i);
+            BasicInformation info = get(BasicInformation.class, Restrictions.eq("id", staffMap.get("id")), Restrictions.eq("isDelete", 0));
+            if (info == null) {
+                throw new Exception("第"+(i+1)+"个选中的人不存在，已经被删除");
+            }
+            // 保存中间表
+            InsuranceMiddle middle = new InsuranceMiddle();
+            middle.setStaffId(staffMap.get("id"));
+            middle.setIsDaijiao(Integer.valueOf(staffMap.get("isDaiJiao").toString()));
+            middle.setIsDelete(0);
+            String staffResult = insuranceMiddleService.save(middle);
+            if (StringUtils.isBlank(staffResult)) {
+                throw new Exception("发生异常，保存失败");
+            }
+            for (int j = 0, n = list.size(); j < n; j++) {
+                Map<String, String> map = list.get(j);
+                InsuranceItems items = JsonUtil.toObject(JsonUtil.Encode(map), InsuranceItems.class);
+                items.setInsuranceMiddleId(staffResult);
+                items.setIsDelete(0);
+                items.setIsEnd(0);
+                String result = insuranceItemsService.save(items);
+                if (StringUtils.isBlank(result)) {
+                    throw new Exception("发生异常，保存失败");
+                }
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getNoInsuranceOfStaffListData(String depId, String searchData, Pager pager) {
+        return salaryInsuranceDao.getNoInsuranceOfStaffListData(depId, searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getNoChoseStaffListData(String ids) {
+        return salaryInsuranceDao.getNoChoseStaffListData(ids);
+    }
+
+    @Override
+    public List<Map<String, Object>> getNeedJoinInsuranceItemsData(String ids) {
+        List<InsuranceBenefits> list = getList(InsuranceBenefits.class);
+        String[] idsArray = ids.split(",");
+        BasicInformation info = get(BasicInformation.class, Restrictions.eq("id", idsArray[0]));
+        Branch branch = get(Branch.class, Restrictions.eq("id", info.getFilmId()));
+        Calendar cal = Calendar.getInstance();
+        List<Map<String, Object>> MapList = new ArrayList<Map<String,Object>>();
+        for (InsuranceBenefits ins : list) {
+            Map<String, Object> map = new HashMap<String, Object>();
+            map.put("ibfId", ins.getId());
+            map.put("name", ins.getName());
+//            map.put("area", "1");
+//            map.put("areaName", "青岛");
+            map.put("jfCompany", info.getFilmId());
+            map.put("jfCompanyName", branch == null? "" : branch.getFzx());
+            map.put("year", cal.get(Calendar.YEAR));
+            map.put("month", cal.get(Calendar.MONTH)+1);
+            MapList.add(map);
+        }
+
+        return MapList;
+    }
+
+    @Override
+    public List<Map<String, Object>> getChoseStaffInsurances(String id) {
+        return salaryInsuranceDao.getChoseStaffInsurances(id);
+    }
+
+    @Override
+    public String updateStopInsurance(String id, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int i = 0, l = list.size(); i < l; i++) {
+            Map<String, String> map = list.get(i);
+            InsuranceItems items = get(InsuranceItems.class,
+                    Restrictions.eq("id", map.get("id")), Restrictions.eq("isDelete", 0));
+            if (items == null) {
+                throw new Exception("福利项目 " + map.get("name")+ "不存在，已经被删除");
+            }
+            items.setIsEnd(1);
+            items.setEndYear(Integer.valueOf(map.get("endYear")));
+            items.setEndMonth(Integer.valueOf(map.get("endMonth")));
+            items.setEndNote(map.get("endNote"));
+            insuranceItemsService.update(items);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getEmployeeBaseInfo(String id) {
+        return salaryInsuranceDao.getEmployeeBaseInfo(id);
+    }
+
+    @Override
+    public List<Map<String, Object>> getStaffCanBaoInfo(String id) {
+        return salaryInsuranceDao.getStaffCanBaoInfo(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String updateToJfJs(String id, String griddata) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(griddata);
+        for (int j = 0, n = list.size(); j < n; j++) {
+            Map<String, String> map = list.get(j);
+            InsuranceItems items = get(InsuranceItems.class, Restrictions.eq("id", map.get("id")), Restrictions.eq("isDelete", 0));
+            if (items == null) {
+                throw new Exception("第"+(j+1)+"个福利项目不存在");
+            }
+            items.setBaseCompany(map.get("baseCompany"));
+            items.setBasePersonal(map.get("basePersonal"));
+            insuranceItemsService.update(items);
+        }
+
+        return "success";
+    }
+
+}

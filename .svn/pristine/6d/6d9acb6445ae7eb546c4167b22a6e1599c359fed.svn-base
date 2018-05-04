@@ -1,0 +1,329 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>员工工资档案</title>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <script src="../template/plugin/public/list.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="mini-fit" id="form1">
+        <input class="mini-hidden" name="id" id="id" value="${mapData.ID}" style="display:none;"/>
+        <table style="width:100%;" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">工号：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" style="width: 90%" value="${mapData.JOB_NUMBER}"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">姓名：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" style="width: 90%" value="${mapData.NAME}"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">性别：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" readOnly="true" style="width: 90%" data="[{id:0,text:'女'},{id:1,text:'男'}]" value="${mapData.SEX}"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">年龄：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" style="width: 90%" value="${mapData.AGE}"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">身份证号：</td>
+                <td class="list_right_box">
+                    <s:if test="#mapData.ID_TYPE == 0">
+                        <input class="mini-textbox asLabel" allowinput="false" value="${mapData.ID_NUMBER}" style="width: 90%"/>
+                    </s:if>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">人员类别：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" value="${mapData.AGE}"  style="width: 90%"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">参军时间：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" value="${mapData.AGE}"  style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">下乡时间：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" value="${mapData.AGE}"  style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">参加工作时间：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" allowinput="false" value="${mapData.SET_WORK_DATE}"  style="width: 90%"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">入司时间：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker asLabel" style="width: 90%"readOnly="true" value="${mapData.AGE}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">合同时间：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker asLabel" style="width: 90%"readOnly="true" value="${mapData.AGE}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">入港时间1：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker asLabel" style="width: 90%"readOnly="true" value="${mapData.IN_PORT_TIME}" />
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">入港时间2：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker asLabel" style="width: 90%"readOnly="true" value="${mapData.AGE}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">扣减工龄：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.AGE}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">军龄：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.AGE}" />
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">单位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.FILM_NAME}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">部门：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.DEPTNAME}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">班组：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" readOnly="true" url="../check/class_group!getClassInfos.action"
+                        textField="className" valueField="classNo" style="width: 90%"value="${mapData.CLASS_NO}"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">考勤单位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.KQNAME}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">考勤部门：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"allowinput="false" value="${mapData.AGE}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">考勤班组：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"allowinput="false" value="${mapData.AGE}" />
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">标准岗位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.POST}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">具体岗位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.SPECIFIC_POST}" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">薪酬岗位：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"allowinput="false" value="${mapData.AGE}" />
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">是否兼职：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"readOnly="true" value="${mapData.AGE}"
+                        data="[{id: 0, text:'否'},{id: 1, text:'是'}]"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">是否标准工时：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" style="width: 90%"allowinput="false" name="isBzgs" value="${mapData.IS_BZGS}"
+                        data="[{id:0,text:'否'},{id:1,text:'是'}]" />
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">是否特殊工时：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" name="isSpecialHour" style="width: 90%"allowinput="false" value="${mapData.IS_SPECIAL_HOUR}"
+                        data="[{id:0,text:'否'},{id:1,text:'是'}]" />
+                </td>
+            </tr>
+        </table>
+        <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+            <span style="padding-left:5px;">薪资组信息：</span>
+        </div>
+        <div id="salaryGroupGrid" class="mini-datagrid" style="width:100%;" pageSize="20" url="../salary/salary_items!getPersonalGroupListData.action?ids=${id}"
+            allowAlternating="true" idField="id" allowResize="false"showPager="false">
+            <div property="columns">
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center"  width="40">序列</div>
+                <div field="name" width="120" headerAlign="center" align="center">薪资组</div>
+                <div field="startDate" width="110" headerAlign="center" align="center"vType="required;" renderer="ondayRenderer2">开始日期
+                    <input property="editor" class="mini-datepicker"format="yyyy年MM月dd日"/>
+                </div>
+                <div type="comboboxcolumn" field="salaryComId" width="120" headerAlign="center" align="center"vType="required;">发薪单位
+                    <input property="editor" class="mini-combobox" popupWidth="250" textField="fzx" url="../salary/salary_manage!getBranches.action"/>
+                </div>
+                <div type="comboboxcolumn" field="isSalary" width="80" headerAlign="center" align="center" vType="required;">是否发薪
+                    <input property="editor" class="mini-combobox" data="[{id:0, text:'否'},{id:1, text:'是'}]" style="width:100%"/>
+                </div>
+                <div type="comboboxcolumn" field="costComId" width="120" headerAlign="center" align="center" >成本单位
+                    <input property="editor" class="mini-combobox"popupWidth="250" textField="fzx" url="../salary/salary_manage!getBranches.action" style="width:100%"
+                        onvaluechanged="onComChanged"/>
+                </div>
+                <div field="costDeptId" displayField="name" width="130" headerAlign="center" align="center">成本部门
+                    <div property="editor" class="mini-combobox" popupWidth="250" id="cbDept" 
+                        valueField="id" textField="name"valueFromSelect="true"
+                        enterQuery="true">
+                            <div property="columns">
+                                <div field="name" width="180"></div>
+                            </div>
+                    </div>
+                </div>
+                <div field="costScale" width="70" headerAlign="center" align="center" vType="maxLength:8">成本比例
+                    <input property="editor" class="mini-textbox" style="width:100%"/>
+                </div>
+                <div field="offDate" width="110" headerAlign="center" align="center"vType="required;" renderer="ondayRenderer2">注销日期
+                    <input property="editor" class="mini-datepicker" format="yyyy年MM月dd日"/>
+                </div>
+            </div>
+        </div>
+        <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+            <span style="padding-left:5px;">薪酬信息：</span>
+        </div>
+        <table style="width:100%;" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">发薪比例：</td>
+                <td class="list_right_box">
+                    <input class="mini-textbox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">统筹比例：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">公积金比例：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">管理费标准：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">管理费比例：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">年金比例：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top" style="width: 12%">缴费基数：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">公积金基数：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+                <td class="list_left_box1" valign="top" style="width: 12%">年金基数：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" style="width: 90%"/>
+                </td>
+            </tr>
+        </table>
+        <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+            <span style="padding-left:5px;">账号信息：</span>
+        </div>
+        <div id="grid1" class="mini-datagrid" style="width:100%;" url="../salary/salary_record!getSalaryAccountListData.action?id=${mapData.ID}" pageSize="20"
+            allowAlternating="true" idField="id" allowResize="false" showPager="false">
+            <div property="columns">
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="comboboxcolumn" field="accountType" width="80" headerAlign="center" align="center" >账号类型
+                    <input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881855ba41a89015ba41d28f30008"
+                        valueField="dicvalue" textField="dicname"/>
+                </div>
+                <div field="account" width="80" headerAlign="center" align="center" >账号</div>
+                <div field="userName" width="60" headerAlign="center" align="center">用户名</div>
+                <div field="note" name="target" width="120" headerAlign="center" align="center">描述</div>
+            </div>
+        </div>
+        <s:iterator value="#request.itemlTypeList" var="items">
+            <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+                <span style="padding-left:5px;">${items[0]}：</span>
+            </div>
+            <div name="grid" class="mini-datagrid" style="width:100%;" url="${items[1]}" pageSize="20"
+                showpager="false" idField="id" allowResize="false" borderStyle="border-top:1px solid #C9C9C9">
+                <div property="columns">
+                    <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                    <div type="indexcolumn" headeralign="center" width="20">序列</div>
+                    <div field="salaryName" width="200" headerAlign="left" align="left">薪资项目</div>
+                    <div field="staticValue" width="60" headerAlign="left" align="left">缴费金额</div>
+                </div>
+            </div>
+        </s:iterator>
+        <div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+            <span style="padding-left:5px;">变动历史：</span>
+        </div>
+        <div id="grid2" class="mini-datagrid" style="width:100%;" url="../salary/salary_record!getSalaryStandardItems.action" pageSize="20"
+            showpager="false" idField="id" allowResize="false" borderStyle="border-top:1px solid #C9C9C9">
+            <div property="columns">
+                <div field="id" id="id" width="10" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center" width="40">序列</div>
+                <div field="" headerAlign="center" width="60">流动类型</div>
+                <div header="原岗位" headerAlign="center">
+                    <div property="columns">
+                        <div field="factprice" width="60" headerAlign="center" align="right">公司</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right">岗位</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right">职务</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right"numberFormat="#.0">薪资</div>
+                    </div>
+                </div>
+                <div header="现岗位" headerAlign="center">
+                    <div property="columns">
+                        <div field="factprice" width="60" headerAlign="center" align="right">公司</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right">岗位</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right">职务</div>
+                        <div field="factprice" width="60" headerAlign="center" align="right"numberFormat="#.0">薪资</div>
+                    </div>
+                </div>
+                <div field="dddate" headerAlign="center" width="60">调动日期</div>
+            </div>
+        </div>
+    </div>
+    <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;" borderStyle="border:0;">
+        <a class="mini-button" onclick="onOKClose()" style="width:60px;margin-right:20px;" iconCls="icon-save">保存</a>
+        <a class="mini-button" onclick="onCancel" style="width:60px;" iconCls="icon-close">取消</a>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var salaryGroupGrid = mini.get("salaryGroupGrid");
+        salaryGroupGrid.hideColumn("id");
+        salaryGroupGrid.load();
+        var grid = mini.getsbyName("grid");
+        for (var i=0; i< grid.length;i++) {
+        	grid[i].hideColumn("id");
+            grid[i].load();
+        }
+        var grid1 = mini.get("grid1");
+        grid1.hideColumn("id");
+        grid1.load();
+        var grid2 = mini.get("grid2");
+        grid2.hideColumn("id");
+        grid2.load();
+    </script>
+</body>
+</html>

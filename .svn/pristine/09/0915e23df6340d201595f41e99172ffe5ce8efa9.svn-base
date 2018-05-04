@@ -1,0 +1,200 @@
+package com.lingnet.hcm.action.empdata;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Controller;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.License;
+import com.lingnet.hcm.entity.person.Relation;
+import com.lingnet.hcm.entity.person.SoldierBack;
+import com.lingnet.hcm.service.empdata.RelationService;
+import com.lingnet.hcm.service.empdata.SoldierBackService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 
+ * @ClassName: DepartureAction 
+ * @Description: 军人复转Action 
+ * @author zrl
+ * @date 2017年3月10日 上午10:56:46 
+ *
+ */
+@Controller
+public class SoldierBackAction extends BaseAction{
+
+    private static final long serialVersionUID = -4533377460351784579L;
+    
+    private String flag;//标志位
+    private String formdata;
+    private String personId;
+    private String url;//
+    
+    private BasicInformation info;
+    private SoldierBack soba;
+    private License license;
+    
+    @Resource(name="soldierBackService")
+    private SoldierBackService soldierBackService;
+    
+    /**
+     * 列表页面
+     */
+    public String list(){
+        return LIST;
+    }
+    /**
+     * 列表页面
+     */
+    public String perlist(){
+        return LIST;
+    }
+    /**
+     * 列获取数据
+     */
+    public String getListData() {
+    	if(personId!=null&&!"".equals(personId)){
+    		Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+    		if(dataMap==null){
+    			dataMap=new HashMap<String,String>();
+    		}
+			dataMap.put("personId", personId);
+			
+    		searchData=JsonUtil.Encode(dataMap);
+    	}
+        return ajax(Status.success, JsonUtil.Encode(soldierBackService.getListData(pager,searchData)));
+    }
+    
+    /**
+     * 添加页面
+     */
+    public String add(){
+    	soba=this.getBeanByCriteria(SoldierBack.class, Restrictions.eq("id", id));
+    	String personId=null;
+    	if(soba!=null){
+    		personId=soba.getPersonId();
+    		license=this.getBeanByCriteria(License.class, Restrictions.eq("theClassId", soba.getId()));
+    		url=license==null?"":license.getUrl();
+    	}
+    	info=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("id", personId));
+        return "add";
+    }
+
+    public String saveOrUpdate(){
+        if(formdata==null||formdata==""){
+            return ajax(Status.success,"数据错误请联系管理员!");
+        }else{
+        	soba=JsonUtil.toObject(formdata, SoldierBack.class);
+        	license=JsonUtil.toObject(formdata, License.class);
+        } 
+        try { 
+            if(soba.getId()==null||"".equals(soba.getId().trim())){
+            	BasicInformation infomation=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("jobNumber", soba.getJobNumber()));
+                if (infomation!=null){
+                	infomation.setIsSoldier(1);
+                }
+                license.setTheClass(3);
+                license.setTheClassId(soba.getId());
+                this.save(license);
+            	this.save(soba);
+            	this.update(infomation);
+            }else{
+            	SoldierBack oldInfo=this.getBeanByCriteria(SoldierBack.class, Restrictions.eq("id", soba.getId()));
+            	if (oldInfo == null) {
+                    throw new Exception("该条记录不存在");
+                }
+            	soba.setPersonId(oldInfo.getPersonId());
+            	oldInfo.copyFrom(soba);
+                this.update(oldInfo);
+                License oldLicense=this.getBeanByCriteria(License.class, Restrictions.eq("theClassId", soba.getId()));
+                if(oldLicense==null){
+                	license.setTheClass(3);
+                    license.setTheClassId(soba.getId());
+                    
+                    this.save(license);
+                }else{
+                	oldLicense.setUrl(license.getUrl());
+                	oldLicense.setFileName(license.getFileName());
+                	oldLicense.setFileNum(license.getFileNum());
+                	this.update(oldLicense);
+                }
+            }
+        } catch (Exception e) {
+            return ajax(Status.success,"保存/修改失败");
+        }
+        return ajax(Status.success,"success");
+    } 
+    
+    /**
+     * 删除方法
+     * @Title: remove 
+     * @return 
+     * String 
+     * @author zrl
+     * @since 2017年3月8日 V 1.0
+     */
+    public String remove() {
+    	if (ids != null && !"".equals(ids)){
+    		String[] idArrs = ids.split(",");
+    		try {
+    			soldierBackService.delete(SoldierBack.class, idArrs);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+    	}
+        return ajax(Status.success, "success");
+    }
+   //**********************set/get**********************//
+	public String getFlag() {
+		return flag;
+	}
+
+	public void setFlag(String flag) {
+		this.flag = flag;
+	}
+	public String getFormdata() {
+		return formdata;
+	}
+	public void setFormdata(String formdata) {
+		this.formdata = formdata;
+	}
+	public BasicInformation getInfo() {
+		return info;
+	}
+	public void setInfo(BasicInformation info) {
+		this.info = info;
+	}
+
+	public SoldierBack getSoba() {
+		return soba;
+	}
+	public void setSoba(SoldierBack soba) {
+		this.soba = soba;
+	}
+	public String getPersonId() {
+		return personId;
+	}
+	public void setPersonId(String personId) {
+		this.personId = personId;
+	}
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	public License getLicense() {
+		return license;
+	}
+	public void setLicense(License license) {
+		this.license = license;
+	}
+
+    
+
+}

@@ -1,0 +1,165 @@
+package com.lingnet.hcm.service.impl.branch;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Date;
+import java.util.HashMap;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.branch.DeptChangeDao;
+import com.lingnet.hcm.dao.branch.OrgHisMiddleDao;
+import com.lingnet.hcm.entity.ComChange;
+import com.lingnet.hcm.entity.DeptChange;
+import com.lingnet.hcm.entity.OrgChangeLog;
+import com.lingnet.hcm.entity.OrgHisMiddle;
+import com.lingnet.hcm.service.branch.DeptChangeService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+
+@Service("deptChangeService")
+public class DeptChangeServiceImpl extends BaseServiceImpl<DeptChange, String>
+        implements DeptChangeService {
+
+    @Resource(name="deptChangeDao")
+    private DeptChangeDao deptChangeDao;
+    @Resource(name="orgHisMiddleDao")
+    private OrgHisMiddleDao orgHisMiddleDao;
+    @SuppressWarnings("unchecked")
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdata(String formdata, String img) throws Exception{
+        HashMap<String,Object> map = JsonUtil.toObject(formdata,HashMap.class);
+        if(map.get("id")!=null&&!"".equals(map.get("id").toString())){
+            //修改
+            OrgHisMiddle oldBean = this.get(OrgHisMiddle.class, map.get("id").toString());
+            if(oldBean!=null){
+                oldBean.setApplyComp(map.get("applyComp").toString());
+                oldBean.setChangeReason(map.get("changeReason").toString());
+                oldBean.setChangeName(map.get("name").toString());
+                oldBean.setAttachment(img);
+                map.remove("applyComp");
+                map.remove("changeType");
+                map.remove("changeReason");
+                map.remove("attachment");
+                map.remove("id");
+                orgHisMiddleDao.update(oldBean);
+                //删除相关的子表重新保存
+                DeptChange oldChange = this.get(DeptChange.class, Restrictions.eq("middleId", oldBean.getId()));
+                deptChangeDao.delete(oldChange);
+                formdata = JsonUtil.toJson(map);
+                DeptChange deptChange = JsonUtil.toObject(formdata, DeptChange.class);
+                deptChange.setMiddleId(oldBean.getId());
+                deptChangeDao.save(deptChange);
+                //删除log表，重新插入
+                if(oldBean.getChangeType()==1){
+                    //变更 循环所有不为空字段，写成记录。
+                    Field[] fields = deptChange.getClass().getDeclaredFields();
+                    // 遍历所有属性  
+                    for (int j = 0; j < fields.length; j++) { 
+                     // 获取属性的名字  
+                        String name = fields[j].getName();  
+                        // 将属性的首字符大写，方便构造get，set方法  
+                        name = name.substring(0, 1).toUpperCase() + name.substring(1);
+                        if("SerialVersionUID".equals(name)||"MiddleId".equals(name)){
+                            continue;
+                        }
+                        Method m = deptChange.getClass().getMethod("get" + name);
+                        Object value = m.invoke(deptChange);
+                        if(value!=null&&!"".equals(value.toString())){
+                            Object oldValue  = deptChange.getClass().getMethod("get" + name).invoke(deptChange);
+                            OrgChangeLog log = new OrgChangeLog();
+                            log.setOrgId(oldBean.getId());
+                            if(oldValue!=null&&!"".equals(oldValue.toString())){
+                                log.setOldValue(oldValue.toString());
+                            }
+                            log.setNewValue(value.toString());
+                            
+                            
+                        }
+                        
+                    }
+                }
+            }
+        }else{
+            //保存
+            OrgHisMiddle middle = new OrgHisMiddle();
+            middle.setApplyComp(map.get("applyComp").toString());
+            if(map.get("changeName")!=null){
+                middle.setChangeName(map.get("changeName").toString());
+                //map.remove("name");
+            }
+            
+            if(map.get("effectiveId")!=null){
+                middle.setEffectiveId(map.get("effectiveId").toString());
+                map.remove("effectiveId");
+            }
+            
+            map.remove("applyComp");
+            middle.setChangeType(Integer.parseInt(map.get("changeType").toString()));
+            map.remove("changeType");
+            middle.setChangeReason(map.get("changeReason").toString());
+            map.remove("changeReason");
+            middle.setAttachment(img);
+            map.remove("attachment");
+            middle.setApplyDate(new Date());
+            if(map.get("changeId")!=null){
+                middle.setChangeId(map.get("changeId").toString());
+                map.remove("changeId");
+            }
+            
+            middle.setType(1);
+            middle.setFlg(0);
+            middle.setApplyPerson(LingUtil.userName());
+            
+            orgHisMiddleDao.save(middle);
+            //写入日志
+            
+            
+            //对于剩下的字段归于公司变更
+            formdata = JsonUtil.toJson(map);
+            DeptChange deptChange = JsonUtil.toObject(formdata, DeptChange.class);
+            deptChange.setMiddleId(middle.getId());
+            QxDepartment branch = this.get(QxDepartment.class, Restrictions.eq("id", middle.getChangeId()));
+            if(middle.getChangeType()==1){
+                //变更 循环所有不为空字段，写成记录。
+                Field[] fields = deptChange.getClass().getDeclaredFields();
+                // 遍历所有属性  
+                for (int j = 0; j < fields.length; j++) { 
+                 // 获取属性的名字  
+                    String name = fields[j].getName();  
+                    // 将属性的首字符大写，方便构造get，set方法  
+                    name = name.substring(0, 1).toUpperCase() + name.substring(1);
+                    if("SerialVersionUID".equals(name)||"MiddleId".equals(name)){
+                        continue;
+                    }
+                    Method m = deptChange.getClass().getMethod("get" + name);
+                    Object value = m.invoke(deptChange);
+                    if(value!=null&&!"".equals(value.toString())){
+                        Object oldValue  = branch.getClass().getMethod("get" + name).invoke(branch);
+                        OrgChangeLog log = new OrgChangeLog();
+                        log.setOrgId(middle.getId());
+                        if(oldValue!=null&&!"".equals(oldValue.toString())){
+                            log.setOldValue(oldValue.toString());
+                        }
+                        log.setNewValue(value.toString());
+                        
+                        
+                    }
+                    
+                }
+            }
+            deptChangeDao.save(deptChange);
+          //写入日志
+        }
+        return "success";
+    }
+}

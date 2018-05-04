@@ -1,0 +1,84 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.TimerDao;
+import com.lingnet.hcm.entity.check.CkTimer;
+/**
+ * 
+ * @ClassName: TimerDaoImpl 
+ * @Description: 考勤时间Dao实现类 
+ * @author wangqiang
+ * @date 2017年4月11日 下午4:06:43 
+ *
+ */
+@Repository("timerDao")
+public class TimerDaoImpl extends BaseDaoImpl<CkTimer, String> implements TimerDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<CkTimer> getListByCond(String jobNumber, String monthCalendar) {
+		return this.getSession().createCriteria(CkTimer.class)
+				.add(Restrictions.eq("monthCalendar", monthCalendar))
+				.add(Restrictions.eq("jobNumber", jobNumber)).addOrder(Order.asc("checkTime")).list();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getTimesByJobNumbers(String jobNumbers,
+			String startTime, String endTime) {
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
+		String sql = "select JOB_NUMBER, to_char(CHECK_TIME,'HH24:mi') "
+				+ "from ck_time_record where JOB_NUMBER in("+jobNumbers+") "
+				+ "and CHECK_TIME >= to_date('"+startTime+"','yyyy-MM-dd HH24:mi:ss') "
+				+ "and CHECK_TIME <= to_date('"+endTime+"','yyyy-MM-dd HH24:mi:ss') "
+				+ "order by JOB_NUMBER, CHECK_TIME asc";
+		List<Object[]> objs = this.getSession().createSQLQuery(sql).list();
+		if (objs != null && objs.size() > 0){
+			for (Object[] obj:objs){
+				Map<String, Object> map = new HashMap<String, Object>();
+				map.put("jobNumber", obj[0]);
+				map.put("checkTime", obj[1]);
+				list.add(map);
+			}
+		}
+		return list;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public String getAllListByCond(String startTime, String endTime,
+			String jobNumber) {
+		String allTimes = "";
+		String sql = "select to_char(CHECK_TIME, 'HH24:mi:ss') from ck_time_record "
+				+ "where JOB_NUMBER = '"+jobNumber+"' "
+				+ "and CHECK_TIME >= to_date('"+startTime+"','yyyy-MM-dd HH24:mi:ss') "
+				+ "and CHECK_TIME <= to_date('"+endTime+"','yyyy-MM-dd HH24:mi:ss') "
+				+ "order by CHECK_TIME asc";
+		List<Object> objs = this.getSession().createSQLQuery(sql).list();
+		if (objs != null && objs.size() > 0){
+			for (Object obj:objs){
+				allTimes += (obj+",     ");
+			}
+		}
+		return allTimes;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<CkTimer> getCheckTimesByJobNumbers(List<String> jobNumbers,
+			String monthCalendar) {
+		return this.getSession().createCriteria(CkTimer.class).add(Restrictions.in("jobNumber", jobNumbers))
+				.add(Restrictions.eq("monthCalendar", monthCalendar)).addOrder(Order.asc("jobNumber"))
+				.addOrder(Order.asc("checkTime")).list();
+	}
+	
+}

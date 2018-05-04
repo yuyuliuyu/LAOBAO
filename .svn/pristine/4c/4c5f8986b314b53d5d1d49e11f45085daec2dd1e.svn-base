@@ -1,0 +1,190 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Lob;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * career entity. 
+ * @author MyEclipse Persistence Tools
+ * 职业履历实体类
+ */
+@Entity
+@Table(name = "JC_PROFESSION_HISTORY")
+public class Career extends BaseEntity implements java.io.Serializable {
+
+	private static final long serialVersionUID = 2662377541140175186L;
+	private String jobNumber;//工号
+	private String company;//工作单位
+	private String department;//部门
+	private String post;//岗位
+	private String proDuty;//证明人职务
+	private Double pay;//薪酬状况
+	private Long proTel;//证明人联系方式
+	private String jobDuties;//主要工作内容
+	private String performance;//工作业绩
+	private Date begindate;//开始日期
+	private Date enddate;//结束日期
+	private String remark;//备注
+	private String status;//状态
+	private String prove;//证明人
+	private String remark2;//备注2
+	private Integer isPractice;//是否是实习生 1是，0或者空不是
+
+
+	// Property accessors
+	@Column(name = "JOB_NUMBER", length = 32)
+	public String getJobNumber() {
+		return this.jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	@Column(name = "COMPANY", length = 30)
+	public String getCompany() {
+		return this.company;
+	}
+
+	public void setCompany(String company) {
+		this.company = company;
+	}
+
+	@Column(name = "DEPARTMENT", length = 20)
+	public String getDepartment() {
+		return this.department;
+	}
+
+	public void setDepartment(String department) {
+		this.department = department;
+	}
+
+	@Column(name = "POST", length = 20)
+	public String getPost() {
+		return this.post;
+	}
+
+	public void setPost(String post) {
+		this.post = post;
+	}
+
+	@Column(name = "PRO_DUTY", length = 10)
+	public String getProDuty() {
+		return this.proDuty;
+	}
+
+	public void setProDuty(String proDuty) {
+		this.proDuty = proDuty;
+	}
+
+	@Column(name = "PAY", precision = 9)
+	public Double getPay() {
+		return this.pay;
+	}
+
+	public void setPay(Double pay) {
+		this.pay = pay;
+	}
+
+	@Column(name = "PRO_TEL", precision = 12, scale = 0)
+	public Long getProTel() {
+		return this.proTel;
+	}
+
+	public void setProTel(Long proTel) {
+		this.proTel = proTel;
+	}
+
+	@Lob
+	@Column(name = "JOB_DUTIES")
+	public String getJobDuties() {
+		return this.jobDuties;
+	}
+
+	public void setJobDuties(String jobDuties) {
+		this.jobDuties = jobDuties;
+	}
+
+	@Lob
+	@Column(name = "PERFORMANCE")
+	public String getPerformance() {
+		return this.performance;
+	}
+
+	public void setPerformance(String performance) {
+		this.performance = performance;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "BEGINDATE", length = 7)
+	public Date getBegindate() {
+		return this.begindate;
+	}
+
+	public void setBegindate(Date begindate) {
+		this.begindate = begindate;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "ENDDATE", length = 7)
+	public Date getEnddate() {
+		return this.enddate;
+	}
+
+	public void setEnddate(Date enddate) {
+		this.enddate = enddate;
+	}
+
+	@Column(name = "REMARK", length = 50)
+	public String getRemark() {
+		return this.remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	@Column(name = "STATUS", length = 1)
+	public String getStatus() {
+		return this.status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	@Column(name = "PROVE", length = 30)
+	public String getProve() {
+		return this.prove;
+	}
+
+	public void setProve(String prove) {
+		this.prove = prove;
+	}
+
+	@Column(name = "REMARK2", length = 50)
+	public String getRemark2() {
+		return this.remark2;
+	}
+
+	public void setRemark2(String remark2) {
+		this.remark2 = remark2;
+	}
+	
+	@Column(name = "IS_PRACTICE")
+	public Integer getIsPractice() {
+		return isPractice;
+	}
+
+	public void setIsPractice(Integer isPractice) {
+		this.isPractice = isPractice;
+	}
+
+}

@@ -1,0 +1,87 @@
+package com.lingnet.hcm.dao.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.check.RestRecordDao;
+import com.lingnet.hcm.entity.check.CkRestRecord;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: RestRecordDaoImpl 
+ * @Description: 休假申请记录Dao实现类  
+ * @author wangqiang
+ * @date 2017年5月4日 下午2:16:09 
+ *
+ */
+@Repository("restRecordDao")
+public class RestRecordDaoImpl extends BaseDaoImpl<CkRestRecord, String> implements RestRecordDao{
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getInfoByCond(Pager pager, String userId, String jobNumber, String state) {
+		List<Map<String, Object>> mapList = new ArrayList<Map<String,Object>>();
+		String sql = "select cer.ID, cer.JOB_NUMBER, cer.APPLY_NAME, cer.EVECTION_TYPE, to_char(cer.START_DATE, 'yyyy-MM-dd'), "
+				+ "to_char(cer.END_DATE, 'yyyy-MM-dd'), cer.REST_DAY, cer.PROCESS_ID, cer.NODE_ID, cer.AUDIT_STATUS "
+				+ "from CK_REST_RECORD cer "
+				+ "left join jc_work_flowc jwf on cer.NODE_ID=jwf.ID "
+				+ "where cer.IS_DELETE = 0 ";
+		if ("0".equals(state)){//审核页面
+			sql += "and jwf.APRO_ID='"+ jobNumber +"' ";
+		} else {//申请页面
+			sql += "and cer.EMP_ID='" + userId + "' ";
+		}
+		sql += "order by AUDIT_STATUS asc, APPLY_DATE desc";
+		Pager pageInfo = this.findPagerBySql(pager, sql);
+		List<Object[]> list = (List<Object[]>) pageInfo.getResult();
+		if (list.size() > 0){
+			for (int i = 0; i < list.size(); i++){
+				Map<String, Object> hashmap = new HashMap<String, Object>();
+				hashmap.put("id", list.get(i)[0]);
+				hashmap.put("jobNumber", list.get(i)[1]);
+				hashmap.put("applyName", list.get(i)[2]);
+				if ("1".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "事假");
+				} else if ("2".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "病假");
+				} else if ("3".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "婚假");
+				} else if ("4".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "公假");
+				} else if ("5".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "探亲假");
+				} else if ("6".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "产假");
+				} else if ("7".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "丧假");
+				} else if ("8".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "工伤");
+				} else if ("9".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "年假");
+				} else if ("10".equals(list.get(i)[3])){
+					hashmap.put("evectionType", "调休");
+				} else {
+					hashmap.put("evectionType", "");
+				}
+				hashmap.put("startDate", list.get(i)[4]);
+				hashmap.put("endDate", list.get(i)[5]);
+				hashmap.put("restDay", list.get(i)[6]);
+				hashmap.put("processId", list.get(i)[7]);
+				if (list.get(i)[8] == null){
+					hashmap.put("nodeName", "");
+				} else {
+					hashmap.put("nodeName", list.get(i)[8]);
+				}
+				hashmap.put("auditStatus", list.get(i)[9]);
+				mapList.add(hashmap);
+			}
+		}
+		return mapList;
+	}
+	
+}

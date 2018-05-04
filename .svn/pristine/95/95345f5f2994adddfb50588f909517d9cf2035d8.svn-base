@@ -1,0 +1,308 @@
+package com.lingnet.hcm.service.impl.post;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.post.DeptPositionDao;
+import com.lingnet.hcm.dao.post.PostPositionDao;
+import com.lingnet.hcm.entity.DeptPosition;
+import com.lingnet.hcm.entity.PositionGrade;
+import com.lingnet.hcm.entity.PostDuty;
+import com.lingnet.hcm.entity.PostPosition;
+import com.lingnet.hcm.service.post.PostService;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+import com.lingnet.util.ReflectionUtil;
+
+@Service("postService")
+public class PostServiceImpl extends BaseServiceImpl<PostDuty, String>
+        implements PostService {
+
+    @Resource(name = "postPositionDao")
+    private PostPositionDao postPositionDao;
+    
+    @Resource(name = "deptPositionDao")
+    private DeptPositionDao deptPositionDao;
+
+    @Override
+    @Transactional
+    public String dutySave(String formdata) throws Exception {
+        PostDuty duty = JsonUtil.toObject(formdata, PostDuty.class);
+        if (duty.getPid() == null || "".equals(duty.getPid())) {
+            duty.setPid("-1");
+        }
+        if (duty.getId() != null && !"".equals(duty.getId())) {
+            // 修改
+            PostDuty oldBean = this.get(PostDuty.class, duty.getId());
+            oldBean.copyFrom(duty);
+
+            this.update(oldBean);
+        } else {
+            // 新增
+            PostDuty bean = this.get(PostDuty.class,
+                    Restrictions.eq("postName", duty.getPostName()));
+            if (bean != null) {
+                throw new Exception("系统已经存在同名的职务族！");
+            }
+            duty.setIsDelete(0);
+            this.save(duty);
+        }
+        return "success";
+    }
+
+    @Override
+    public String treeList() {
+        List<HashMap<String, String>> list = new ArrayList<HashMap<String, String>>();
+
+        List<PostDuty> data = this.getList(PostDuty.class,
+                Restrictions.eq("isDelete", 0));
+        if (data != null && data.size() > 0) {
+            for (PostDuty b : data) {
+                HashMap<String, String> map = new HashMap<String, String>();
+
+                map.put("id", b.getId());
+                map.put("pid", b.getPid());
+                map.put("postName", b.getPostName());
+                map.put("postCode", b.getPostCode());
+                list.add(map);
+            }
+        }
+        return JsonUtil.Encode(list);
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String positionList(String id, Pager pager) {
+        // 根据
+        if(id!=null&&!"".equals(id)){
+            pager = this.findPager(PostPosition.class,pager, Restrictions.eq("dutyId", id), Restrictions.eq("isDelete", 0));
+        }else{
+            pager = this.findPager(PostPosition.class,pager, Restrictions.eq("isDelete", 0));
+        }
+        List<HashMap> mapList = ReflectionUtil.getMapList(pager.getResult());
+        for(HashMap map :mapList){
+            if(map.get("dutyId")!=null&&!"".equals(map.get("dutyId").toString())){
+                PostDuty duty = this.get(PostDuty.class, map.get("dutyId").toString());
+                if(duty!=null){
+                    map.put("dutyName", duty.getPostName());
+                }
+                
+            }
+            if(map.get("positionGrad")!=null&&!"".equals(map.get("positionGrad").toString())){
+                PositionGrade grade = this.get(PositionGrade.class, map.get("positionGrad").toString());
+                if(grade!=null){
+                    map.put("positionGrad", grade.getName());
+                }
+                
+            }
+        }
+        return JsonUtil.toJson(mapList);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class,
+            propagation = Propagation.REQUIRED)
+    public String deleteDuty(String id) {
+        String[] ids = id.split(",");
+        for (int i = 0, l = ids.length; i < l; i++) {
+            PostDuty b = this.get(PostDuty.class,
+                    Restrictions.eq("id", ids[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (b != null) {
+                b.setIsDelete(1);
+                this.update(b);
+            }
+        }
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class,
+            propagation = Propagation.REQUIRED)
+    public String postionSave(String formdata) throws Exception {
+        PostPosition position = JsonUtil.toObject(formdata, PostPosition.class);
+        if (position.getId() != null && !"".equals(position.getId())) {
+            // 修改
+            PostPosition oldBean = this.get(PostPosition.class,
+                    position.getId());
+            oldBean.copyFrom(position);
+
+            postPositionDao.update(oldBean);
+        } else {
+            // 新增
+            PostPosition bean = this
+                    .get(PostPosition.class,
+                            Restrictions.eq("positionName",
+                                    position.getPositionName()),
+                            Restrictions.eq("positionGrad",
+                                    position.getPositionGrad()));
+            if (bean != null) {
+                throw new Exception("系统已经存在同名的职务族！");
+            }
+            position.setState(1);
+            position.setIsDelete(0);
+            postPositionDao.save(position);
+        }
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class,
+    propagation = Propagation.REQUIRED)
+    public String postionDelete(String id) {
+        String[] ids = id.split(",");
+        for (int i = 0, l = ids.length; i < l; i++) {
+            PostPosition b = this.get(PostPosition.class,
+                    Restrictions.eq("id", ids[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (b != null) {
+                b.setIsDelete(1);
+                b.setState(0);
+                postPositionDao.update(b);
+            }
+        }
+        return "success";
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String positionDeptList(String id, Pager pager) {
+        // 根据
+        if(id!=null&&!"".equals(id)){
+            pager = this.findPager(DeptPosition.class,pager, Restrictions.eq("deptId", id), Restrictions.eq("isDelete", 0));
+        }else{
+            pager = this.findPager(DeptPosition.class,pager, Restrictions.eq("isDelete", 0));
+        }
+        List<HashMap> mapList = ReflectionUtil.getMapList(pager.getResult());
+        for(HashMap map :mapList){
+            if(map.get("dutyId")!=null&&!"".equals(map.get("dutyId").toString())){
+                PostDuty duty = this.get(PostDuty.class, map.get("dutyId").toString());
+                if(duty!=null){
+                    map.put("dutyName", duty.getPostName());
+                }
+                
+            }
+            if(map.get("positionGrad")!=null&&!"".equals(map.get("positionGrad").toString())){
+                PositionGrade grade = this.get(PositionGrade.class, map.get("positionGrad").toString());
+                if(grade!=null){
+                    map.put("positionGrad", grade.getName());
+                }
+                
+            }
+        }
+        return JsonUtil.toJson(mapList);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class,
+    propagation = Propagation.REQUIRED)
+    public String postionDeptSave(String formdata)  throws Exception {
+        DeptPosition position = JsonUtil.toObject(formdata, DeptPosition.class);
+        if (position.getId() != null && !"".equals(position.getId())) {
+            // 修改
+            DeptPosition oldBean = this.get(DeptPosition.class,
+                    position.getId());
+            oldBean.copyFrom(position);
+
+            deptPositionDao.update(oldBean);
+        } else {
+            // 新增
+            DeptPosition bean = this
+                    .get(DeptPosition.class,
+                            Restrictions.eq("positionName",
+                                    position.getPositionName()),
+                            Restrictions.eq("positionGrad",
+                                    position.getPositionGrad()));
+            if (bean != null) {
+                throw new Exception("系统已经存在同名的职务族！");
+            }
+            position.setIsDelete(0);
+            position.setState(1);
+            deptPositionDao.save(position);
+        }
+        return "success";
+    }
+    @Override
+    @Transactional(rollbackFor = Exception.class,
+    propagation = Propagation.REQUIRED)
+    public String postionDeptDelete(String id) {
+        String[] ids = id.split(",");
+        for (int i = 0, l = ids.length; i < l; i++) {
+            DeptPosition b = this.get(DeptPosition.class,
+                    Restrictions.eq("id", ids[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (b != null) {
+                b.setIsDelete(1);
+                b.setState(0);
+                postPositionDao.update(b);
+            }
+        }
+        return "success";
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @Override
+    public String depPositionList(String id, Pager pager) {
+        // 根据
+        if(id!=null&&!"".equals(id)){
+            pager = this.findPager(DeptPosition.class,pager, Restrictions.eq("dutyId", id), Restrictions.eq("isDelete", 0));
+        }else{
+            pager = this.findPager(DeptPosition.class,pager, Restrictions.eq("isDelete", 0));
+        }
+        List<HashMap> mapList = ReflectionUtil.getMapList(pager.getResult());
+        for(HashMap map :mapList){
+            if(map.get("dutyId")!=null&&!"".equals(map.get("dutyId").toString())){
+                PostDuty duty = this.get(PostDuty.class, map.get("dutyId").toString());
+                if(duty!=null){
+                    map.put("dutyName", duty.getPostName());
+                }
+                
+            }
+            if(map.get("positionGrad")!=null&&!"".equals(map.get("positionGrad").toString())){
+                PositionGrade grade = this.get(PositionGrade.class, map.get("positionGrad").toString());
+                if(grade!=null){
+                    map.put("positionGrad", grade.getName());
+                }
+                
+            }
+            if(map.get("positionId")!=null&&!"".equals(map.get("positionId").toString())){
+                PostPosition post = this.get(PostPosition.class, map.get("positionId").toString());
+                if(post!=null){
+                    map.put("pName", post.getPositionName());
+                }
+                
+            }
+            if(map.get("deptId")!=null&&!"".equals(map.get("deptId").toString())){
+                QxDepartment dept = this.get(QxDepartment.class, map.get("deptId").toString());
+                if(dept!=null){
+                    map.put("deptName", dept.getName());
+                    //获取部门对应的公司
+                    Branch branch = this.get(Branch.class, dept.getBarchId());
+                    if(branch!=null){
+                        map.put("compName", dept.getName());
+                    }
+                }
+                
+            }
+        }
+        return JsonUtil.toJson(mapList);
+    }
+
+    @Override
+    public String personList(String id, Pager pager) {
+        // 根据
+        
+        return postPositionDao.personList(id,pager);
+    }
+}

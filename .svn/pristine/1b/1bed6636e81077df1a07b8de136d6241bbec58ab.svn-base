@@ -1,0 +1,165 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+	<link href="${base}template/system/css/table.css" rel="stylesheet" type="text/css" />
+	<script src="${base}template/miniui/boot.js" type="text/javascript"></script>
+	<script src="${base}template/swfupload/swfupload.js" type="text/javascript"></script>
+	<style type="text/css">
+		.btnCss{
+			width: 150px;
+			height: 46px;
+			background-color: #2eaaf7;
+			border: none;
+			color: #fff;
+			font-size: 16px;
+			margin-top: 20px;
+			cursor: pointer;
+			border-radius:10px;
+		}
+		.btnCss2{
+			width: 170px;
+			height: 46px;
+			background-color: #2eaaf7;
+			border: none;
+			color: #fff;
+			font-size: 16px;
+			margin-top: 20px;
+			cursor: pointer;
+			border-radius:10px;
+		}
+	</style>
+</head>
+<body style="background-image: url(${base}template/common/images/bg.jpg);">
+	<div>
+		<fieldset style="width:68%;border:solid 1px #aaa;position:relative;font-size:28px;left: 16%;top: 100px;border: solid 2px #fff;">
+	        <legend style="color:#fff">考勤基本功能</legend>
+	        <div id="editForm1" style="padding:5px;">
+	            <input class="mini-hidden" name="id"/>
+	            <table style="width:100%;">
+	                <tr style="height:100px;">
+	                	<td style="width:50%;border-right:2px #fff solid" align="center">同步最新考勤机数据</td>
+	                    <td style="width:50%" align="center">
+	                    	年月份：<input id="monthDate" name="monthDate" class="mini-textbox"  emptyText="请输入年月份，如：1701" style="width:180px;"/>
+	                    </td>
+<!-- 	                    <td style="width:30%" align="center"> -->
+<!-- 	                    	职工号：<input id="jobNumber" name="jobNumber" class="mini-textbox"  emptyText="请输入职工号" style="width:150px;"/> -->
+<!-- 	                    </td> -->
+	                </tr>
+	                <tr style="height:150px;">
+	                    <td align="center" style="border-right:2px #fff solid">
+	                    	<input type="button" class="btnCss" onclick="syncCheckData()" value="同步数据" />
+	                    </td>
+	                    <td align="center">
+	                    	<input type="button" class="btnCss" onclick="generateMonth()" value="生成月度考勤表" />
+	                    </td>
+<!-- 	                    <td align="center"> -->
+<!-- 	                    	<input type="button" class="btnCss2" onclick="generateByNum()" value="按职工号生成考勤表" /> -->
+<!-- 	                    </td> -->
+	                </tr>
+	            </table>
+	        </div>
+	    </fieldset>
+	</div>
+</body>
+<script type="text/javascript">
+	mini.parse();
+	var clid = mini.get("id").getValue();
+	
+	//同步考勤机数据
+	function syncCheckData(){
+		if (confirm("确定手动同步考勤机最新数据？")) {
+			$.ajax({
+				url : "../check/generate!syncCheckData.action",
+				type : "post",
+				success : function(text) {
+					mini.alert("同步成功！");
+					//window.location.reload();
+				},
+				error : function(text) {
+					mini.alert("同步失败");
+				}
+			});
+		}
+	}
+	
+	//生成月度考勤表
+	function generateMonth(){
+		var monthDate = mini.get("monthDate").getValue();
+		if (monthDate == ""){
+			mini.alert("请输入年月份！");
+			return;
+		}
+		if (confirm("考勤表会覆盖原来考勤表信息，确定生成该年月份的考勤表？")) {
+			$.ajax({
+				url : "../check/generate!generateMonthTable.action?monthDate="+monthDate,
+				type : "post",
+				success : function(text) {
+					if (text == "success"){
+						mini.alert("生成成功！");
+						//window.location.reload();
+					} else {
+						mini.alert(text);
+					}
+				},
+				error : function(text) {
+					mini.alert("生成失败！");
+				}
+			});
+		}
+	}
+	
+	//按职工号生成考勤表
+	function generateByNum(){
+		var monthDate = mini.get("monthDate").getValue();
+		var jobNumber = mini.get("jobNumber").getValue();
+		if (monthDate == ""){
+			mini.alert("请输入年月份！");
+			return;
+		}
+		if (jobNumber == ""){
+			mini.alert("请输入职工号！");
+			return;
+		}
+		$.ajax({
+			url : "../check/generate!generateMonthTable.action?monthDate="+monthDate+"&jobNumber="+jobNumber,
+			type : "post",
+			success : function(text) {
+				if (text == "success"){
+					mini.alert("生成成功！");
+					window.location.reload();
+				} else {
+					mini.alert(text);
+				}
+			},
+			error : function(text) {
+				mini.alert("生成失败！");
+			}
+		});
+	}
+	
+	//取消
+	function onCancel(e) {
+		CloseWindow("cancel");
+	}
+	
+	function CloseWindow(action) {
+		if (window.CloseOwnerWindow) {
+			return window.CloseOwnerWindow(action);
+		} else {
+			window.close();
+		}
+	}
+</script>
+</html>

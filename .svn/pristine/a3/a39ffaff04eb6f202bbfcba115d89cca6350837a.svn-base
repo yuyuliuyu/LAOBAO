@@ -1,0 +1,184 @@
+package com.lingnet.hcm.action.contract;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Resource;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.DeptPosition;
+import com.lingnet.hcm.entity.contract.ContractManager;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.util.JsonUtil;
+/**
+ * @ClassName: ContractManagerAction
+ * @Description: TODO
+ * @author 马晓鹏
+ * @date 2017年5月11日 下午2:45:13
+ */
+@SuppressWarnings("serial")
+public class ContractManagerAction extends BaseAction{
+    private String id;
+    private String jsondata;
+    private ContractManager contract;
+    private String state;
+    private String username;
+    private String deptname;
+    private String pname;
+    private List<ContractManager> contractlist=new ArrayList<ContractManager>();
+    @Resource(name="personnelService")
+    private PersonnelService personnelService;
+    public String list(){
+        return "list";
+    }
+    public String jsonlist(){
+        try {
+            pager=this.findPagerByOrder(ContractManager.class, pager,Order.desc("userid"),Restrictions.isNotNull("id"));
+        } catch (Exception e) { 
+            e.printStackTrace();
+        }   
+        Map result = new HashMap();
+        contractlist=(List<ContractManager>) pager.getResult();
+        List<Map<String, String>> list=new ArrayList<Map<String,String>>();
+        for (int i = 0; i < contractlist.size(); i++) {
+            Map<String, String> map=new HashMap<String, String>();
+            map.put("id", contractlist.get(i).getId());
+            try {
+                username=personnelService.get(Restrictions.eq("jobNumber", contractlist.get(i).getUserid())).getName();
+                map.put("username", username);
+            } catch (Exception e) {
+                map.put("username","");
+            } 
+              map.put("userid", contractlist.get(i).getUserid());
+              map.put("contractid", contractlist.get(i).getContractid());
+              if("0".equals(contractlist.get(i).getContracttype().trim())){
+                  map.put("contracttype", "劳动合同"); 
+              }else if("1".equals(contractlist.get(i).getContracttype().trim())){
+                  map.put("contracttype", "聘用合同"); 
+              }else{
+                  map.put("contracttype", ""); 
+              }
+              try {
+                  map.put("contrstart", new SimpleDateFormat("yyyy/MM/dd").format(contractlist.get(i).getContrstart()));
+            } catch (Exception e) {
+                map.put("contrstart", "");
+            }
+              try {
+                  map.put("contractend",new SimpleDateFormat("yyyy/MM/dd").format(contractlist.get(i).getContractend()));
+            } catch (Exception e) {
+                map.put("contractend", "");
+            }
+              map.put("workaddr", contractlist.get(i).getWorkaddr());
+              map.put("worksys", contractlist.get(i).getWorksys()); 
+              map.put("renewstate", contractlist.get(i).getRenewstate());
+              map.put("contractstate", contractlist.get(i).getContractstate());
+              map.put("getbackup", contractlist.get(i).getGetbackup()); 
+            list.add(map);
+        }
+
+        result.put("data", list);
+        result.put("total", pager.getTotalCount());
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success,json); 
+    }
+    public String add(){
+        if(id==null||"".equals(id.trim())){
+            contract=new ContractManager();
+        }else{
+            contract=this.getBeanById(ContractManager.class, id);
+            try {
+                username=personnelService.get(Restrictions.eq("jobNumber", contract.getUserid())).getName();
+            } catch (Exception e) {
+                username="";
+            }
+            try {
+                deptname=this.getBeanByCriteria(QxDepartment.class, Restrictions.eq("id", contract.getDepartid())).getName();
+            } catch (Exception e) {
+                deptname="";
+            }
+            try {
+//                pname=this.getBeanByCriteria(PositionGrade.class, Restrictions.eq("id", contract.getPostid())).getName();
+                pname=this.getBeanByCriteria(DeptPosition.class, Restrictions.eq("id", contract.getPostid())).getPositionName();
+            } catch (Exception e) {
+                pname="";
+            }
+        }
+        return "add";
+    }
+    public String saveOrUpdate(){
+        if(jsondata==null||"".equals(jsondata.trim())){
+            return ajax(Status.success,"数据错误，请查证后重新操作");
+        } 
+        contract=JsonUtil.toObject(jsondata,ContractManager.class);
+        if(contract==null){
+            return ajax(Status.success,"数据错误，请查证后重新操作");
+        }else if(contract.getId()==null||"".equals(contract.getId().trim())){
+//            contract.setState(1);
+            this.save(contract);
+        }else{
+            this.update(contract);
+        }
+        return ajax(Status.success,"保存/修改成功");
+    }
+    public String remove(){
+        if(id==null||"".equals(id.trim())){
+            return ajax(Status.success,"数据错误，删除失败");
+        }else{
+            this.deleteByCriteria(ContractManager.class,Restrictions.eq("id",id));
+        }
+        return ajax(Status.success,"删除成功");
+    }
+    
+    /*-----------------------------------------getter and  setter----------------------------------------------------*/
+    public String getId() {
+        return id;
+    }
+    public void setId(String id) {
+        this.id = id;
+    }
+    public String getJsondata() {
+        return jsondata;
+    }
+    public void setJsondata(String jsondata) {
+        this.jsondata = jsondata;
+    }
+    public ContractManager getContract() {
+        return contract;
+    }
+    public void setContract(ContractManager contract) {
+        this.contract = contract;
+    }
+    public String getState() {
+        return state;
+    }
+    public void setState(String state) {
+        this.state = state;
+    }
+    public String getUsername() {
+        return username;
+    }
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    public List<ContractManager> getContractlist() {
+        return contractlist;
+    }
+    public void setContractlist(List<ContractManager> contractlist) {
+        this.contractlist = contractlist;
+    }
+    public String getDeptname() {
+        return deptname;
+    }
+    public void setDeptname(String deptname) {
+        this.deptname = deptname;
+    }
+    public String getPname() {
+        return pname;
+    }
+    public void setPname(String pname) {
+        this.pname = pname;
+    } 
+}

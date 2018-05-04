@@ -1,0 +1,154 @@
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationDao 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月10日 上午9:58:28 
+ *
+ */
+public interface SalaryAssignationDao extends BaseDao<SalaryAssignation, String>{
+
+    /**
+     * @Title: 获取分配过程
+     * @param id
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationListData(String id,
+            String searchData, Pager pager);
+
+    /**
+     * @Title: 获取指定薪资组工资套下的人员和薪资项目信息
+     * @param groupId 薪资组
+     * @param wageId 工资套
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId);
+
+    /**
+     * @Title: 获取已经分配的员工薪资项目数据
+     * @param id
+     * @param ids 核算数据id集合
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public Map<String, Object> getAssignationForStaffData(String id, String ids, String searchData);
+
+    /**
+     * @Title: 获取已经分配的员工薪资项目数据SQL
+     * @param id
+     * @param ids
+     * @param searchData
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月13日 V 1.0
+     */
+    public String getAssignationForStaffDataSql(String id, String ids,
+            String searchData);
+
+    /**
+     * @Title: 获取已经选中的员工核算数据
+     * @param assignStaffId
+     * @param assignId
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月11日 V 1.0
+     */
+    public List<Map<String, Object>> getSelectedStaffAssignData(String assignStaffId, String assignId, String id);
+
+    /**
+     * @Title: 获取薪资组工资套中薪资项目关联的公式
+     * @param assignStaffId
+     * @param itemid
+     * @return 
+     * List<Map<String,String>> 
+     * @author zhanghj
+     * @since 2017年5月12日 V 1.0
+     */
+    public List<Map<String, String>> getAllGroupWageFinancialList(String assignStaffId, String itemid);
+
+    /**
+     * @Title: 获取需要核算的员工数据
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月13日 V 1.0
+     */
+    public Map<String, Object> getNeedCheckStaffData(String id, Pager pager);
+
+    /**
+     * @Title: 获取汇总数据
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月15日 V 1.0
+     */
+    public List<Map<String, Object>> getTotalData(String id);
+
+    /**
+     * @Title: 查找上月的薪酬期间
+     * @param salaryPeriod
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月19日 V 1.0
+     */
+    public String getLastMonthSalaryPeriod(String salaryPeriod);
+
+    /**
+     * @Title: 获取分配过程中不同分配权限的人数
+     * @param assignId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    public Map<String, Object> getFpqxPeopleCount(String assignId);
+
+    /**
+     * @Title: 根据权限获取不同的审核数据
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月25日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationForAuthListData(String userName,
+            String searchData, Pager pager);
+
+    /**
+     * @Title: 获取审核流程数据
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月26日 V 1.0
+     */
+    public List<Map<String, Object>> getCheckListData(String id);
+
+}

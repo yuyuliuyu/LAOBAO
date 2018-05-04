@@ -1,0 +1,90 @@
+package com.lingnet.hcm.dao.impl.personnel;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.personnel.ChangeDao;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 出国Dao实现类
+ */
+@Repository("changeDao")
+public class ChangeDaoImpl extends BaseDaoImpl<Change, String> implements ChangeDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append("  SELECT BAS.JOB_NUMBER,BAS.NAME PERNAME,BAS.FILM_NAME,BAS.DEPART_NAME,BAS.POST,BAS.SPECIFIC_POST,    ")
+		.append("  JC.ID,JC.CHANGE_TYPE,TO_CHAR(JC.CHANGEDATE,'YYYY-MM-DD'),JC.CHANGE_CAUSE, ")
+		.append("  JC.FILM,JC.DEP,JC.SPAN_POST,JC.SP_POST,JC.JOB_LEVEL,JC.EMP_TYPE,JC.ON_JOB,JC.ON_POST,  ")
+		.append("  JC.FILM_NAME2,JC.DEP_NAME2,JC.SPAN_POST_NAME2,JC.SP_POST_NAME2,JC.JOB_LEVEL2, ")
+		.append("  JC.EMP_TYPE2,JC.ON_JOB2,JC.ON_POST2 ")
+		.append("  FROM JC_EMP_CHANGE JC   ")
+		.append("  LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.JOB_NUMBER=JC.JOB_NUMBER   ")
+		.append("  WHERE 1=1   ")
+		;
+		if(searchData!=null&&!"".equals(searchData)){
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if (dataMap.get("jobNumber") != null && !"".equals(dataMap.get("jobNumber"))){
+				sql.append(" and BAS.JOB_NUMBER LIKE'%"+dataMap.get("jobNumber")+"%'");
+			}
+			if (dataMap.get("name") != null && !"".equals(dataMap.get("name"))){
+				sql.append(" and BAS.NAME like '%"+dataMap.get("name")+"%'");
+			}
+		}
+		sql.append(" ORDER BY JC.CHANGEDATE DESC ");
+		pager=this.findPagerBySql(pager, sql.toString());
+		
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("id", obj[6]);
+			map.put("changeType", obj[7]);
+			map.put("changedate", obj[8]);
+			map.put("changeCause", obj[9]);
+			
+			map.put("film", obj[10]);
+			map.put("dep", obj[11]);
+			map.put("spanPost", obj[12]);
+			map.put("spPost", obj[13]);
+			map.put("jobLevel", obj[14]);
+			map.put("empType", obj[15]);
+			map.put("onJob", obj[16]);
+			map.put("onPost", obj[17]);
+			
+			map.put("filmName2", obj[18]);
+			map.put("depName2", obj[19]);
+			map.put("spanPostName2", obj[20]);
+			map.put("spPostName2", obj[21]);
+			map.put("jobLevel2", obj[22]);
+			map.put("empType2", obj[23]);
+			map.put("onJob2", obj[24]);
+			map.put("onPost2", obj[25]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

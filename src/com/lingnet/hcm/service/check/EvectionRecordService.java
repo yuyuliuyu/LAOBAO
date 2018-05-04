@@ -1,0 +1,38 @@
+package com.lingnet.hcm.service.check;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.check.CkEvectionRecord;
+import com.lingnet.util.Pager;
+
+/**
+ * 
+ * @ClassName: EvectionRecordService 
+ * @Description: 出差申请记录Service 
+ * @author wangqiang
+ * @date 2017年5月3日 上午9:03:35 
+ *
+ */
+public interface EvectionRecordService extends BaseService<CkEvectionRecord, String>{
+	
+	/**
+	 * 获得出差申请记录分页信息
+	 * @Title: getDataByCond 
+	 * @param pager
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月3日 V 1.0
+	 */
+	public Map<String, Object> getDataByCond(Pager pager, String state);
+	/**
+	 * 获得出差申请通过人员
+	 * @Title: getDataByCond 
+	 * @param pager
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年5月3日 V 1.0
+	 */
+	public HashMap getListData(Pager pager, String searchData);
+}

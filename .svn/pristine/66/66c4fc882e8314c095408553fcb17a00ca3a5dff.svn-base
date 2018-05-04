@@ -1,0 +1,143 @@
+package com.lingnet.util;
+
+import java.io.IOException;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.BaseFont;
+
+/**
+ * 设置PDF格式
+ * 
+ * @ClassName: PdfParagraph
+ * @Description: TODO
+ * @author yinzl
+ * @date 2016-4-14 上午9:34:15
+ * 
+ */
+public class PdfParagraph extends Paragraph {
+    private static final long serialVersionUID = -244970043180837974L;
+
+    public PdfParagraph(String content) {
+        super(content, getChineseFont(12, false));
+
+    }
+
+    public PdfParagraph(String content, int fontSize, boolean isBold) {
+
+        super(content, getChineseFont(fontSize, isBold));
+
+    }
+
+    /**
+     * 设置字体-返回中文字体
+     * 
+     * @Title: getChineseFont
+     * @param nfontsize
+     * @param isBold
+     * @return Font
+     * @author yinzl
+     * @since 2016-4-14 V 1.0
+     */
+    protected static Font getChineseFont(int nfontsize, boolean isBold) {
+
+        BaseFont bfChinese;
+
+        Font fontChinese = null;
+
+        try {
+
+            bfChinese = BaseFont.createFont("c://windows//fonts//simsun.ttc,1",
+
+            BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+
+            if (isBold) {
+
+                fontChinese = new Font(bfChinese, nfontsize, Font.BOLD);
+
+            } else {
+
+                fontChinese = new Font(bfChinese, nfontsize, Font.NORMAL);
+
+            }
+
+        } catch (DocumentException e) {
+            e.printStackTrace();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return fontChinese;
+    }
+
+    /**
+     * 转化中文
+     * 
+     * @Title: ChangeCell
+     * @param str
+     * @param nfontsize
+     * @param isBold
+     * @return
+     * @throws IOException
+     * @throws BadElementException
+     * @throws DocumentException
+     *             Cell
+     * @author yinzl
+     * @since 2016-4-14 V 1.0
+     */
+    protected Cell ChangeCell(String str, int nfontsize, boolean isBold)
+            throws IOException, BadElementException, DocumentException {
+        Phrase ph = ChangeChinese(str, nfontsize, isBold);
+
+        Cell cell = new Cell(ph);
+        return cell;
+
+    }
+
+    /**
+     * 转化中文
+     * 
+     * @Title: ChangeChunk
+     * @param str
+     * @param nfontsize
+     * @param isBold
+     * @return
+     * @throws IOException
+     * @throws BadElementException
+     * @throws DocumentException
+     *             Chunk
+     * @author yinzl
+     * @since 2016-4-14 V 1.0
+     */
+    protected Chunk ChangeChunk(String str, int nfontsize, boolean isBold)
+            throws IOException, BadElementException, DocumentException {
+        Font FontChinese = getChineseFont(nfontsize, isBold);
+
+        Chunk chunk = new Chunk(str, FontChinese);
+        return chunk;
+
+    }
+
+    /**
+     * 转化中文
+     * 
+     * @Title: ChangeChinese
+     * @param str
+     * @param nfontsize
+     * @param isBold
+     * @return
+     * @throws IOException
+     * @throws BadElementException
+     * @throws DocumentException
+     *             Phrase
+     * @author yinzl
+     * @since 2016-4-14 V 1.0
+     */
+    protected Phrase ChangeChinese(String str, int nfontsize, boolean isBold)
+            throws IOException, BadElementException, DocumentException {
+
+        Font FontChinese = getChineseFont(nfontsize, isBold);
+        Phrase ph = new Phrase(str, FontChinese);
+        return ph;
+
+    }
+
+}

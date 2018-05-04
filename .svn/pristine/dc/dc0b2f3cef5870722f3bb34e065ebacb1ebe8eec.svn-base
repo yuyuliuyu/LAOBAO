@@ -1,0 +1,859 @@
+package com.lingnet.hcm.service.impl.personnel;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang.StringUtils;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.AnnualLeaveRecordDao;
+import com.lingnet.hcm.dao.empdata.CareerDao;
+import com.lingnet.hcm.dao.personnel.ChangeDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.dao.personnel.PtJobDao;
+import com.lingnet.hcm.dao.post.DeptPositionDao;
+import com.lingnet.hcm.dao.post.PostPositionDao;
+import com.lingnet.hcm.entity.check.CkAnnualLeave;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Change;
+import com.lingnet.hcm.entity.person.PtJob;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.qxgl.dao.AdminDao;
+import com.lingnet.qxgl.dao.BackendDepDao;
+import com.lingnet.qxgl.dao.BranchDao;
+import com.lingnet.qxgl.entity.Branch;
+import com.lingnet.qxgl.entity.QxDepartment;
+import com.lingnet.qxgl.entity.QxRoles;
+import com.lingnet.qxgl.entity.QxUser;
+import com.lingnet.qxgl.entity.QxUserDatauth;
+import com.lingnet.qxgl.entity.QxUsers;
+import com.lingnet.qxgl.service.AdminService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.qxgl.service.BackendRoleService;
+import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: PersonnelServiceImpl 
+ * @Description: 人员信息service实现类 
+ * @author zrl
+ * @date 2017年3月20日 下午1:32:00 
+ *
+ */
+@Service("personnelService")
+public class PersonnelServiceImpl extends BaseServiceImpl<BasicInformation, String> 
+	implements PersonnelService{
+	
+	@Resource(name="personnelDao")
+	private PersonnelDao personnelDao;
+	
+	@Resource(name="ptJobDao")
+	private PtJobDao ptJobDao;
+	
+	@Resource(name="careerDao")
+	private CareerDao careerDao;
+	
+	@Resource(name="changeDao")
+	private ChangeDao changeDao;
+	
+	@Resource(name="branchDao")
+	private BranchDao branchDao;
+	
+	@Resource(name="backendDepDao")
+	private BackendDepDao backendDepDao;
+	
+	@Resource(name="postPositionDao")
+	private PostPositionDao postPositionDao;
+	@Resource(name="deptPositionDao")
+	private DeptPositionDao deptPositionDao;
+	
+	@Resource(name = "backendRoleService")
+    private BackendRoleService backendRoleService;
+	
+	@Resource(name = "adminService")
+    private AdminService adminService;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+	
+	@Resource(name = "annualLeaveRecordDao")
+	private AnnualLeaveRecordDao annualLeaveRecordDao;
+	
+	@Resource(name = "adminDao")
+    private AdminDao adminDao;
+	
+	@Autowired
+	protected SessionFactory sessionFactory;
+	
+	public SessionFactory getSessionFactory() {
+		return sessionFactory;
+	}
+
+	public void setSessionFactory(SessionFactory sessionFactory) {
+		this.sessionFactory = sessionFactory;
+	}
+
+	//人员基本信息list页面
+	@SuppressWarnings({ "rawtypes" })
+	@Override
+    public HashMap getPersonByDepId(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		QxUser user=LingUtil.userinfo();
+		String userId=user.getId();
+		String num=adminDao.getRolesByUser(userId);
+		if("1".equals(num)){
+			String username=user.getUsername();
+			BasicInformation info=this.get(Restrictions.eq("jobNumber", username));
+			if(info==null||"".equals(info)){
+				info=this.get(Restrictions.eq("practiceNum", username));
+			}
+			Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+			if(dataMap==null){
+				dataMap=new HashMap<String,String>();
+			}
+			dataMap.put("personId", info.getId());
+			searchData=JsonUtil.Encode(dataMap);
+		}
+		
+        return personnelDao.getPersonByDepId(pager, searchData,depIds);
+    }
+
+	@Override
+	public void updateCheckInfo(String formdata) throws Exception {
+		Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		String jobNumber = "";
+		String checkUnitId = "";
+		
+		String classNo = "";
+		String isMonitor = "";
+		String isSpecialHour = "";
+		String wageForm = "";
+		String checkNo = "";
+		if (!dataMap.isEmpty()){
+			jobNumber = dataMap.get("jobNumber");
+			checkUnitId = dataMap.get("checkUnitId");
+			classNo = dataMap.get("classNo");
+			isMonitor = dataMap.get("isMonitor");
+			isSpecialHour = dataMap.get("isSpecialHour");
+			wageForm = dataMap.get("wageForm");
+			checkNo = dataMap.get("checkNo");
+		}
+		BasicInformation info = personnelDao.getByJobNumber(jobNumber);
+		if (info != null){
+			info.setCheckUnitId(checkUnitId);
+			info.setClassNo(classNo);
+			info.setIsMonitor(Integer.parseInt(isMonitor));
+			info.setIsSpecialHour(Integer.parseInt(isSpecialHour));
+			info.setWageForm(Integer.parseInt(wageForm));
+			info.setCheckNo(checkNo);
+			personnelDao.update(info);
+		}
+	}
+
+	@Override
+	public String saveImportInfos(String endSuffix, File uploadFile) throws Exception {
+		// 读取数据
+        List<String[]> list = ExcelUtil.readData(1, 2, endSuffix, uploadFile);
+        // 获取所有职工号集合
+        List<Object> jobNumbers = personnelDao.getAllJobNumbers();
+        // 判断人员信息是否存在
+        if (jobNumbers.size() == 0) {
+            return "文件导入失败： 职工信息不存在！";
+        }
+        //获取所有考勤机号集合
+        List<Object> checkNumbers = personnelDao.getAllCheckNumbers();
+        // 导入名单只有表头没有人员信息
+        if (list.size() == 1) {
+            return "文件导入失败：导入名单中不存在人员信息";
+        }
+        // 第一行内容
+        String[] firstRow = {"职工号*", "班号*", "是否班长*", "是否特殊工时*", "工资形式*", "考勤编号*"};
+        // 单独把第一行抽取出来
+        String[] firstValues = list.get(0);
+        for (int i = 0, z = firstRow.length; i < z; i++) {
+            if (!firstRow[i].trim().equals(firstValues[i].trim())) {
+                return "文件导入失败：导入名单标题存在问题！<br/><font color='red'>" + firstValues[i].trim() + "</font>列必须是 " + firstRow[i].trim();
+            }
+        }
+        List<BasicInformation> importData = new ArrayList<BasicInformation>();
+        // 匹配消息
+        String msg = StringUtils.EMPTY;
+
+        // 循环遍历存储的Excel值
+        for (int i = 1; i < list.size(); i++) {
+            // 组装列
+            String[] columns = new String[6];
+            String[] values = list.get(i);
+            // 判断是否整行是空行
+            Boolean isEmpty= true;
+            for(int q=0;q<values.length;q++){
+                if (q < 6) {
+                    columns[q]=values[q].trim();
+                    if (!StringUtils.isBlank(columns[q])) {
+                        isEmpty = false;
+                    }
+                } else continue;
+            }
+            // 存在空白行
+            if (isEmpty) {
+                // 文档结束
+                break;
+            }
+            for(int k=values.length;k<6;k++){
+                columns[k]="";
+            }
+            BasicInformation infos = new BasicInformation();// 存储人员基本信息
+            //验证判断
+            infos.setClassNo(columns[1]+"");
+            if ("是".equals(columns[2])){
+            	infos.setIsMonitor(1);
+            } else if ("否".equals(columns[2])){
+            	infos.setIsMonitor(0);
+            }
+            if ("是".equals(columns[3])){
+            	infos.setIsSpecialHour(1);
+            } else if ("否".equals(columns[3])){
+            	infos.setIsSpecialHour(0);
+            }
+            if ("计件".equals(columns[4])){
+            	infos.setWageForm(1);
+            } else if ("计时".equals(columns[4])){
+            	infos.setWageForm(0);
+            }
+            // 职工号验证
+            if (!StringUtils.isBlank(columns[0])) {
+                String message = checkLength(columns[0], "职工号长度不能超过10位", 10);
+                if (!StringUtils.isBlank(message)) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，"+message);
+                }
+                if (!jobNumbers.contains(columns[0])){
+                	throw new Exception("文件导入失败： 第"+ (i+1) +"行，职工号不存在");
+                }
+                infos.setJobNumber(columns[0]);
+            } else throw new Exception("文件导入失败： 第"+ (i+1) +"行，职工号不能为空！");
+            // 考勤编号验证
+            if (!StringUtils.isBlank(columns[5])) {
+                String message = checkLength(columns[5], "考勤编号长度不能超过10位", 10);
+                if (!StringUtils.isBlank(message)) {
+                    throw new Exception("文件导入失败： 第"+ (i+1) +"行，"+message);
+                }
+                if (checkNumbers.contains(columns[5])){
+                	throw new Exception("文件导入失败： 第"+ (i+1) +"行，考勤编号已存在");
+                }
+                infos.setCheckNo(columns[5]);
+            } else throw new Exception("文件导入失败： 第"+ (i+1) +"行，考勤编号不能为空！");
+            importData.add(infos);
+        }
+        // 没有导入任何人员名单
+        if (importData.size() == 0) {
+            throw new Exception("@导入失败：" + msg);
+        }
+        // 批量保存所有导入人员信息
+        Session session = null;
+        try {
+	        session = sessionFactory.openSession();
+	        session.getTransaction().begin();
+	        for (int i = 0; i < importData.size(); i++){
+	        	BasicInformation info = importData.get(i);
+	        	String sql = "update JC_BASIC_INFORMATION set CLASS_NO = '"+ info.getClassNo() +"', IS_MONITOR = "
+	        			+ info.getIsMonitor() +", IS_SPECIAL_HOUR = "+ info.getIsSpecialHour() 
+	        			+", WAGE_FORM = "+ info.getWageForm() +", CHECK_NO = '"+ info.getCheckNo() 
+	        			+"' where JOB_NUMBER = '"+ info.getJobNumber() +"'";
+	        	session.createSQLQuery(sql).executeUpdate();
+	        	if (i%10 == 0){
+	        		session.flush();//保持与数据库数据的同步
+	        		session.clear();//清除内部缓存的全部数据，及时释放出占用的内存
+	        	}
+	        }
+	        session.getTransaction().commit();//提交事务
+        } catch (Exception e){
+        	session.getTransaction().rollback();
+        } finally {
+        	session.close();//关闭session
+        }
+        return "success";
+	}
+	
+	/**
+     * @Title: 检测列的长度 
+     * @param column
+     * @param msg
+     * @param length
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2016年12月6日 V 1.0
+     */
+    private String checkLength(Object column, String msg, int length) {
+        if (null != column) {
+            if (column.toString().length() > length) return msg;
+            else return "";
+        } else return "";
+    }
+    /**
+     * @Title: 人员基本信息保存
+     * @param column
+     * @param msg
+     * @param length
+     * @return 
+     * String 
+     * @author zrl
+     * @since 2016年12月6日 V 1.0
+     */
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata,String branchId) throws Exception {
+    	BasicInformation information=JsonUtil.toObject(formdata, BasicInformation.class);
+    	if (information != null) {
+    		String id = information.getId();
+    		if (StringUtils.isBlank(id)){
+    			information.setIsDelete(0);
+    			BasicInformation empinfo= this.get(Restrictions.eq("jobNumber", information.getJobNumber()));
+    			if(empinfo!=null){
+    				throw new Exception("职工号已经存在，保存失败！"); 
+    			}
+    			information.setCheckUnitId(information.getDepartId());//考勤用
+    			//*****根据部门ID，获得部门名称公司ID，以及公司名称***//
+    			if(information.getDepartId()!=null&&!"".equals(information.getDepartId())){
+    				QxDepartment dep=this.get(QxDepartment.class, information.getDepartId());
+    				if(dep==null){
+    					throw new Exception("部门已删除，操作错误！"); 
+    				}
+    				information.setDepartName(dep.getName());
+					information.setFilmId(dep.getBarchId());
+					Branch branch=this.get(Branch.class, dep.getBarchId());
+					information.setFilmName(branch.getFzx());
+    			}
+    			
+        		id=this.save(information);
+        		if (StringUtils.isBlank(id))throw new Exception("保存失败");
+        		//*****创建用户***//
+                QxUsers usenfo=adminService.getUserByName(information.getJobNumber());
+                if(usenfo==null||usenfo.getId()==null){
+                    QxUser  userinfo=new QxUser();
+                    userinfo.setUsername(information.getJobNumber());
+                    userinfo.setName(information.getName());
+                    userinfo.setPassword("123456");
+                    userinfo.setCid(information.getFilmId());
+                    userinfo.setDepId(information.getDepartId());
+                    userinfo.setIsDelete(0);
+                    
+                    HashSet<QxRoles> rolelist =new HashSet<QxRoles>(); 
+                  //普通员工权限
+                    QxRoles role = backendRoleService.get(QxRoles.class, Restrictions.eq("id","402881955c62c8f6015c62dc874d0006"));
+                    rolelist.add(role);
+                    adminService.saveuser(userinfo, rolelist);
+                    String userId=this.get(QxUsers.class, Restrictions.eq("username",information.getJobNumber())).getId();
+                            
+                    String depIds =getall(information.getDepartId(),"","","");
+                    String branchid=depIds.split("branchid")[1];
+                    String branchs =getall1(branchid,"","","");
+                    
+                    String depall=depIds.split("branchid")[0].split("and")[0];
+                    String flgall=depIds.split("branchid")[0].split("and")[1];
+                    String branchall=branchs.split("and")[0];
+                    String flgall1=branchs.split("and")[1];
+                    
+                    String depId=depall+","+branchall;
+                    String flgs=flgall+","+flgall1;
+                    
+                    if(StringUtils.isNotEmpty(depId)){
+                        String[] depArr=depId.split(",");
+                        String[] flgArr=flgs.split(",");
+                        for(int i=0,l=depArr.length;i<l;i++){
+                            QxUserDatauth datauth=new QxUserDatauth(userId, depArr[i], flgArr[i]);
+                            adminDao.save(datauth);
+                        }
+                    }
+                }else{
+                	throw new Exception("这个用户已经存在，不需要重新添加！");
+                }
+                
+        		if(information.getSpecificPost()!=null&&!"".equals(information.getSpecificPost())){
+        			//兼职信息
+            		PtJob ptJob=new PtJob();
+            		ptJob.setPersonId(information.getId());
+            		ptJob.setIsDelete(0);
+            		ptJob.setIsHostPost(1);
+            		ptJob.setDepId(information.getDepartId());//部门ID
+            		ptJob.setFirmId(information.getFilmId());//单位ID
+            		ptJob.setStandardPostId(information.getPostId());
+            		ptJob.setSpePostId(information.getSpecificPostId());
+            		ptJob.setDep(information.getDepartName());//部门
+            		ptJob.setFirm(information.getFilmName());//单位
+            		ptJob.setStandardPost(information.getPost());
+            		ptJob.setSpePost(information.getSpecificPost());
+            		ptJob.setBeginTime(information.getBeginTime());
+            		//人员异动
+            		Change change=new Change();
+            		change.setPersonId(information.getId());
+            		change.setJobNumber(information.getJobNumber());
+            		change.setChangedate(information.getBeginTime());
+            		change.setDepbeginDate(information.getBeginTime());
+            		change.setPostbeginDate(information.getBeginTime());
+            		change.setChangeType(15);
+            		//change.setDep2(information.getDepartId());
+            		//change.setFilm2(information.getFilmId());
+            		//change.setSpanPost2(information.getPostId());
+            		//change.setSpPost2(information.getSpecificPostId());
+            		change.setDepName2(information.getDepartName());
+            		change.setFilmName2(information.getFilmName());
+            		change.setSpanPostName2(information.getPost());
+            		change.setSpPostName2(information.getSpecificPost());
+            		change.setEmpType2(information.getEmpType());
+            		change.setOnJob2(information.getOnJob());
+            		change.setOnPost2(information.getOnPost());
+            		change.setJobLevel2(information.getJobLevel());
+            		Career career=new Career();
+            		career.setPersonId(information.getId());
+            		career.setJobNumber(information.getJobNumber());
+            		career.setBegindate(information.getBeginTime());
+            		career.setCompany(information.getFilmName());
+            		career.setDepartment(information.getDepartName());
+            		career.setPost(information.getSpecificPost());
+            		if(information.getJobLevel()!=null&&!"".equals(information.getJobLevel())){
+            			career.setJobLevel(Integer.valueOf(information.getJobLevel()));
+            		}
+            		career.setBegindate(information.getBeginTime());
+            		if(information.getEmpType()==0){
+            			career.setRemark("正式工");
+            		}else if(information.getEmpType()==1){
+            			career.setRemark("劳务外包");
+            		}else if(information.getEmpType()==2){
+            			career.setRemark("业务外包");
+            		}
+            		String sql=" SELECT JI.NAME,JI.JOB_LEVEL,JI.PHONE FROM JC_BASIC_INFORMATION JI  ";
+            		sql+=" LEFT JOIN POST_POSITION PP ON PP.ID = JI.POST_ID ";
+            		sql+=" WHERE JI.DEPART_ID='"+information.getDepartId()+"' AND rownum =1 ";
+            		sql+=" ORDER BY PP.POSITION_CODE ";
+            		List<?> leader1=this.findBySql(sql);
+            		if(leader1.size()>0){
+            			Object[] leader=(Object[]) leader1.get(0);
+            			career.setProve(leader[0]==null?"":leader[0].toString());
+        				career.setProTel(leader[2]==null?"":leader[2].toString());
+        				career.setProDuty(leader[1]==null?"":leader[1].toString());
+            		}
+            		
+            		
+            		String careerid=careerDao.save(career);
+            		String changeid=changeDao.save(change);//保存
+            		String jobid=ptJobDao.save(ptJob);//保存
+            		if (StringUtils.isBlank(jobid))throw new Exception("信息导入兼职信息时发生异常！");
+            		if (StringUtils.isBlank(changeid))throw new Exception("信息导入异动表时发生异常！");
+            		if (StringUtils.isBlank(careerid))throw new Exception("信息导入职位表时发生异常！");
+        		}
+        		
+        	}else{
+        		BasicInformation oldInfo=this.get(BasicInformation.class, Restrictions.eq("id", id), Restrictions.eq("isDelete", 0));
+        		information.setFilmId(oldInfo.getFilmId());
+        		information.setFilmName(oldInfo.getFilmName());
+        		information.setDepartId(oldInfo.getDepartId());
+        		information.setDepartName(oldInfo.getDepartName());
+        		if(information.getImgpath()!=null){
+        			int pos = information.getImgpath().indexOf("/baseInfo/") > -1 ? information.getImgpath().indexOf("/baseInfo/") + 10 : 0;
+        			String newimg = information.getImgpath().substring(pos);
+        			information.setImgpath(newimg);
+        		}
+        		oldInfo.copyFrom(information);
+        		
+				this.update(oldInfo);
+				
+        	}
+    		
+    	}else return "信息不能为空";
+    	
+    	return "success";
+    }
+
+	@Override
+	public void updateBatchClass(String empIds, String depIds, String classNo)
+			throws Exception {
+		personnelDao.updateBatchClass(empIds, depIds, classNo);
+	}
+
+	@Override
+	public List<Map<String, String>> getDataByEmpIds(Pager pager, List<String> empIdArrs) {
+		return personnelDao.getDataByEmpIds(pager, empIdArrs);
+	}
+
+	@Override
+	public String getCheckUnitIdByJobNumber(String jobNumber) {
+		return personnelDao.getCheckUnitIdByJobNumber(jobNumber);
+	}
+
+	@Override
+	public Map<String, Object> getAnnualLeaveData(Pager pager, String searchData) {
+		//获得当前用户的所有权限部门集合
+        String depIds = getAllDepIdStrs();
+		List<Map<String, String>> list = personnelDao.getAnnualLeaveData(pager, searchData, depIds);
+        Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+        if (dataMap == null){
+        	Map<String, Object> returnMap = new HashMap<String, Object>();
+    		returnMap.put("data", list);
+    		returnMap.put("total", pager.getTotalCount());
+    		return returnMap;
+        }
+        String year = dataMap.get("year");//搜索的年份
+        if (year == null || "".equals(year)){
+        	Map<String, Object> returnMap = new HashMap<String, Object>();
+    		returnMap.put("data", list);
+    		returnMap.put("total", pager.getTotalCount());
+    		return returnMap;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+        SimpleDateFormat sdfAll = new SimpleDateFormat("yyyy-MM-dd");
+        if (Integer.parseInt(year) <= Integer.parseInt(sdf.format(new Date()))){
+        	String thisDate = "";
+        	if (Integer.parseInt(year) < Integer.parseInt(sdf.format(new Date()))){//输入年度小于当前年份
+        		thisDate = year + "-12-31";
+            } else if (Integer.parseInt(year) == Integer.parseInt(sdf.format(new Date()))){
+            	thisDate = sdfAll.format(new Date());
+            }
+    		if (list.size() > 0){
+    			SimpleDateFormat sdfMonth = new SimpleDateFormat("MM");
+    			List<String> jobNumbers = new ArrayList<String>();
+    			for (Map<String, String> map :list){
+    				jobNumbers.add(map.get("jobNumber"));
+    				Double legalDay = 0.0;//全部休假天数
+    				Double allDay = 0.0;//法定休假天数
+    				String workDate = map.get("workDate");//开始工作日期
+    				String portDate = map.get("portDate");//入港时间
+    				int legalMonths = 0;//当前日期距离开始工作日期相差月份数
+    				try {
+    					legalMonths = countMonths(workDate, thisDate);
+    				} catch (Exception e) {
+    					e.printStackTrace();
+    				}
+    				if (legalMonths <= 0){
+    					allDay = 0.0;
+    				} else if (legalMonths > 0 && legalMonths < 12){
+    					allDay = 0.0;
+    				} else if (legalMonths/12 >=1 && legalMonths/12 < 10){
+    					allDay = 5.0;
+    				} else if (legalMonths/12 >= 10 && legalMonths/12 < 20){
+    					allDay = 10.0;
+    				} else {
+    					allDay = 15.0;
+    				}
+    				Double actualDay = 0.0;//应休休假天数
+    				int actualMonths = 0;//搜索年份距离开始工作日期相差月份数
+    				try {
+    					actualMonths = countMonths(portDate, thisDate);
+    				} catch (Exception e) {
+    				    actualMonths=0;
+    					e.printStackTrace();
+    				}
+    				if (actualMonths <= 0){
+    					legalDay = 0.0;
+    				} else {
+    					if (Integer.parseInt(portDate.substring(0, 4)) == Integer.parseInt(thisDate.substring(0, 4))){
+        					if (Integer.parseInt(portDate.substring(0, 4)) == Integer.parseInt(sdfMonth.format(new Date()))){
+        						int thisMonth = Integer.parseInt(sdfMonth.format(new Date()))-Integer.parseInt(portDate.substring(5, 7))+1;
+            					legalDay = thisMonth/12.0*allDay;
+        					} else {
+        						int thisMonth = 12-Integer.parseInt(portDate.substring(5, 7))+1;
+            					legalDay = thisMonth/12.0*allDay;
+        					}
+        				} else {
+        					legalDay = allDay;
+        				}
+    				}
+    				map.put("legalDay", Math.ceil(legalDay)+"");//全部
+    				if (actualMonths <= 0){
+    					actualDay = 0.0;
+    				} else {
+    					if (Integer.parseInt(year) < Integer.parseInt(sdf.format(new Date()))){//输入年度小于当前年份
+    						if (Integer.parseInt(thisDate.substring(0, 4)) == Integer.parseInt(portDate.substring(0, 4))){
+    							int thisMonth = Integer.parseInt(thisDate.substring(5, 7))-Integer.parseInt(portDate.substring(5, 7))+1;
+            					actualDay = thisMonth/12.0*allDay;
+    						} else {
+    							actualDay = allDay;
+    						}
+        	            } else if (Integer.parseInt(year) == Integer.parseInt(sdf.format(new Date()))){
+        	            	if (Integer.parseInt(thisDate.substring(0, 4)) == Integer.parseInt(portDate.substring(0, 4))){
+        	            		int thisMonth = Integer.parseInt(sdfMonth.format(new Date()))-Integer.parseInt(portDate.substring(5, 7))+1;
+            					actualDay = thisMonth/12.0*allDay;
+        	            	} else {
+        	            		actualDay = allDay;
+        	            	}
+        	            }
+    				}
+    				map.put("shouldTake", Math.ceil(actualDay)+"");//应休天数
+    			}
+    			//查询员工年假休假记录
+    			List<CkAnnualLeave> annualList = annualLeaveRecordDao.getRecordByJobNumbers(jobNumbers, year);
+    			Map<String, List<CkAnnualLeave>> annualMap = new HashMap<String, List<CkAnnualLeave>>();
+    			String flag = "";
+    			if (annualList != null && annualList.size() > 0){
+    				List<CkAnnualLeave> leaveList = null;
+    				for (CkAnnualLeave leave :annualList){
+    					if ("".equals(flag)){
+    						flag = leave.getJobNumber();
+    						leaveList = new ArrayList<CkAnnualLeave>();
+    						leaveList.add(leave);
+    					} else {
+    						if (flag.equals(leave.getJobNumber())){
+    							leaveList.add(leave);
+    						} else {
+    							annualMap.put(flag, leaveList);
+    							flag = leave.getJobNumber();
+    							leaveList = new ArrayList<CkAnnualLeave>();
+    							leaveList.add(leave);
+    						}
+    					}
+    				}
+    				if (annualMap.get(flag) == null){
+    					annualMap.put(flag, leaveList);
+    				}
+    			}
+    			//循环封装
+    			if (list.size() > 0){
+    				for (Map<String, String> map :list){
+    					if (!annualMap.isEmpty()){
+    						List<CkAnnualLeave> recordList = annualMap.get(map.get("jobNumber"));
+    						Double total = 0.0;
+    						if (recordList != null){
+    							for (CkAnnualLeave leave:recordList){
+    								total += leave.getDays();
+    								String days = map.get("month"+leave.getMonthCalendar());
+    								if ("".equals(days)){
+    									map.put("month"+leave.getMonthCalendar(), leave.getDays()+"");
+    								} else {
+    									map.put("month"+leave.getMonthCalendar(), Double.parseDouble(days)+(double)leave.getDays()+"");
+    								}
+    							}
+    							map.put("haveTake", total+"");//已休
+    							if (!"0".equals(map.get("shouldTake"))){
+    								map.put("surplus", (Double.parseDouble(map.get("shouldTake"))
+    										-Double.parseDouble(map.get("haveTake")))+"");
+    							} else {
+    								map.put("surplus", "0");//剩余
+    							}
+    						} else {
+    							map.put("haveTake", "0");//已休
+    							map.put("surplus", map.get("shouldTake"));//剩余
+    						}
+    					} else {
+    						map.put("haveTake", "0");//已休
+    						map.put("surplus", map.get("shouldTake"));//剩余
+    					}
+    				}
+    			}
+    		}
+        }
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put("data", list);
+		returnMap.put("total", pager.getTotalCount());
+		return returnMap;
+	}
+	
+	public static int countMonths(String date1,String date2) throws Exception{
+	    SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd");
+	    Calendar c1 = Calendar.getInstance();
+	    Calendar c2 = Calendar.getInstance();
+	    c1.setTime(sdf.parse(date1));
+	    c2.setTime(sdf.parse(date2));
+	    int year =c2.get(Calendar.YEAR)-c1.get(Calendar.YEAR);
+	    return year*12+c2.get(Calendar.MONTH)-c1.get(Calendar.MONTH);
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+		String depIds = "";
+  		String userId = toolUtil.getUserId();
+  		List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+  				+ "INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+  				+ "WHERE B.IS_DELETE = 0 ");
+  		if (data!=null&&data.size()>0){
+  			for (int i=0;i<data.size();i++){
+  				Object b = (Object)data.get(i);
+  				depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+  				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+               		"INNER JOIN QX_USER_SHOWAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+               		"WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    String parent=dep[0]==null?"":dep[0].toString();
+            	    if ("ROOT".equals(parent)){
+            	    	depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+            	    }else{
+            	    	depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+            	    }
+  				}
+  			}
+  		}
+  		if (!"".equals(depIds)){
+  			depIds = depIds.substring(0,depIds.length()-2);
+  		} else depIds = "''";
+  		return depIds;
+	}
+	
+	/**
+	 * 根据部门ID获得所有部门-----递归
+	 * @Title: getDepId 
+	 * @return 
+	 * String 
+	 * @author zrl
+	 * @since 2017年6月17日 V 1.0
+	 */
+	public String getall(String deptid,String retstr,String flgs,String fepflg){
+	    QxDepartment dept=this.get(QxDepartment.class, deptid);
+	    if("ROOT".equals(dept.getParent())){
+	        if("".equals(retstr)){
+	            retstr=dept.getId();
+	        }else{
+	            retstr=retstr+","+dept.getId();
+	        }
+	        if("".equals(flgs)){
+	            flgs="1";
+	        }else{
+	            flgs=flgs+","+1;
+	        }
+	        fepflg=retstr+"and"+flgs+"branchid"+dept.getBarchId();
+	        return fepflg;
+	    }else{
+	        retstr=retstr+","+dept.getId();
+	        flgs=flgs+","+1;
+	        fepflg=retstr+"and"+flgs+"branchid"+dept.getBarchId();
+            return getall(dept.getParent() , retstr,flgs,fepflg);
+	    } 
+	    
+	}
+	/**
+     * 根据部门ID获得所有公司-----递归
+     * @Title: getDepId 
+     * @return 
+     * String 
+     * @author zrl
+     * @since 2017年6月17日 V 1.0
+     */
+    public String getall1(String deptid,String retstr,String flgs,String fepflg){
+        Branch branch=this.get(Branch.class, deptid);
+        
+        if("-1".equals(branch.getPid())){
+            if("".equals(retstr)){
+                retstr= branch.getId();
+            }else{
+                retstr=retstr+","+branch.getId(); 
+            }
+            if("".equals(flgs)){
+                flgs="0"; 
+            }else{
+                flgs=flgs+","+0;
+            }
+            
+            fepflg=retstr+"and"+flgs; 
+            return fepflg;
+        }else{
+            if("".equals(retstr)){
+                retstr= branch.getId();
+            }else{
+                retstr=retstr+","+branch.getId(); 
+            }
+            if("".equals(flgs)){
+                flgs="0"; 
+            }else{
+                flgs=flgs+","+0;
+            }
+            fepflg= retstr+"and"+flgs;
+           return getall1(branch.getPid(), retstr,flgs,fepflg); 
+        } 
+    }
+	//**************************************************************//
+	//普通员工  正式工list页面
+	@SuppressWarnings({ "rawtypes" })
+	@Override
+    public HashMap getZsgPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+        return personnelDao.getZsgPerson(pager, searchData,depIds);
+    }
+
+	//普通员工  试岗期list页面
+	@SuppressWarnings({ "rawtypes" })
+	@Override
+	public HashMap getSgqPerson(Pager pager, String searchData)throws Exception {
+		String depIds = getAllDepIdStrs();
+	    return personnelDao.getSgqPerson(pager, searchData,depIds);
+	}
+	@Override
+	public HashMap<String, Object> getSxsPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getSxsPerson(pager, searchData,depIds);
+	}
+
+	@Override
+	public HashMap<String, Object> getLwwbPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getLwwbPerson(pager, searchData,depIds);
+	}
+
+	@Override
+	public HashMap<String, Object> getYwwbPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getYwwbPerson(pager, searchData,depIds);
+	}
+
+	@Override
+	public HashMap<String, Object> getTxPerson(Pager pager, String searchData) {
+		return personnelDao.getTxPerson(pager, searchData);
+	}
+
+	@Override
+	public HashMap<String, Object> getLzPerson(Pager pager, String searchData) {
+		return personnelDao.getLzPerson(pager, searchData);
+	}
+
+	@Override
+	public HashMap<String, Object> getFpPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getFpPerson(pager, searchData,depIds);
+	}
+
+	@Override
+	public HashMap<String, Object> getFyjrPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getFyjrPerson(pager, searchData,depIds);
+	}
+	
+	@Override
+	public HashMap<String, Object> getFzgPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getFzgPerson(pager, searchData,depIds);
+	}
+	@Override
+	public HashMap<String, Object> getJsgrPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getJsgrPerson(pager, searchData,depIds);
+	}
+	@Override
+	public HashMap<String, Object> getZyjsryPerson(Pager pager, String searchData) {
+		String depIds = getAllDepIdStrs();
+		return personnelDao.getZyjsryPerson(pager, searchData,depIds);
+	}
+}

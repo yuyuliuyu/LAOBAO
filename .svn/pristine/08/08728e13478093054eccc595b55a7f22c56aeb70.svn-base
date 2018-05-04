@@ -1,0 +1,318 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryRecordDao;
+import com.lingnet.hcm.entity.salary.SalaryAccount;
+import com.lingnet.hcm.entity.salary.SalaryHistory;
+import com.lingnet.hcm.entity.salary.SalaryPersonal;
+import com.lingnet.hcm.entity.salary.SalaryRecord;
+import com.lingnet.hcm.entity.salary.SalaryValue;
+import com.lingnet.hcm.service.salary.SalaryAccountService;
+import com.lingnet.hcm.service.salary.SalaryHistoryService;
+import com.lingnet.hcm.service.salary.SalaryPersonalService;
+import com.lingnet.hcm.service.salary.SalaryRecordService;
+import com.lingnet.hcm.service.salary.SalaryValueService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 工资档案
+ * @ClassName: SalaryRecordDao 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年3月23日 下午5:12:18 
+ *
+ */
+@Service("salaryRecordService")
+public class SalaryRecordServiceImpl extends BaseServiceImpl<SalaryRecord, String>
+              implements SalaryRecordService {
+
+    @Resource(name="salaryPersonalService")
+    private SalaryPersonalService salaryPersonalService;
+    @Resource(name="salaryValueService")
+    private SalaryValueService salaryValueService;
+    @Resource(name="salaryHistoryService")
+    private SalaryHistoryService salaryHistoryService;
+    @Resource(name="salaryAccountService")
+    private SalaryAccountService salaryAccountService;
+    @Resource(name="salaryRecordDao")
+    private SalaryRecordDao salaryRecordDao;
+
+    @Override
+    public Map<String, Object> getStaffSalaryListData(String id, String deptId, String searchData, Pager pager) {
+        return salaryRecordDao.getStaffSalaryListData(id, deptId, searchData, pager);
+    }
+
+    @Override
+    public Map<String, Object> getStaffSalaryData(String id) {
+        return salaryRecordDao.getStaffSalaryData(id);
+    }
+
+    @Override
+    public String saveOrUpdate(String formdata, String griddata) {
+        Map<String, String> map = JsonUtil.parseProperties(formdata);
+        SalaryRecord record = new SalaryRecord();
+        record.setStaffId(map.get("id"));
+        record.setIsBzgs(Integer.valueOf(map.get("isBzgs")));
+        record.setIsSpecialHour(Integer.valueOf(map.get("isSpecialHour")));
+        SalaryRecord record2 = get(SalaryRecord.class, Restrictions.eq("staffId", record.getId()));
+        if (record2 == null) {
+            String id = save(record);
+            if (StringUtils.isBlank(id)) {
+                return "发生异常，保存失败";
+            }
+        } else {
+            record2.copyFrom(record);
+            update(record2);
+        }
+
+        return "success";
+    }
+
+    @Override
+    public List<String[]> getStandardItems(String id) {
+        List<String[]> items = new ArrayList<String[]>();
+        items.add(new String[] {"固定薪资项目", "../salary/salary_record!getSalaryStandardItems.action?type=1&id="+id});
+        items.add(new String[] {"异动项目", "../salary/salary_record!getSalaryStandardItems.action?type=2&id="+id});
+        items.add(new String[] {"标准类项目", "../salary/salary_record!getSalaryStandardItems.action?type=3&id="+id});
+        items.add(new String[] {"年金类项目", "../salary/salary_record!getSalaryStandardItems.action?type=4&id="+id});
+        items.add(new String[] {"统筹类项目", "../salary/salary_record!getSalaryStandardItems.action?type=5&id="+id});
+
+        return items;
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryStandardItems(String id, int type) {
+        return salaryRecordDao.getSalaryStandardItems(id, type);
+    }
+
+    @Override
+    public Map<String, Object> getHistorySalaryRecord(String id) {
+        return salaryRecordDao.getHistorySalaryRecord(id);
+    }
+
+    @Override
+    public Map<String, Object> getPracticeEmployeeListData(String depId, Pager pager) {
+        return salaryRecordDao.getPracticeEmployeeListData(depId, pager);
+    }
+
+    @Override
+    public Map<String, Object> getEmployeeBaseInfo(String id) {
+        return salaryRecordDao.getEmployeeBaseInfo(id);
+    }
+
+    @Override
+    public List<Map<String, Object>> getSalaryGroupValueListData(String id) {
+        return salaryRecordDao.getSalaryGroupValueListData(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToStaff(String formdata, String griddata, String gridData, String gridAccountData) throws Exception {
+        // 基本信息
+        SalaryRecord record = JsonUtil.toObject(formdata, SalaryRecord.class);
+        if (record != null) {
+            String staffId = "";
+            if (StringUtils.isBlank(record.getId())) {
+                String id = save(record);
+                if (StringUtils.isBlank(id)) {
+                    return "发生异常，保存失败";
+                }
+                staffId = record.getStaffId();
+            } else {
+                SalaryRecord record2 = get(SalaryRecord.class, Restrictions.eq("id", record.getId()));
+                if (record2 == null) {
+                    return "该员工不存在";
+                }
+                record2.copyFrom(record);
+                update(record2);
+                staffId = record2.getStaffId();
+            }
+            List<Map<String, String>> mapList = JsonUtil.getMapList(griddata);
+            for (int i=0, l = mapList.size(); i< l; i++) {
+                Map<String, String> m = mapList.get(i);
+                SalaryPersonal personal = JsonUtil.toObject(JsonUtil.Encode(m), SalaryPersonal.class);
+                if ("removed".equals(m.get("_state"))) {
+                    SalaryPersonal personal2 = salaryPersonalService.get(SalaryPersonal.class, Restrictions.eq("id", personal.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (personal2 != null) {
+                        personal2.setIsDelete(1);
+                        salaryPersonalService.update(personal2);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    SalaryPersonal personal2 = salaryPersonalService.get(SalaryPersonal.class, Restrictions.eq("id", personal.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (personal2 != null) {
+                        personal2.copyFrom(personal);
+                        salaryPersonalService.update(personal2);
+                    } else throw new Exception("该薪资组："+m.get("groupName") + "已经被删除!");
+                } else if ("added".equals(m.get("_state"))) {
+                    personal.setSalaryRecordId(staffId);
+                    personal.setIsPei(0);
+                    personal.setIsOff(0);
+                    personal.setIsDelete(0);
+                    String result = salaryPersonalService.save(personal);
+                    if (StringUtils.isBlank(result)) {
+                        throw new Exception("该薪资组："+m.get("groupName") + "保存失败!");
+                    }
+                }
+            }
+            List<Map<String, String>> groupList = JsonUtil.getMapList(gridData);
+            for (int i=0, l = groupList.size(); i< l; i++) {
+                Map<String, String> m = groupList.get(i);
+                SalaryValue salaryValue = JsonUtil.toObject(JsonUtil.Encode(m), SalaryValue.class);
+                if ("removed".equals(m.get("_state"))) {
+                    SalaryValue value = salaryPersonalService.get(SalaryValue.class, Restrictions.eq("id", salaryValue.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (value != null) {
+                        value.setIsDelete(1);
+                        salaryValueService.update(value);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    SalaryValue value = salaryPersonalService.get(SalaryValue.class, Restrictions.eq("id", salaryValue.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (value != null) {
+                        value.copyFrom(salaryValue);
+                        salaryValueService.update(value);
+                    } else throw new Exception("该薪资组："+m.get("groupName") + "已经被删除!");
+                } else if ("added".equals(m.get("_state"))) {
+                    salaryValue.setStaffId(staffId);
+                    salaryValue.setIsDelete(0);
+                    String result = salaryValueService.save(salaryValue);
+                    if (StringUtils.isBlank(result)) {
+                        throw new Exception("发生异常，保存失败!");
+                    }
+                }
+            }
+            List<Map<String, String>> gridAccountList = JsonUtil.getMapList(gridAccountData);
+            for (int i=0, l = gridAccountList.size(); i< l; i++) {
+                Map<String, String> m = gridAccountList.get(i);
+                SalaryAccount salaryValue = JsonUtil.toObject(JsonUtil.Encode(m), SalaryAccount.class);
+                if ("removed".equals(m.get("_state"))) {
+                    SalaryAccount value = salaryAccountService.get(SalaryAccount.class, Restrictions.eq("id", salaryValue.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (value != null) {
+                        value.setIsDelete(1);
+                        salaryAccountService.update(value);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    SalaryAccount value = salaryAccountService.get(SalaryAccount.class, Restrictions.eq("id", salaryValue.getId()),
+                            Restrictions.eq("isDelete", 0));
+                    if (value != null) {
+                        value.copyFrom(salaryValue);
+                        salaryAccountService.update(value);
+                    } else throw new Exception("该账号："+m.get("account") + "已经被删除!");
+                } else if ("added".equals(m.get("_state"))) {
+                    salaryValue.setStaffId(staffId);
+                    salaryValue.setIsDelete(0);
+                    String result = salaryAccountService.save(salaryValue);
+                    if (StringUtils.isBlank(result)) {
+                        throw new Exception("发生异常，保存失败!");
+                    }
+                }
+            }
+
+            // 获取调整记录
+            Map<String, String> adjustMap = JsonUtil.parseProperties(formdata);
+            String d = adjustMap.get("adjust");
+            d = d.substring(1, d.length()-1);
+            Map<String, String> map = JsonUtil.parseProperties(d);
+            // 更改记录保存
+            if (map != null) {
+                List<SalaryHistory> histories = new ArrayList<SalaryHistory>();
+                for (Entry<String, String> entry : map.entrySet()) {
+                    // id==>员工id
+                    Map<String, String> itemsMap = JsonUtil.parseProperties(entry.getValue());
+                    for (Entry<String, String> entryItems : itemsMap.entrySet()) {
+                        String itemId = entryItems.getKey();
+                        String eiValue = entryItems.getValue();
+                        eiValue = eiValue.substring(1, eiValue.length()-1);
+                        String[] values = eiValue.split(",");
+                        if (!values[0].equals(values[1])) {
+                            SalaryHistory history = new SalaryHistory();
+                            history.setStaffId(staffId);
+                            history.setItemsId(itemId);
+                            history.setAdjustFront(values[0].replaceAll("\"", ""));
+                            history.setAdjustNext(values[1].replaceAll("\"", ""));
+                            history.setAdjustDate(new Date());
+                            history.setNote(values[2]);
+                            histories.add(history);
+                        }
+                    }
+                }
+                if (histories.size() > 0) {
+                    salaryHistoryService.saveBatch(histories);
+                }
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdateToStaffSalary(String gridData) throws Exception {
+        List<Map<String, String>> list = JsonUtil.getMapList(gridData);
+        for (int i=0, l = list.size(); i< l; i++) {
+            Map<String, String> m = list.get(i);
+            // 循环遍历项目值
+            String[] itemsId = m.get("wmId").split(",");
+            String[] svIds = m.get("svId").split(",");
+            for (int j=0, ll = itemsId.length; j < ll; j++) {
+                SalaryValue value = salaryPersonalService.get(SalaryValue.class, Restrictions.eq("staffId", m.get("id")),
+                        Restrictions.eq("id", svIds[j]), Restrictions.eq("isDelete", 0));
+                if (value != null) {
+                    value.setSalaryItemsId(itemsId[j]);
+                    value.setStaticValue(m.get("a"+ j));
+                    salaryValueService.update(value);
+                } else throw new Exception(m.get("name")+" 的第"+j+"个薪资项目已经被删除!");
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getAllSalaryAdjustListData(String depId, String searchData, Pager pager) {
+        return salaryRecordDao.getAllSalaryAdjustListData(depId, searchData, pager);
+    }
+
+    @Override
+    public List<Map<String, String>> getAllGroupFinancialList(String id) {
+        return salaryRecordDao.getAllGroupFinancialList(id);
+    }
+
+    @Override
+    public Map<String, Object> getAllRecordHistoryListData(String staffId, Pager pager) {
+        return salaryRecordDao.getAllRecordHistoryListData(staffId, pager);
+    }
+
+    @Override
+    public List<Map<String, Object>> getStaffForAdjustListData(String ids) {
+        return salaryRecordDao.getStaffForAdjustListData(ids);
+    }
+
+    @Override
+    public List<SalaryAccount> getSalaryAccountListData(String id) {
+        List<SalaryAccount> list = getList(SalaryAccount.class, Restrictions.eq("staffId", id), Restrictions.eq("isDelete", 0));
+
+        return list;
+    }
+
+}

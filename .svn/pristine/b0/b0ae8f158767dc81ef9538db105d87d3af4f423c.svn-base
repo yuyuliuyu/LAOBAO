@@ -1,0 +1,283 @@
+package com.lingnet.util;
+
+import java.io.*;
+
+import java.lang.reflect.*;
+
+import java.util.*;
+
+import com.lowagie.text.*;
+
+import com.lowagie.text.pdf.*;
+
+import java.awt.Color; 
+
+import java.net.MalformedURLException;
+
+import java.text.SimpleDateFormat;
+
+/**
+ * 导出PDF
+ * @ClassName: ExportPdf 
+ * @Description: TODO 
+ * @author yinzl
+ * @date 2016-4-14 上午9:40:33  s
+ * @param <T>
+ */
+public class ExportPdf<T> {
+
+    public void exportPdf(Collection<T> dataset, OutputStream out) {
+
+        exportPdf("测试iText导出PDF文档", null, dataset, out, "yyyy-MM-dd");
+
+    }
+
+    public void exportPdf(String[] headers, Collection<T> dataset,
+
+    OutputStream out) {
+
+        exportPdf("测试iText导出PDF文档", headers, dataset, out, "yyyy-MM-dd");
+
+    }
+
+    public void exportPdf(String[] headers, Collection<T> dataset,
+
+    OutputStream out, String pattern) {
+
+        exportPdf("测试iText导出PDF文档", headers, dataset, out, pattern);
+
+    }
+
+    /**
+     * 
+     * 这是一个通用的方法，利用了JAVA的反射机制，可以将放置在JAVA集合中并且符号一定条件的数据以PDF 的形式输出到指定IO设备上
+     * 
+     * 
+     * 
+     * @param title 表格标题名 
+     * @param headers 表格属性列名数组 
+     * @param dataset 需要显示的数据集合,集合中一定要放置符合javabean风格的类的对象。此方法支持的
+     *                javabean属性的数据类型有基本数据类型及String,Date,byte[](图片数据)
+     * @param out 与输出设备关联的流对象，可以将PDF文档导出到本地文件或者网络中 
+     * @param pattern 如果有时间数据，设定输出格式。默认为"yyy-MM-dd"
+     */
+
+    @SuppressWarnings({ "unchecked", "unused", "rawtypes" })
+    public void exportPdf(String title, String[] headers, Collection<T> dataset, OutputStream out, String pattern) {
+
+        // 作为报表的PDF文件，一定要适合打印机的输出打印 
+        Rectangle rectPageSize = new Rectangle(PageSize.A4);// 定义A4页面大小 
+        Document document = new Document(rectPageSize, 50, 50, 50, 50);// 其余4个参数，设置了页面的4个边距
+
+        try {
+
+            // 将PDF文档写出到out所关联IO设备上的书写对象
+
+            PdfWriter.getInstance(document, out);
+
+            // 添加文档元数据信息
+
+            document.addTitle(ToolUtil.getChinese(title));
+
+            document.addSubject("export information");
+
+            document.addAuthor("leno");
+
+            document.addCreator("leno");
+
+            document.addKeywords("pdf itext");
+
+            // 定义页头和页尾
+
+            HeaderFooter header = new HeaderFooter(new PdfParagraph(title, 20,
+
+            true), false);
+
+            header.setAlignment(Element.ALIGN_CENTER);
+
+            HeaderFooter footer = new HeaderFooter(new Phrase("This   is   page   "), new Phrase(".")); 
+            footer.setAlignment(Element.ALIGN_CENTER);
+
+            document.setHeader(header);
+
+            document.setFooter(footer);
+
+            // 打开PDF文档
+
+            document.open();
+ 
+            PdfPTable table = new PdfPTable(headers.length); 
+            table.setWidthPercentage(16 * headers.length);
+
+            // 产生表格标题行
+
+            for (int i = 0; i < headers.length; i++) {
+
+                PdfPCell cell = new PdfPCell(new PdfParagraph(headers[i], 14,
+
+                true));
+
+                cell.setHorizontalAlignment(Cell.ALIGN_CENTER);
+
+                cell.setVerticalAlignment(Cell.ALIGN_MIDDLE);
+
+                cell.setBackgroundColor(Color.cyan);
+
+                cell.setBorderColor(Color.green);
+
+                table.addCell(cell);
+
+            }
+
+            // 遍历集合数据，产生数据行
+
+            Iterator<T> it = dataset.iterator();
+
+            int index = 0;
+
+            while (it.hasNext()) {
+
+                index++;
+
+                T t = (T) it.next();
+
+                // 利用反射，根据javabean属性的先后顺序，动态调用getXxx()方法得到属性值
+
+                Field[] fields = t.getClass().getDeclaredFields();
+
+                for (short i = 0; i < fields.length; i++) {
+
+                    PdfPCell cell = null;
+
+                    Field field = fields[i];
+
+                    String fieldName = field.getName();
+
+                    String getMethodName = "get"
+
+                    + fieldName.substring(0, 1).toUpperCase()
+
+                    + fieldName.substring(1);
+
+                    try {
+
+                        Class tCls = t.getClass();
+
+                        Method getMethod = tCls.getMethod(getMethodName,
+
+                        new Class[] {});
+
+                        Object value = getMethod.invoke(t, new Object[] {});
+
+                        // 判断值的类型后进行强制类型转换
+
+                        String textValue = null;
+
+                         if (value instanceof Date) {
+
+                            Date date = (Date) value;
+
+                            SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+
+                            textValue = sdf.format(date);
+
+                        } else if (value instanceof byte[]) {
+
+                            byte[] bsValue = (byte[]) value;
+
+                            Image img = Image.getInstance(bsValue);
+
+                            cell = new PdfPCell(img);
+
+                        } else {
+
+                            textValue = value.toString();
+
+                        }
+
+                        // 如果不是图片数据,就当做文本处理
+
+                        if (textValue != null) {
+
+                            cell = new PdfPCell(new PdfParagraph(textValue));
+
+                        }
+
+                        cell.setHorizontalAlignment(Cell.ALIGN_CENTER);
+
+                        cell.setVerticalAlignment(Cell.ALIGN_MIDDLE);
+
+                        cell.setBorderColor(Color.green);
+
+                        table.addCell(cell);
+
+                    } catch (SecurityException e) {
+
+                        e.printStackTrace();
+
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+
+                    } catch (IllegalArgumentException e) {
+                        e.printStackTrace();
+
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
+
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                    }
+                }
+            }
+            document.add(table);
+            document.close();
+        } catch (DocumentException e) { 
+            e.printStackTrace();
+
+        }
+
+    }
+
+//    public static void main(String[] args) {
+// 
+//        try {
+//            ExportPdf<Object> ex = new ExportPdf<Object>();
+//
+//            String[] headers = { "学号", "姓名", "年龄", "性别", "出生日期" };
+//
+//            java.util.List<Object> dataset = new ArrayList<Object>();
+//
+//            dataset.add(new Object());
+//
+//            dataset.add(new Object());
+//
+//            dataset.add(new Object());
+//
+//            OutputStream out = new FileOutputStream("E://a.pdf");
+//
+//            ex.exportPdf(headers, dataset, out);
+//
+//            out.close();
+//
+//            JOptionPane.showMessageDialog(null, "pdf导出成功!");
+//
+//            System.out.println("pdf导出成功！");
+//
+//        } catch (FileNotFoundException e) {
+//
+//            e.printStackTrace();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//
+//        }
+//
+//    }
+
+}

@@ -1,0 +1,50 @@
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.util.Pager;
+
+/**
+ * 平均工资计算过程与薪资项目关联表
+ * @ClassName: SalaryMonthDao 
+ * @Description: 平均工资计算过程与薪资项目关联表 
+ * @author zhanghj
+ * @date 2017年4月25日 上午7:59:59 
+ *
+ */
+public interface SalaryMonthDao extends BaseDao<SalaryMonth, String>{
+
+    /**
+     * @Title: 获取关联到的薪资项目 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public List<Map<String, Object>> getMonthItemForId(String id);
+
+    /**
+     * @Title: 获取需要计算平均工资的员工 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public List<Map<String, Object>> getPersonalToAllocationListData(String id);
+
+    /**
+     * @Title: 获取月平均工资的员工 
+     * @param id
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public Map<String, Object> getMonthSalaryListData(String id, Pager pager);
+
+}

@@ -1,0 +1,184 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>薪酬分配过程编辑</title>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <script src="../template/plugin/public/list.js" type="text/javascript"></script>
+    <script src="../template/plugin/public/add.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="mini-fit" id="form1">
+        <table style="width:100%;" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+                <td class="list_left_box1" valign="top">*分配过程名称：</td>
+                <td class="list_right_box">
+                    <input class="mini-hidden" id="id" name = "id"value="${salaryAssignation.id}"/>
+                    <input class="mini-hidden" id="companyId" name = "companyId" value="${companyId}"/>
+                    <input class="mini-textbox" style="width: 90%" name="name" required="true" value="${salaryAssignation.name}"/>
+                </td>
+                <td class="list_left_box1" valign="top">*薪资组：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" style="width: 90%" id="salaryGroupId" name="salaryGroupId" value="${salaryAssignation.salaryGroupId }" text="${salaryAssignation.salaryGroupName}"
+                        url="../salary/salary_items!getSalaryGroupListData.action?companyId=${companyId}" textField="name"required="true" onvaluechanged="onSalaryGroupValueChanged"/>
+                    <input class="mini-hidden" id="salaryGroupName" name = "salaryGroupName" value="${salaryAssignation.salaryGroupName}"/>
+                    <input class="mini-hidden" id="salaryPeriodName" name = "salaryPeriodName" value="${salaryAssignation.salaryPeriodName}"/>
+                    <input class="mini-hidden" id="salaryWageName" name = "salaryWageName" value="${salaryAssignation.salaryWageName}"/>
+                    <input class="mini-hidden" id="processName" name = "processName" value="${salaryAssignation.processName}"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">发薪频率：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox asLabel" readOnly="true" style="width: 90%" id="salaryRate" name="salaryRate" value="${salaryAssignation.salaryRate }"
+                        data="[{id:0, text:'周'},{id:1, text:'双周'},{id:2, text:'半月'},{id:3, text:'月'}]" />
+                </td>
+                <td class="list_left_box1" valign="top">*薪酬期间：</td>
+                <td class="list_right_box">
+                    <input class="mini-buttonedit" id="salaryPeriod" name="salaryPeriod" onbuttonclick="onButtonEditAlert"
+                        style="width: 90%"value="${salaryAssignation.salaryPeriod}" text="${salaryAssignation.salaryPeriodName}" required="true" />
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">*实际发放日期：</td>
+                <td class="list_right_box">
+                    <input class="mini-datepicker" name="issueDate" value="${salaryAssignation.issueDate}" style="width: 90%" required="true"/>
+                </td>
+                <td class="list_left_box1" valign="top">*工资套：</td>
+                <td class="list_right_box">
+                    <input class="mini-combobox" id="salaryWageId" name="salaryWageId" value="${salaryAssignation.salaryWageId}" text="${salaryAssignation.salaryWageName}"
+                        style="width: 90%" required="true" textField="name" onvaluechanged="onSalaryWageChanged"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">*流程选择：</td>
+                <td class="list_right_box" colspan="3">
+                    <input class="mini-combobox" name="process" value="${salaryAssignation.process}" text="${salaryAssignation.processName}"
+                        style="width: 90%" required="true" url="../system/work_flow!getworkflow.action?type=4"onvaluechanged="onProcessChanged"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="list_left_box1" valign="top">公式计算：</td>
+                <td class="list_right_box" colspan="3">
+                    <input class="mini-checkbox" name="gsjs" style="width: 90%" trueValue="1" falseValue="0" value="0" />
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;" borderStyle="border:0;">
+        <a class="mini-button" onclick="onOK()" style="width:60px;margin-right:20px;" iconCls="icon-save">保存</a>
+        <a class="mini-button" onclick="onCancel" style="width:60px;" iconCls="icon-close">取消</a>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var salaryGroupId = mini.get("salaryGroupId");
+        var salaryPeriod = mini.get("salaryPeriod");
+        var salaryWageId = mini.get("salaryWageId");
+
+        $(function() {
+            if ('${salaryAssignation.id}' != "") {
+                salaryGroupId.doValueChanged();
+                salaryGroupId.setEnabled(false);
+                salaryPeriod.setEnabled(false);
+                salaryWageId.setEnabled(false);
+            }
+        });
+
+        // 薪资组值发生改变
+        function onSalaryGroupValueChanged(e) {
+            mini.get("salaryGroupName").setValue(e.selected.name);
+            var salaryRate = mini.get("salaryRate");
+            salaryRate.setValue(e.selected.salaryPeriod);
+            salaryWageId.setUrl("../salary/salary_items!getGroupWageListData.action?companyId=${companyId}&groupId="+e.value);
+        }
+
+        function onButtonEditAlert(e) {
+            onButtonEdit(e.sender, "选择发薪期间", "../salary/salary_quota!payPeriodSelector.action", 780, 540,"name","","","salaryPeriodName","name");
+        }
+
+        function onOK() {
+            // 表单部分
+            var form = new mini.Form("#form1");
+            var formjson="";
+            if(form){
+                form.validate();
+                if (form.isValid() == false)return;
+                // 提交表单数据
+                var formdata = form.getData();
+                formjson = mini.encode(formdata); 
+            }
+            window.parent.loading();
+            $.ajax({
+                url : "../salary/salary_quota!saveOrUpdate.action",
+                type : "post",
+                data : {
+                    formdata : formjson
+                },
+                success : function(text) {
+                    if (text.indexOf("success") == 0) {
+                        var assignId = text.substring(8, text.length);
+                    	$.ajax({
+                            url : "../salary/salary_quota!updateTotalAmount.action",
+                            type : "post",
+                            data : {
+                                id : assignId
+                            },
+                            success : function(text) {
+                                window.parent.unmask();
+                                if (text == "success") {
+                                    mini.showMessageBox({
+                                        title: "提醒",
+                                        width: 250,
+                                        iconCls: "mini-messagebox-warning",
+                                        buttons: ["ok"],
+                                        message: "操作成功",
+                                        callback: function (action) {
+                                            window.CloseOwnerWindow();
+                                        }
+                                    });
+                                } else {
+                                    if(text.length>0){
+                                        mini.alert(text);
+                                        searchS();
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                    	window.parent.unmask();
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                }
+            });
+        }
+
+        // 工资套选择
+        function onSalaryWageChanged(e) {
+            mini.get("salaryWageName").setValue(e.selected.name);
+        }
+
+        // 流程选择
+        function onProcessChanged(e) {
+            mini.get("processName").setValue(e.selected.text);
+        }
+    </script>
+</body>
+</html>

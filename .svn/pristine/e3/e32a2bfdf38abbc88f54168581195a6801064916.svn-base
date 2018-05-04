@@ -1,0 +1,306 @@
+package com.lingnet.hcm.service.impl.check;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.CheckHisInfoDao;
+import com.lingnet.hcm.entity.check.CkCheckHisInfo;
+import com.lingnet.hcm.service.check.CheckHisInfoService;
+import com.lingnet.qxgl.service.BackendDepService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: CheckHisInfoServiceImpl 
+ * @Description: 员工考勤历史信息Service实现类 
+ * @author wangqiang
+ * @date 2017年4月18日 上午8:55:14 
+ *
+ */
+@Service("checkHisInfoService")
+public class CheckHisInfoServiceImpl extends BaseServiceImpl<CkCheckHisInfo, String> implements CheckHisInfoService{
+	
+	@Resource(name = "checkHisInfoDao")
+	private CheckHisInfoDao checkHisInfoDao;
+	
+	@Resource(name="backendDepService")
+    private BackendDepService backendDepService;
+
+	@Override
+	public Map<String, Object> getHisInfoData(Pager pager, String searchData) {
+		String startTime = "";
+		String endTime = "";
+		String jobNumber = "";
+		String depId = "";
+		String depIds = "";
+		Map<String,String> dataMap = JsonUtil.parseProperties(searchData);
+		if (dataMap != null){
+			startTime = dataMap.get("startTime");
+			endTime = dataMap.get("endTime");
+			jobNumber = dataMap.get("jobNumber");
+			depId = dataMap.get("depId");
+		}
+		if (depId == null || "".equals(depId)){
+			//获得当前用户的所有权限部门集合
+			depIds = getAllDepIdStrs();
+		} else {
+			String[] depIdArrs = depId.split(",");
+			for (String dId:depIdArrs){
+				if (dId != null && !"".equals(dId)){
+ 					depIds  = dId.replace("'", ""); 
+				}
+			}
+			depIds = depIds.substring(0, depIds.length()-2);
+		}
+        depIds  = depIds.replace("'", ""); 
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		if (searchData != null){
+			list = checkHisInfoDao.getHisInfoByCond(pager, startTime, endTime, depIds, jobNumber);
+		}
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		returnMap.put("data", list);
+		returnMap.put("total", pager.getTotalCount());
+		return returnMap;
+	}
+	
+	/**
+	 * @Description 获得当前用户的所有权限部门集合
+	 * @Title: getAllDepIdStr 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年3月30日 V 1.0
+	 */
+	@SuppressWarnings("rawtypes")
+	public String getAllDepIdStrs(){
+		String depIds = "";
+  		String userId = toolUtil.getUserId();
+  		List data = this.findBySql("SELECT B.ID FROM BRANCH B " 
+  				+ "INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=B.ID AND UD.FLG='0' AND UD.USERID = '"+ userId +"' " 
+  				+ "WHERE B.IS_DELETE = 0 ");
+  		if (data!=null&&data.size()>0){
+  			for (int i=0;i<data.size();i++){
+  				Object b = (Object)data.get(i);
+//  				depIds += ("'"+ (b==null?"":b.toString()) + "', ");
+  				//获取下级部门
+  				List dataP = backendDepService.findBySql("SELECT D.PARENT,D.ID FROM QX_DEPARTMENT D " +
+               		"INNER JOIN QX_USER_DATAUTH UD ON UD.BRANCH_DEP=D.ID AND UD.FLG='1' AND UD.USERID='"+userId+"' " +
+               		"WHERE D.BARCH_ID='"+b+"' AND D.IS_DELETE=0 ");
+  				for (int k=0; k<dataP.size(); k++){
+  					Object[] dep=(Object[])dataP.get(k);
+            	    depIds += ("'"+ (dep[1]==null?"":dep[1].toString()) + "', ");
+  				}
+  			}
+  		}
+  		if (!"".equals(depIds)){
+  			depIds = depIds.substring(0,depIds.length()-2);
+  		}
+  		return depIds;
+	}
+
+	@Override
+	public Map<String, String> getDetailInfoById(String id) {
+		Map<String, String> map = new HashMap<String, String>();
+		CkCheckHisInfo hisInfo = checkHisInfoDao.get(id);
+		map.put("detailJobNumber", hisInfo.getJobNumber());
+		map.put("detailMonthCalendar", hisInfo.getMonthCalendar());
+		map.put("overtime1", hisInfo.getOvertime1()+"");
+		map.put("overtime2", hisInfo.getOvertime2()+"");
+		map.put("overtime3", hisInfo.getOvertime3()+"");
+		map.put("overtime4", hisInfo.getOvertime4()+"");
+		map.put("overtime5", hisInfo.getOvertime5()+"");
+		map.put("overtime6", hisInfo.getOvertime6()+"");
+		map.put("overtime7", hisInfo.getOvertime7()+"");
+		map.put("overtime8", hisInfo.getOvertime8()+"");
+		map.put("overtime9", hisInfo.getOvertime9()+"");
+		map.put("overtime10", hisInfo.getOvertime10()+"");
+		map.put("overtime11", hisInfo.getOvertime11()+"");
+		map.put("overtime12", hisInfo.getOvertime12()+"");
+		map.put("overtime13", hisInfo.getOvertime13()+"");
+		map.put("overtime14", hisInfo.getOvertime14()+"");
+		map.put("overtime15", hisInfo.getOvertime15()+"");
+		map.put("overtime16", hisInfo.getOvertime16()+"");
+		map.put("overtime17", hisInfo.getOvertime17()+"");
+		map.put("overtime18", hisInfo.getOvertime18()+"");
+		map.put("overtime19", hisInfo.getOvertime19()+"");
+		map.put("overtime20", hisInfo.getOvertime20()+"");
+		map.put("overtime21", hisInfo.getOvertime21()+"");
+		map.put("overtime22", hisInfo.getOvertime22()+"");
+		map.put("overtime23", hisInfo.getOvertime23()+"");
+		map.put("overtime24", hisInfo.getOvertime24()+"");
+		map.put("overtime25", hisInfo.getOvertime25()+"");
+		map.put("overtime26", hisInfo.getOvertime26()+"");
+		map.put("overtime27", hisInfo.getOvertime27()+"");
+		map.put("overtime28", hisInfo.getOvertime28()+"");
+		map.put("overtime29", hisInfo.getOvertime29()+"");
+		map.put("overtime30", hisInfo.getOvertime30()+"");
+		map.put("overtime31", hisInfo.getOvertime31()+"");
+		if (hisInfo.getRemark() == null){
+			map.put("remark", "");
+		} else {
+			map.put("remark", hisInfo.getRemark()+"");
+		}
+		return map;
+	}
+
+	@Override
+	public HSSFWorkbook exportCheckHisInfo(String startTime, String endTime,
+			String jobNumber, String depIds) {
+		String[] cellname={
+				"序号", "职工号", "年月份", "姓名", "班组", "1日", "2日", "3日", "4日", "5日", 
+				"6日", "7日", "8日", "9日", "10日", "11日", "12日", "13日", "14日", "15日", 
+				"16日", "17日", "18日", "19日", "20日", "21日", "22日", "23日", "24日", 
+				"25日", "26日", "27日", "28日", "29日", "30日", "31日"};
+        HSSFWorkbook hwb = new HSSFWorkbook();
+        HSSFSheet sheet = hwb.createSheet("员工考勤历史信息");
+        HSSFRow row = sheet.createRow(0);
+        HSSFCell cell;
+        HSSFCellStyle stycle = hwb.createCellStyle();
+        stycle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        for (int i = 0; i < cellname.length; i++) {
+            cell = row.createCell(i);
+            cell.setCellValue(cellname[i]);
+            cell.setCellStyle(stycle);
+            sheet.setColumnWidth((short) i, cellname[i].getBytes().length * 600);
+        }
+        if (depIds == null || "".equals(depIds)){
+			//获得当前用户的所有权限部门集合
+			depIds = getAllDepIdStrs();
+		} else {
+			String[] depIdArrs = depIds.split(",");
+			depIds = "";
+			for (String dId:depIdArrs){
+				if (dId != null && !"".equals(dId)){
+					depIds += ("'"+dId+"', "); 
+				}
+			}
+			depIds = depIds.substring(0, depIds.length()-2);
+		}
+        //查询班制名称信息
+        List<Map<String, String>> list = checkHisInfoDao.getHisInfoBySearchs(startTime, endTime, depIds, jobNumber);
+        if (list != null) {
+            for (int i = 0; i < list.size(); i++) {
+            	Map<String, String> info = list.get(i);
+                row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(i+1+"");
+                if(info.get("jobNumber") != null && !"null".equals(info.get("jobNumber"))){ 
+                	row.createCell(1).setCellValue(info.get("jobNumber")); 
+                }
+                if(info.get("monthCalendar") != null && !"null".equals(info.get("monthCalendar"))){ 
+                	row.createCell(2).setCellValue(info.get("monthCalendar")); 
+                }
+                if(info.get("name") != null && !"null".equals(info.get("name"))){ 
+                	row.createCell(3).setCellValue(info.get("name"));
+                }
+                if(info.get("className") != null && !"null".equals(info.get("className"))){ 
+                	row.createCell(4).setCellValue(info.get("className")); 
+                }
+                if(info.get("day1") != null && !"null".equals(info.get("day1"))){ 
+                	row.createCell(5).setCellValue(info.get("day1")); 
+                }
+                if(info.get("day2") != null && !"null".equals(info.get("day2"))){ 
+                	row.createCell(6).setCellValue(info.get("day2")); 
+                }
+                if(info.get("day3") != null && !"null".equals(info.get("day3"))){ 
+                	row.createCell(7).setCellValue(info.get("day3")); 
+                }
+                if(info.get("day4") != null && !"null".equals(info.get("day4"))){ 
+                	row.createCell(8).setCellValue(info.get("day4")); 
+                }
+                if(info.get("day5") != null && !"null".equals(info.get("day5"))){ 
+                	row.createCell(9).setCellValue(info.get("day5")); 
+                }
+                if(info.get("day6") != null && !"null".equals(info.get("day6"))){ 
+                	row.createCell(10).setCellValue(info.get("day6")); 
+                }
+                if(info.get("day7") != null && !"null".equals(info.get("day7"))){ 
+                	row.createCell(11).setCellValue(info.get("day7")); 
+                }
+                if(info.get("day8") != null && !"null".equals(info.get("day8"))){ 
+                	row.createCell(12).setCellValue(info.get("day8")); 
+                }
+                if(info.get("day9") != null && !"null".equals(info.get("day9"))){ 
+                	row.createCell(13).setCellValue(info.get("day9")); 
+                }
+                if(info.get("day10") != null && !"null".equals(info.get("day10"))){ 
+                	row.createCell(14).setCellValue(info.get("day10")); 
+                }
+                if(info.get("day11") != null && !"null".equals(info.get("day11"))){ 
+                	row.createCell(15).setCellValue(info.get("day11")); 
+                }
+                if(info.get("day12") != null && !"null".equals(info.get("day12"))){ 
+                	row.createCell(16).setCellValue(info.get("day12")); 
+                }
+                if(info.get("day13") != null && !"null".equals(info.get("day13"))){ 
+                	row.createCell(17).setCellValue(info.get("day13")); 
+                }
+                if(info.get("day14") != null && !"null".equals(info.get("day14"))){ 
+                	row.createCell(18).setCellValue(info.get("day14")); 
+                }
+                if(info.get("day15") != null && !"null".equals(info.get("day15"))){ 
+                	row.createCell(19).setCellValue(info.get("day15")); 
+                }
+                if(info.get("day16") != null && !"null".equals(info.get("day16"))){ 
+                	row.createCell(20).setCellValue(info.get("day16")); 
+                }
+                if(info.get("day17") != null && !"null".equals(info.get("day17"))){ 
+                	row.createCell(21).setCellValue(info.get("day17")); 
+                }
+                if(info.get("day18") != null && !"null".equals(info.get("day18"))){ 
+                	row.createCell(22).setCellValue(info.get("day18")); 
+                }
+                if(info.get("day19") != null && !"null".equals(info.get("day19"))){ 
+                	row.createCell(23).setCellValue(info.get("day19")); 
+                }
+                if(info.get("day20") != null && !"null".equals(info.get("day20"))){ 
+                	row.createCell(24).setCellValue(info.get("day20")); 
+                }
+                if(info.get("day21") != null && !"null".equals(info.get("day21"))){ 
+                	row.createCell(25).setCellValue(info.get("day21")); 
+                }
+                if(info.get("day22") != null && !"null".equals(info.get("day22"))){ 
+                	row.createCell(26).setCellValue(info.get("day22")); 
+                }
+                if(info.get("day23") != null && !"null".equals(info.get("day23"))){ 
+                	row.createCell(27).setCellValue(info.get("day23")); 
+                }
+                if(info.get("day24") != null && !"null".equals(info.get("day24"))){ 
+                	row.createCell(28).setCellValue(info.get("day24")); 
+                }
+                if(info.get("day25") != null && !"null".equals(info.get("day25"))){ 
+                	row.createCell(29).setCellValue(info.get("day25")); 
+                }
+                if(info.get("day26") != null && !"null".equals(info.get("day26"))){ 
+                	row.createCell(30).setCellValue(info.get("day26")); 
+                }
+                if(info.get("day27") != null && !"null".equals(info.get("day27"))){ 
+                	row.createCell(31).setCellValue(info.get("day27")); 
+                }
+                if(info.get("day28") != null && !"null".equals(info.get("day28"))){ 
+                	row.createCell(32).setCellValue(info.get("day28")); 
+                }
+                if(info.get("day29") != null && !"null".equals(info.get("day29"))){ 
+                	row.createCell(33).setCellValue(info.get("day29")); 
+                }
+                if(info.get("day30") != null && !"null".equals(info.get("day30"))){ 
+                	row.createCell(34).setCellValue(info.get("day30")); 
+                }
+                if(info.get("day31") != null && !"null".equals(info.get("day31"))){ 
+                	row.createCell(35).setCellValue(info.get("day31")); 
+                }
+            }
+        }
+        return hwb;
+	}
+}

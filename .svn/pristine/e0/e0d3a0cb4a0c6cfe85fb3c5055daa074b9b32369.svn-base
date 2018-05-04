@@ -1,0 +1,200 @@
+package com.lingnet.hcm.service.impl.branch;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.branch.PerformanceAppraisalDao;
+import com.lingnet.hcm.entity.basic.PerformanceAppraisal;
+import com.lingnet.hcm.service.branch.PerformanceAppraisalService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 绩效考核
+ * @ClassName: PerformanceAppraisalServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年7月12日 下午5:26:34 
+ *
+ */
+@Service("performanceAppraisalService")
+public class PerformanceAppraisalServiceImpl extends BaseServiceImpl<PerformanceAppraisal, String>
+              implements PerformanceAppraisalService {
+
+    @Resource(name="performanceAppraisalDao")
+    private PerformanceAppraisalDao performanceAppraisalDao;
+
+    @Override
+    public Map<String, Object> jsonlist(String searchData, Pager pager) {
+        pager = findPager(PerformanceAppraisal.class, pager, Restrictions.eq("isDelete", 0));
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("data", pager.getResult());
+        map.put("total", pager.getTotalCount());
+
+        return map;
+    }
+
+    @Override
+    public String saveOrUpdate(String formdata) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(new Date());
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH) + 1;
+        int day = cal.get(Calendar.DATE);
+        PerformanceAppraisal appraisal = JsonUtil.toObject(formdata, PerformanceAppraisal.class);
+        appraisal.setCtrId(LingUtil.userinfo().getId());
+        if (StringUtils.isBlank(appraisal.getId())) {
+            appraisal.setIsDelete(0);
+//            appraisal.setPerforAppr(0);
+            appraisal.setPerforState(1);
+
+            // 只能填写本月的考核
+            Calendar cal1 = Calendar.getInstance();
+            cal1.setTime(appraisal.getPerforDate());
+            if (!(cal1.get(Calendar.YEAR) == year && (cal1.get(Calendar.MONTH) + 1) == month)) {
+                return "只能填写当月考核";
+            }
+            String id = save(appraisal);
+            if (StringUtils.isBlank(id)) {
+                return "保存失败";
+            }
+        } else {
+            PerformanceAppraisal appraisalNew = get(PerformanceAppraisal.class,
+                    Restrictions.eq("id", appraisal.getId()),
+                    Restrictions.eq("isDelete", 0));
+            if (appraisalNew == null) {
+                return "该条信息不存在，已经被删除";
+            } else {
+                // 判断考核日期是否在当月10号之前
+                Calendar cal1 = Calendar.getInstance();
+                cal1.setTime(appraisalNew.getPerforDate());
+
+                // 得到上月
+                cal.add(Calendar.MONTH, -1);
+                year = cal.get(Calendar.YEAR);
+                month = cal.get(Calendar.MONTH) + 1;
+
+                // 本月考核在本月至下月10号之前可以修改
+                if (cal1.get(Calendar.YEAR) == year) {
+                    if (!(((cal1.get(Calendar.MONTH) + 1) - month) == 1 ||
+                            ((cal1.get(Calendar.MONTH) + 1) == month && day <= 10))) {// 当月或者下一个月10号之前
+                        return "只能修改上一个月至本月10号之前的考核数据";
+                    }
+                } else return "只能修改上一个月至本月10号之前的考核数据";
+
+                appraisalNew.copyFrom(appraisal);
+                update(appraisalNew);
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idsArr = ids.split(",");
+        List<PerformanceAppraisal> list = new ArrayList<PerformanceAppraisal>();
+        for (int i = 0, l = idsArr.length; i < l; i++) {
+            PerformanceAppraisal appraisalNew = get(PerformanceAppraisal.class,
+                    Restrictions.eq("id", idsArr[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (appraisalNew == null) {
+                return "选中的第"+(i+1)+"条信息不存在，已经被删除";
+            }
+            appraisalNew.setIsDelete(1);
+            list.add(appraisalNew);
+        }
+        if (list.size() > 0) saveBatch(list);
+
+        return "success";
+    }
+
+    @Override
+    public String rebiut(String ids) {
+        String[] idsArr = ids.split(",");
+        List<PerformanceAppraisal> list = new ArrayList<PerformanceAppraisal>();
+        for (int i = 0; i < idsArr.length; i++) {
+            PerformanceAppraisal appraisalNew = get(PerformanceAppraisal.class,
+                    Restrictions.eq("id", idsArr[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (appraisalNew == null) {
+                return "选中的第"+(i+1)+"条信息不存在，已经被删除";
+            }
+            if (null == appraisalNew.getPerforAppr() || appraisalNew.getPerforAppr() == 0) {
+                appraisalNew.setPerforAppr(1);
+                appraisalNew.setPerforApprId(LingUtil.userinfo().getId());
+                list.add(appraisalNew);
+            }
+        }
+        if (list.size() > 0) saveBatch(list);
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getCurComStaffDatas(String searchData, Pager pager) {
+        return performanceAppraisalDao.getCurComStaffDatas(searchData, pager);
+    }
+
+    @Override
+    public Map<String, Object> getCurAndDeptDatas(String userId, String searchData, Pager pager) {
+        return performanceAppraisalDao.getCurAndDeptDatas(userId, searchData, pager);
+    }
+
+    @Override
+    public String checkSure(String ids) {
+        String[] idsArr = ids.split(",");
+        List<PerformanceAppraisal> list = new ArrayList<PerformanceAppraisal>();
+        for (int i = 0; i < idsArr.length; i++) {
+            PerformanceAppraisal appraisalNew = get(PerformanceAppraisal.class,
+                    Restrictions.eq("id", idsArr[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (appraisalNew == null) {
+                return "选中的第"+(i+1)+"条信息不存在，已经被删除";
+            }
+            if (appraisalNew.getPerforState() == 0) {
+                appraisalNew.setPerforState(1);
+                appraisalNew.setPerforStateId(LingUtil.userinfo().getId());
+                list.add(appraisalNew);
+            }
+        }
+        if (list.size() > 0) saveBatch(list);
+
+        return "success";
+    }
+
+    @Override
+    public String checkCancel(String ids) {
+        String[] idsArr = ids.split(",");
+        List<PerformanceAppraisal> list = new ArrayList<PerformanceAppraisal>();
+        for (int i = 0; i < idsArr.length; i++) {
+            PerformanceAppraisal appraisalNew = get(PerformanceAppraisal.class,
+                    Restrictions.eq("id", idsArr[i]),
+                    Restrictions.eq("isDelete", 0));
+            if (appraisalNew == null) {
+                return "选中的第"+(i+1)+"条信息不存在，已经被删除";
+            }
+            if (appraisalNew.getPerforState() == 1) {
+                appraisalNew.setPerforState(0);
+                appraisalNew.setPerforStateId(LingUtil.userinfo().getId());
+                list.add(appraisalNew);
+            }
+        }
+        if (list.size() > 0) saveBatch(list);
+
+        return "success";
+    }
+
+}

@@ -1,0 +1,63 @@
+package com.lingnet.hcm.dao.impl.salary;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImplInit;
+import com.lingnet.hcm.dao.salary.SalaryNjProgramDao;
+import com.lingnet.hcm.entity.salary.SalaryNjProgram;
+import com.lingnet.hcm.service.salary.SalaryAssignationService;
+
+/**
+ * 企业年金缴费分配方案
+ * @ClassName: SalaryNjProgramDaoImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年6月15日 下午4:29:29 
+ *
+ */
+@Repository("salaryNjProgramDao")
+public class SalaryNjProgramDaoImpl extends BaseDaoImplInit<SalaryNjProgram, String> implements SalaryNjProgramDao {
+
+    @Resource(name="salaryAssignationService")
+    private SalaryAssignationService salaryAssignationService;
+
+    @Override
+    public List<Map<String, Object>> getNlxsData(String companyId) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT                                                                          ");
+        sql.append("     LISTAGG(SAX.ID, ',') WITHIN GROUP (ORDER BY SAX.SEX ASC) ID,                  ");
+        sql.append("     LISTAGG(SAX.ZGNL_MIN, ',') WITHIN GROUP (ORDER BY SAX.SEX ASC) SEXMANLOW,     ");
+        sql.append("     LISTAGG(SAX.ZGNL_MAX, ',') WITHIN GROUP (ORDER BY SAX.SEX ASC) SEXMANHIGH,    ");
+        sql.append("     MIN(SAX.ZJXS) ZJXS                                                            ");
+        sql.append("   FROM JC_SALARY_AGE_XS SAX                                                       ");
+        sql.append("   WHERE SAX.IS_DELETE=0                                                           ");
+        sql.append("     AND SAX.COMPANY_ID='"+companyId+"'                                            ");
+        sql.append("   GROUP BY SAX.ZJXS                                                               ");
+
+        List<?> list = findBySql(sql.toString());
+        List<Map<String, Object>> dataList = new ArrayList<Map<String, Object>>();
+        for (int i=0, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            HashMap<String, Object> map = new HashMap<String, Object>();
+            map.put("id", obj[0]);
+            String[] sexlow = obj[1].toString().split(",");
+            map.put("sexManLow", sexlow[0]);
+            map.put("sexWomanLow", sexlow[1]);
+            String[] sexHigh = obj[2].toString().split(",");
+            map.put("sexManHigh", sexHigh[0]);
+            map.put("sexWomanHigh", sexHigh[1]);
+            map.put("zjxs", obj[3]);
+            dataList.add(map);
+        }
+
+        return dataList;
+    }
+
+}

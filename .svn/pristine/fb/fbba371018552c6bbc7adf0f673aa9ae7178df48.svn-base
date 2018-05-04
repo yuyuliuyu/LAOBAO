@@ -1,0 +1,392 @@
+package com.lingnet.hcm.service.impl.check;
+
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.check.ContentDao;
+import com.lingnet.hcm.dao.personnel.PersonnelDao;
+import com.lingnet.hcm.entity.check.CkContent;
+import com.lingnet.hcm.service.check.ContentService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+/**
+ * 
+ * @ClassName: ContentServiceImpl 
+ * @Description: 考勤内容控制层 
+ * @author wangqiang
+ * @date 2017年4月1日 上午9:12:03 
+ *
+ */
+@Service("contentService")
+public class ContentServiceImpl extends BaseServiceImpl<CkContent, String> implements ContentService{
+	
+	@Resource(name = "contentDao")
+	private ContentDao contentDao;
+	
+	@Resource(name="personnelDao")
+	private PersonnelDao personnelDao;
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public Map<String, Object> getDataByCond(Pager pager) {
+		String userId = toolUtil.getUserId();
+		//获得考勤内容信息集合
+		List<Map<String, Object>> datas = contentDao.getInfoByCond(pager, userId);
+        HashMap result = new HashMap();
+        result.put("data", datas);
+        result.put("total", pager.getTotalCount());
+		return result;
+	}
+
+	@Override
+	public void saveOrUpdateInfo(String formdata) throws Exception {
+		String userId = toolUtil.getUserId();
+		String checkUnitId = personnelDao.getCheckUnitIdById(userId);//获得考勤部门
+		Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		if (!dataMap.isEmpty()){
+			if (!"".equals(dataMap.get("id"))){//修改
+				CkContent content = contentDao.get(dataMap.get("id"));
+				content = changeValues(content, dataMap);
+				contentDao.update(content);
+			} else {//保存
+				checkUnitId = personnelDao.getCheckUnitIdById(userId);//获得考勤部门
+				CkContent content = new CkContent();
+				content = changeValues(content, dataMap);
+				content.setUserId(userId);
+				content.setDepId(checkUnitId);
+				content.setIsDelete(0);
+				contentDao.save(content);
+			}
+		}
+	}
+	
+	/**
+	 * 替换修改信息
+	 * @Title: changeValues 
+	 * @param content
+	 * @param dataMap
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月1日 V 1.0
+	 */
+	public CkContent changeValues(CkContent content, Map<String,String> dataMap) throws Exception{
+		content.setContent(dataMap.get("content"));
+		content.setContentType(dataMap.get("contentType"));
+		content.setOutWork(Double.valueOf(dataMap.get("outWork")));
+		content.setPost(Double.valueOf(dataMap.get("post")));
+		content.setOutDuty(Double.valueOf(dataMap.get("outDuty")));
+		content.setDaytime(Double.valueOf(dataMap.get("daytime")));
+		content.setNight(Double.valueOf(dataMap.get("night")));
+		content.setOffDuty(Double.valueOf(dataMap.get("offDuty")));
+		content.setCentre(Double.valueOf(dataMap.get("centre")));
+		content.setOverseas(Double.valueOf(dataMap.get("overseas")));
+		content.setRest(Double.valueOf(dataMap.get("rest")));
+		content.setAllDay(Double.valueOf(dataMap.get("allDay")));
+		content.setTake(Double.valueOf(dataMap.get("take")));
+		content.setFlip(Double.valueOf(dataMap.get("flip")));
+		content.setCall(Double.valueOf(dataMap.get("call")));
+		content.setChanges(Double.valueOf(dataMap.get("changes")));
+		content.setDisease(Double.valueOf(dataMap.get("disease")));
+		content.setThing(Double.valueOf(dataMap.get("thing")));
+		content.setMarry(Double.valueOf(dataMap.get("marry")));
+		content.setInjury(Double.valueOf(dataMap.get("injury")));
+		content.setLost(Double.valueOf(dataMap.get("lost")));
+		content.setGive(Double.valueOf(dataMap.get("give")));
+		content.setExplore(Double.valueOf(dataMap.get("explore")));
+		content.setFree(Double.valueOf(dataMap.get("free")));
+		content.setStay(Double.valueOf(dataMap.get("stay")));
+		content.setStudy(Double.valueOf(dataMap.get("study")));
+		content.setVery(Double.valueOf(dataMap.get("very")));
+		content.setBusiness(Double.valueOf(dataMap.get("business")));
+		content.setEvection(Double.valueOf(dataMap.get("evection")));
+		content.setTeam(Double.valueOf(dataMap.get("team")));
+		content.setBorrow(Double.valueOf(dataMap.get("borrow")));
+		content.setRetreat(Double.valueOf(dataMap.get("retreat")));
+		content.setDiction(Double.valueOf(dataMap.get("diction")));
+		content.setLeave(Double.valueOf(dataMap.get("leave")));
+		content.setYear(Double.valueOf(dataMap.get("year")));
+		content.setOther(Double.valueOf(dataMap.get("other")));
+		content.setBigClass(Double.valueOf(dataMap.get("bigClass")));
+		content.setSmallClass(Double.valueOf(dataMap.get("smallClass")));
+		content.setBigNight(Double.valueOf(dataMap.get("bigNight")));
+		content.setSmallNight(Double.valueOf(dataMap.get("smallNight")));
+		content.setPiece(Double.valueOf(dataMap.get("piece")));
+		content.setOvertimeModulus(Double.valueOf(dataMap.get("overtimeModulus")));
+		content.setVacationModulus(Double.valueOf(dataMap.get("vacationModulus")));
+		content.setOutHour(Double.valueOf(dataMap.get("outHour")));
+		content.setDelayedHour(Double.valueOf(dataMap.get("delayedHour")));
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		if (dataMap.get("startTimeb1") != null){
+			String startTimeb1 = dataMap.get("startTimeb1");
+			startTimeb1 = startTimeb1.replace("T", " ");
+			content.setStartTimeb1(sdf.parse(startTimeb1));
+		}
+		if (dataMap.get("startTimef1") != null){
+			String startTimef1 = dataMap.get("startTimef1");
+			startTimef1 = startTimef1.replace("T", " ");
+			content.setStartTimef1(sdf.parse(startTimef1));
+		}
+		if (dataMap.get("endTimeb1") != null){
+			String endTimeb1 = dataMap.get("endTimeb1");
+			endTimeb1 = endTimeb1.replace("T", " ");
+			content.setEndTimeb1(sdf.parse(endTimeb1));
+		}
+		if (dataMap.get("endTimef1") != null){
+			String endTimef1 = dataMap.get("endTimef1");
+			endTimef1 = endTimef1.replace("T", " ");
+			content.setEndTimef1(sdf.parse(endTimef1));
+		}
+		if (dataMap.get("startTimeb2") != null){
+			String startTimeb2 = dataMap.get("startTimeb2");
+			startTimeb2 = startTimeb2.replace("T", " ");
+			content.setStartTimeb2(sdf.parse(startTimeb2));
+		}
+		if (dataMap.get("startTimef2") != null){
+			String startTimef2 = dataMap.get("startTimef2");
+			startTimef2 = startTimef2.replace("T", " ");
+			content.setStartTimef2(sdf.parse(startTimef2));
+		}
+		if (dataMap.get("endTimeb2") != null){
+			String endTimeb2 = dataMap.get("endTimeb2");
+			endTimeb2 = endTimeb2.replace("T", " ");
+			content.setEndTimeb2(sdf.parse(endTimeb2));
+		}
+		if (dataMap.get("endTimef2") != null){
+			String endTimef2 = dataMap.get("endTimef2");
+			endTimef2 = endTimef2.replace("T", " ");
+			content.setEndTimef2(sdf.parse(endTimef2));
+		}
+		if (dataMap.get("startTimeb3") != null){
+			String startTimeb3 = dataMap.get("startTimeb3");
+			startTimeb3 = startTimeb3.replace("T", " ");
+			content.setStartTimeb3(sdf.parse(startTimeb3));
+		}
+		if (dataMap.get("startTimef3") != null){
+			String startTimef3 = dataMap.get("startTimef3");
+			startTimef3 = startTimef3.replace("T", " ");
+			content.setStartTimef3(sdf.parse(startTimef3));
+		}
+		if (dataMap.get("endTimeb3") != null){
+			String endTimeb3 = dataMap.get("endTimeb3");
+			endTimeb3 = endTimeb3.replace("T", " ");
+			content.setEndTimeb3(sdf.parse(endTimeb3));
+		}
+		if (dataMap.get("endTimef3") != null){
+			String endTimef3 = dataMap.get("endTimef3");
+			endTimef3 = endTimef3.replace("T", " ");
+			content.setEndTimef3(sdf.parse(endTimef3));
+		}
+		content.setDiscription(dataMap.get("discription"));
+		return content;
+	}
+
+    @Override
+    public HSSFWorkbook exportInfos() {
+        String[] cellname={
+                "序号","内容","类别","出工","岗位","出勤","白","夜","下","中","外","休","全","带","弹",
+                "调","换","病","事","婚","伤","丧","产","探","旷","待","学","非","公","差","团","借",
+                "退","辞","离","年","其他","大班","小班","大夜","小夜","计件","加班系数","节加系数","出勤小时数",
+                "延时小时数","上班时间段1起","上班时间段1止","下班时间段1起","下班时间段1止","上班时间段2起","上班时间段2止",
+                "下班时间段2起","下班时间段2止","上班时间段3起","上班时间段3止","下班时间段3起","下班时间段3止","说明"
+                };
+        HSSFWorkbook hwb = new HSSFWorkbook();
+        HSSFSheet sheet = hwb.createSheet("考勤内容信息");
+        HSSFRow row = sheet.createRow(0);
+        HSSFCell cell;
+        HSSFCellStyle stycle = hwb.createCellStyle();
+        stycle.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+        for (int i = 0; i < cellname.length; i++) {
+            cell = row.createCell(i);
+            cell.setCellValue(cellname[i]);
+            cell.setCellStyle(stycle);
+            sheet.setColumnWidth((short) i, cellname[i].getBytes().length * 600);
+        }
+        //查询考勤内容信息
+        String userId = toolUtil.getUserId();
+        List<Map<String, String>> list = contentDao.getAllInfoList(userId);
+        if (list != null) {
+            for (int i = 0; i < list.size(); i++) {
+                Map<String, String> info = list.get(i);
+                row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(i+1+"");
+                if(info.get("content") != null && !"null".equals(info.get("content"))){ 
+                    row.createCell(1).setCellValue(info.get("content")); 
+                }
+                if(info.get("contentType") != null && !"null".equals(info.get("contentType"))){ 
+                    row.createCell(2).setCellValue(info.get("contentType")); 
+                }
+                if(info.get("outWork") != null && !"null".equals(info.get("outWork"))){ 
+                    row.createCell(3).setCellValue(info.get("outWork")); 
+                }
+                if(info.get("post") != null && !"null".equals(info.get("post"))){ 
+                    row.createCell(4).setCellValue(info.get("post")); 
+                }
+                if(info.get("outDuty") != null && !"null".equals(info.get("outDuty"))){ 
+                    row.createCell(5).setCellValue(info.get("outDuty")); 
+                }
+                if(info.get("daytime") != null && !"null".equals(info.get("daytime"))){ 
+                    row.createCell(6).setCellValue(info.get("daytime")); 
+                }
+                if(info.get("night") != null && !"null".equals(info.get("night"))){ 
+                    row.createCell(7).setCellValue(info.get("night")); 
+                }
+                if(info.get("offDuty") != null && !"null".equals(info.get("offDuty"))){ 
+                    row.createCell(8).setCellValue(info.get("offDuty")); 
+                }
+                if(info.get("centre") != null && !"null".equals(info.get("centre"))){ 
+                    row.createCell(9).setCellValue(info.get("centre")); 
+                }
+                if(info.get("overseas") != null && !"null".equals(info.get("overseas"))){ 
+                    row.createCell(10).setCellValue(info.get("overseas")); 
+                }
+                if(info.get("rest") != null && !"null".equals(info.get("rest"))){ 
+                    row.createCell(11).setCellValue(info.get("rest")); 
+                }
+                if(info.get("allDay") != null && !"null".equals(info.get("allDay"))){ 
+                    row.createCell(12).setCellValue(info.get("allDay")); 
+                }
+                if(info.get("take") != null && !"null".equals(info.get("take"))){ 
+                    row.createCell(13).setCellValue(info.get("take")); 
+                }
+                if(info.get("flip") != null && !"null".equals(info.get("flip"))){ 
+                    row.createCell(14).setCellValue(info.get("flip")); 
+                }
+                if(info.get("call") != null && !"null".equals(info.get("call"))){ 
+                    row.createCell(15).setCellValue(info.get("call")); 
+                }
+                if(info.get("changes") != null && !"null".equals(info.get("changes"))){ 
+                    row.createCell(16).setCellValue(info.get("changes")); 
+                }
+                if(info.get("disease") != null && !"null".equals(info.get("disease"))){ 
+                    row.createCell(17).setCellValue(info.get("disease")); 
+                }
+                if(info.get("thing") != null && !"null".equals(info.get("thing"))){ 
+                    row.createCell(18).setCellValue(info.get("thing")); 
+                }
+                if(info.get("marry") != null && !"null".equals(info.get("marry"))){ 
+                    row.createCell(19).setCellValue(info.get("marry")); 
+                }
+                if(info.get("injury") != null && !"null".equals(info.get("injury"))){ 
+                    row.createCell(20).setCellValue(info.get("injury")); 
+                }
+                if(info.get("lost") != null && !"null".equals(info.get("lost"))){ 
+                    row.createCell(21).setCellValue(info.get("lost")); 
+                }
+                if(info.get("give") != null && !"null".equals(info.get("give"))){ 
+                    row.createCell(22).setCellValue(info.get("give")); 
+                }
+                if(info.get("explore") != null && !"null".equals(info.get("explore"))){ 
+                    row.createCell(23).setCellValue(info.get("explore")); 
+                }
+                if(info.get("free") != null && !"null".equals(info.get("free"))){ 
+                    row.createCell(24).setCellValue(info.get("free")); 
+                }
+                if(info.get("stay") != null && !"null".equals(info.get("stay"))){ 
+                    row.createCell(25).setCellValue(info.get("stay")); 
+                }
+                if(info.get("study") != null && !"null".equals(info.get("study"))){ 
+                    row.createCell(26).setCellValue(info.get("study")); 
+                }
+                if(info.get("very") != null && !"null".equals(info.get("very"))){ 
+                    row.createCell(27).setCellValue(info.get("very")); 
+                }
+                if(info.get("business") != null && !"null".equals(info.get("business"))){ 
+                    row.createCell(28).setCellValue(info.get("business")); 
+                }
+                if(info.get("evection") != null && !"null".equals(info.get("evection"))){ 
+                    row.createCell(29).setCellValue(info.get("evection")); 
+                }
+                if(info.get("team") != null && !"null".equals(info.get("team"))){ 
+                    row.createCell(30).setCellValue(info.get("team")); 
+                }
+                if(info.get("borrow") != null && !"null".equals(info.get("borrow"))){ 
+                    row.createCell(31).setCellValue(info.get("borrow")); 
+                }
+                if(info.get("retreat") != null && !"null".equals(info.get("retreat"))){ 
+                    row.createCell(32).setCellValue(info.get("retreat")); 
+                }
+                if(info.get("diction") != null && !"null".equals(info.get("diction"))){ 
+                    row.createCell(33).setCellValue(info.get("diction")); 
+                }
+                if(info.get("leave") != null && !"null".equals(info.get("leave"))){ 
+                    row.createCell(34).setCellValue(info.get("leave")); 
+                }
+                if(info.get("year") != null && !"null".equals(info.get("year"))){ 
+                    row.createCell(35).setCellValue(info.get("year")); 
+                }
+                if(info.get("other") != null && !"null".equals(info.get("other"))){ 
+                    row.createCell(36).setCellValue(info.get("other")); 
+                }
+                if(info.get("bigClass") != null && !"null".equals(info.get("bigClass"))){ 
+                    row.createCell(37).setCellValue(info.get("bigClass")); 
+                }
+                if(info.get("smallClass") != null && !"null".equals(info.get("smallClass"))){ 
+                    row.createCell(38).setCellValue(info.get("smallClass")); 
+                }
+                if(info.get("bigNight") != null && !"null".equals(info.get("bigNight"))){ 
+                    row.createCell(39).setCellValue(info.get("bigNight")); 
+                }
+                if(info.get("smallNight") != null && !"null".equals(info.get("smallNight"))){ 
+                    row.createCell(40).setCellValue(info.get("smallNight")); 
+                }
+                if(info.get("piece") != null && !"null".equals(info.get("piece"))){ 
+                    row.createCell(41).setCellValue(info.get("piece")); 
+                }
+                if(info.get("overtimeModulus") != null && !"null".equals(info.get("overtimeModulus"))){ 
+                    row.createCell(42).setCellValue(info.get("overtimeModulus")); 
+                }
+                if(info.get("vacationModulus") != null && !"null".equals(info.get("vacationModulus"))){ 
+                    row.createCell(43).setCellValue(info.get("vacationModulus")); 
+                }
+                if(info.get("outHour") != null && !"null".equals(info.get("outHour"))){ 
+                    row.createCell(44).setCellValue(info.get("outHour")); 
+                }
+                if(info.get("delayedHour") != null && !"null".equals(info.get("delayedHour"))){ 
+                    row.createCell(45).setCellValue(info.get("delayedHour")); 
+                }
+                row.createCell(46).setCellValue(info.get("startTimeb1")); 
+                row.createCell(47).setCellValue(info.get("startTimef1")); 
+                row.createCell(48).setCellValue(info.get("endTimeb1")); 
+                row.createCell(49).setCellValue(info.get("endTimef1")); 
+                row.createCell(50).setCellValue(info.get("startTimeb2")); 
+                row.createCell(51).setCellValue(info.get("startTimef2")); 
+                row.createCell(52).setCellValue(info.get("endTimeb2")); 
+                row.createCell(53).setCellValue(info.get("endTimef2"));  
+                row.createCell(54).setCellValue(info.get("startTimeb3")); 
+                row.createCell(55).setCellValue(info.get("startTimef3")); 
+                row.createCell(56).setCellValue(info.get("endTimeb3")); 
+                row.createCell(57).setCellValue(info.get("endTimef3")); 
+                if(info.get("discription") != null && !"null".equals(info.get("discription"))){ 
+                    row.createCell(58).setCellValue(info.get("discription")); 
+                }
+            }
+        }
+        return hwb;
+    }
+
+	@Override
+	public List<Map<String, String>> getContentList() {
+		String userId = toolUtil.getUserId();
+		//获得考勤内容下拉
+		List<Map<String, String>> contentList = contentDao.getContentList(userId);
+		return contentList;
+	}
+
+	@Override
+	public CkContent getValidateContent(String contentName) {
+		String userId = toolUtil.getUserId();
+		return contentDao.getValidateContent(userId, contentName);
+	}
+}

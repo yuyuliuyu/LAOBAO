@@ -1,0 +1,76 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path;
+    pageContext.setAttribute("base", basePath);
+
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<title>历史沿革</title>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<link rel="stylesheet" type="text/css" href="${base}/template/plugin/history/css/history.css">
+		<script type="text/javascript" src="${base}/template/plugin/history/js/jquery.js"></script>
+		<script type="text/javascript" src="${base}/template/plugin/history/js/jquery.mousewheel.js"></script>
+		<script type="text/javascript" src="${base}/template/plugin/history/js/jquery.easing.js"></script>
+		<script type="text/javascript" src="${base}/template/plugin/history/js/history.js"></script>
+	</head>
+	<body>
+		<div id="arrow">
+			<ul>
+				<li class="arrowup"></li>
+				<li class="arrowdown"></li>
+			</ul>
+		</div>
+		<div id="history">
+			<div class="title">
+				<h2>历史前沿</h2>
+				<div id="circle">
+					<div class="cmsk"> </div>
+					<div class="circlecontent"> 
+						<div thisyear="${currentYear}" class="timeblock">
+							<span class="numf"></span>
+							<span class="nums"></span>
+							<span class="numt"></span>
+							<span class="numfo"></span>
+							<div class="clear"></div>
+						</div>
+						<div class="timeyear">YEAR</div>
+					</div>
+					<a href="#" class="clock"></a>
+				</div>
+			</div>
+			
+			<div id="content">
+				<ul class="list">
+					<s:iterator value="historyData" id="his" status="st">
+						<li >
+							<div class="liwrap">
+								<div class="lileft">
+									<div class="date">
+										<span class="year"><s:property value='year'/></span>
+										<span class="md"><s:property value='md'/></span>
+									</div>
+								</div>
+								
+								<div class="point"><b></b></div>
+								
+								<div class="liright">
+									<div class="histt"><a ><s:property value='title'/></a></div>
+									<div class="hisct"><s:property value='discription'/></div>
+								</div>
+							</div>
+						</li>
+					</s:iterator>
+					
+				</ul>
+			</div>
+		</div>
+	</body>
+</html>

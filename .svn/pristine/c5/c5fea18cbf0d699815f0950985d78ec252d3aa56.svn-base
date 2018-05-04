@@ -1,0 +1,40 @@
+/**
+ * @SalaryNjProgramDao.java
+ * @com.lingnet.hcm.dao.salary
+ * @Description：
+ * 
+ * @author zhanghj
+ * @copyright  2017
+ * @version V
+ * @since 2017年6月15日
+ */
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryNjProgram;
+
+/**
+ * 企业年金缴费分配方案
+ * @ClassName: SalaryNjProgramDao 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年6月15日 下午4:28:21 
+ *  
+ */
+
+public interface SalaryNjProgramDao extends BaseDao<SalaryNjProgram, String> {
+
+    /**
+     * @Title: 获取年龄系数数据
+     * @param companyId
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月15日 V 1.0
+     */
+    public List<Map<String, Object>> getNlxsData(String companyId);
+
+}

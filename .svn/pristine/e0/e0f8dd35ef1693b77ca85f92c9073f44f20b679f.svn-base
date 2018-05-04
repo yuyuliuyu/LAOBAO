@@ -1,0 +1,34 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryGroupWageDao;
+import com.lingnet.hcm.entity.salary.Formula;
+import com.lingnet.hcm.service.salary.CustomizeService;
+import com.lingnet.util.Pager;
+
+/**
+ * 自定义sql查询
+ * @ClassName: CustomizeServiceImpl 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年6月29日 下午10:09:49 
+ *
+ */
+@Service("customizeService")
+public class CustomizeServiceImpl extends BaseServiceImpl<Formula, String>
+              implements CustomizeService {
+
+    @Resource(name="salaryGroupWageDao")
+    private SalaryGroupWageDao salaryGroupWageDao;
+
+    @Override
+    public Map<String, Object> getCustomizeListData(String sql, Pager pager) {
+        return salaryGroupWageDao.getCustomizeListData(sql);
+    }
+}

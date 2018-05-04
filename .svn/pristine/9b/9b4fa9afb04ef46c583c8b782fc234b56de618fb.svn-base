@@ -1,0 +1,295 @@
+package com.lingnet.hcm.action.check;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.check.AuditInfosService;
+import com.lingnet.hcm.service.check.CheckInfosService;
+import com.lingnet.hcm.service.check.MonthStatisticsService;
+import com.lingnet.hcm.service.check.TimerService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.util.JsonUtil;
+/**
+ * 
+ * @ClassName: ClassGroup 
+ * @Description: 考勤数据审核控制层
+ * @author wangqiang
+ * @date 2017年3月7日 下午4:11:49 
+ *
+ */
+public class AuditInfosAction extends BaseAction{
+
+	private static final long serialVersionUID = 5623909238890670719L;
+	
+	private CkCheckInfo ckCheckInfo;
+	private String name;//姓名
+	private String workDate;//工作日期（如：2010-03-15）
+	private Map<String, String> map;//签到时间map
+	private String companyId;//单位ID
+	private String depId;//部门ID
+	private String yearMonth;//年月份
+	private String opinion;//审核意见
+	private String auditStatus;//审核状态
+	private CkInfoCommit commitInfo;
+	private String monthDays;//月份天数
+	
+	@Resource(name = "timerService")
+	private TimerService timerService;
+	
+	@Resource(name = "auditInfosService")
+	private AuditInfosService auditInfosService;
+	
+	@Resource(name = "personnelService")
+	private PersonnelService personnelService;
+	
+	@Resource(name = "checkInfosService")
+	private CheckInfosService checkInfosService;
+	
+	@Resource(name = "monthStatisticsService")
+	private MonthStatisticsService monthStatisticsService;
+	
+	/**
+	 * 跳转到班制表信息维护页
+	 */
+	public String list(){
+        return "list";
+    }
+	
+	/**
+	 * 根据条件获得审核状态
+	 * @Title: getAuditStatusByCond 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月21日 V 1.0
+	 */
+	public String getAuditStatusByCond(){
+		Map<String, String> infoMap = new HashMap<String, String>();
+		if (depId != null && !"".equals(depId)){
+			infoMap = auditInfosService.getAuditStatusByCond(depId, yearMonth);			
+		}
+		//查询月份天数
+		String year = "20"+yearMonth.substring(0, 2);
+		String month = yearMonth.substring(2, 4);
+		int days = getDaysByYearMonth(Integer.parseInt(year), Integer.parseInt(month));
+		infoMap.put("days", days+"");
+		String json = JsonUtil.Encode(infoMap);
+        return ajax(Status.success, json);
+	}
+	
+	/**
+     * 获取指定月份的天数 
+     * @Title: getDaysByYearMonth 
+     * @param year
+     * @param month
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月14日 V 1.0
+     */
+    public static int getDaysByYearMonth(int year, int month) {  
+        Calendar a = Calendar.getInstance();  
+        a.set(Calendar.YEAR, year);  
+        a.set(Calendar.MONTH, month - 1);  
+        a.set(Calendar.DATE, 1);  
+        a.roll(Calendar.DATE, -1);  
+        int maxDate = a.get(Calendar.DATE);  
+        return maxDate;  
+    } 
+	
+	/**
+	 * 获取考勤上报信息集合
+	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public String getData(){
+		List<Map<String, String>> ckInfoList = auditInfosService.getDataByCond(searchData);
+		if(ckInfoList==null){
+	        HashMap result = new HashMap();
+	        result.put("data", "");
+	        result.put("total", pager.getTotalCount());
+	        String json = JsonUtil.Encode(result);
+	        return ajax(Status.success, json);
+		}else if(ckInfoList.size()>1){
+            HashMap result = new HashMap();
+            result.put("data", "");
+            result.put("total", pager.getTotalCount());
+            String json = JsonUtil.Encode(result);
+            return ajax(Status.success, json);
+		}
+		List<Map<String, String>> datas = new ArrayList<Map<String, String>>();
+		if (ckInfoList.size() > 0){
+			List<String> empIdLists = new ArrayList<String>();
+			for (Map<String, String> ckInfo:ckInfoList){
+				String empIds = ckInfo.get("personIds");
+				if (empIds != null){
+					List<String> subLists = new ArrayList<String>();
+					String[] empIdArrs = empIds.split(",");
+					Collections.addAll(subLists, empIdArrs);
+					empIdLists.addAll(subLists);
+				}
+			}
+			datas = checkInfosService.getDataByEmpIds(pager, empIdLists);
+		}
+        HashMap result = new HashMap();
+        result.put("data", datas);
+        result.put("total", pager.getTotalCount());
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+	/**
+	 * 进入查看考勤信息页面
+	 */
+	public String view(){
+		ckCheckInfo = checkInfosService.get(id);
+		System.out.println(monthDays);
+    	if (ckCheckInfo != null){
+    		BasicInformation basicInfo = personnelService.get(BasicInformation.class, Restrictions.eq("jobNumber", ckCheckInfo.getJobNumber()));
+    		if (basicInfo != null){
+    			name = basicInfo.getName();
+    			if (basicInfo.getSetWorkDate() != null){
+	    			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	    			workDate = sdf.format(basicInfo.getSetWorkDate());
+    			}
+    		}
+    		//封装员工的签到、签退时间
+    		map = timerService.getListByCond(ckCheckInfo.getJobNumber(), ckCheckInfo.getMonthCalendar());
+    	}
+		return "view";
+	}
+    
+    /**
+     * 跳转到审核页面
+     * @Title: cycle 
+     * @return 
+     * @author wangqiang
+     * @since 2017年3月9日 V 1.0
+     */
+    public String showApprove() {
+    	commitInfo = this.getBeanByCriteria(CkInfoCommit.class, Restrictions.eq("depId", id));
+//    	        auditInfosService.get(id);
+    	return "approve";
+    }
+    
+    /**
+     * 考勤上报审核
+     * @Title: saveApprove 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月21日 V 1.0
+     */
+    public String saveApprove(){
+    	CkInfoCommit ckInfo = auditInfosService.get(id);
+    	if (ckInfo != null){
+    		if (ckInfo.getAuditStatus() == 1 || ckInfo.getAuditStatus() == 2){//已审核
+    			return ajax(Status.error, "该部门已审核！");
+    		}
+    		ckInfo.setAuditStatus(Integer.parseInt(auditStatus));//审核状态
+        	ckInfo.setOpinion(opinion);//审核意见
+        	auditInfosService.update(ckInfo);
+        	//生成考勤统计
+        	monthStatisticsService.saveMonthStatistics(ckInfo);
+    	}
+    	return ajax(Status.success, "success");
+    }
+
+	public CkCheckInfo getCkCheckInfo() {
+		return ckCheckInfo;
+	}
+
+	public void setCkCheckInfo(CkCheckInfo ckCheckInfo) {
+		this.ckCheckInfo = ckCheckInfo;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getWorkDate() {
+		return workDate;
+	}
+
+	public void setWorkDate(String workDate) {
+		this.workDate = workDate;
+	}
+
+	public Map<String, String> getMap() {
+		return map;
+	}
+
+	public void setMap(Map<String, String> map) {
+		this.map = map;
+	}
+
+	public String getCompanyId() {
+		return companyId;
+	}
+
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
+	}
+
+	public String getDepId() {
+		return depId;
+	}
+
+	public void setDepId(String depId) {
+		this.depId = depId;
+	}
+
+	public String getYearMonth() {
+		return yearMonth;
+	}
+
+	public void setYearMonth(String yearMonth) {
+		this.yearMonth = yearMonth;
+	}
+
+	public String getOpinion() {
+		return opinion;
+	}
+
+	public void setOpinion(String opinion) {
+		this.opinion = opinion;
+	}
+
+	public String getAuditStatus() {
+		return auditStatus;
+	}
+
+	public void setAuditStatus(String auditStatus) {
+		this.auditStatus = auditStatus;
+	}
+
+	public CkInfoCommit getCommitInfo() {
+		return commitInfo;
+	}
+
+	public void setCommitInfo(CkInfoCommit commitInfo) {
+		this.commitInfo = commitInfo;
+	}
+
+	public String getMonthDays() {
+		return monthDays;
+	}
+
+	public void setMonthDays(String monthDays) {
+		this.monthDays = monthDays;
+	}
+    
+}

@@ -1,0 +1,250 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+	pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>考勤数据树信息</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<script src="../template/miniui/boot.js" type="text/javascript"></script>
+<link rel="stylesheet" href="../template/system/css/base.css"
+	type="text/css"></link>
+<link href="../template/miniui/themes/other/skin.css" rel="stylesheet"
+	type="text/css" />
+<script src="${base}/template/plugin/public/treeList.js" type="text/javascript"></script>
+<style type="text/css">
+body {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+</style>
+</head>
+<body>
+	<div class="mini-splitter" style="width:100%;height:100%;" handlerSize="9">
+		<div size="300" showCollapseButton="true">
+			<!-- ckId -->
+			<div class="mini-toolbar" style="padding:2px;border-top:0;border-left:0;border-right:0;">
+				<span style="padding-left:5px;">组织机构：</span>
+			</div>
+			<div class="mini-fit" style=" border-top:0;">
+				<ul id="deptree" class="mini-tree" url="../basis/branch!getTreeListByUser.action" style="width:100%;height:100%;"
+					showTreeIcon="true" textField="name" idField="id" parentField="pid" resultAsTree="false" expandOnLoad="true" >
+				</ul>
+			</div>
+		</div>
+		<div showCollapseButton="false">
+<!-- 			<iframe id="mainframe" frameborder="0" name="main" style="width:100%;height:100%;" border="0"></iframe> -->
+			<div class="mini-toolbar" style="border-left:0;padding:0px;">
+				<input type="hidden" id="monthDays" name="monthDays" value="${monthDays }" />
+				<input type="hidden" id="commitId" name="commitId" value="${commitId }" />
+				<table style="width:100%;">
+					<tr>
+						<td>
+							<a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a> 
+							<a class="mini-button" iconCls="icon-upload" onclick="report()">上报</a> 
+							<a class="mini-button" iconCls="icon-edit" onclick="viewOpinion()">查看审核意见</a> 
+						</td>
+						<td style="width:200px;" align="right">年月份:</td>
+						<td id="yearMonth" style="width:100px;font-weight:bold;">${yearMonth }</td>
+						<td style="width:50px;" align="right">状态：</td>
+		                <td id="auditStatus" style="width:200px;font-weight:bold;">${auditStatus }</td>
+					</tr>
+				</table>
+			</div>
+		    <div class="mini-fit">
+		        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+		             url="../check/check_infos!getData.action" idField="id" multiSelect="true" 
+		             allowAlternating="true" pageSize="100" >
+		            <div property="columns">
+		            	<div type="checkcolumn"></div>
+		                <div type="indexcolumn" width="50" headerAlign="center" >序列</div>
+		                <div field="id" id="id" name="id" width="120" headerAlign="center" allowSort="true">id</div>
+		                <div field="className" id="className" name="className" width="80" headerAlign="center" align="center">班组</div>
+		                <div field="jobNumber" id="jobNumber" name="jobNumber" width="80" headerAlign="center" align="center">职工号</div>
+		                <div field="name" id="name" name="name" width="80" headerAlign="center" align="center" >姓名</div>
+		                <div field="post" id="post" name="post" width="80" headerAlign="center" align="center" >岗位</div>
+		                <div field="onPost" id="onPost" name="onPost" width="80" headerAlign="center" align="center" >状态</div>
+		                <div field="isMonitor" id="isMonitor" name="isMonitor" width="80" headerAlign="center" align="center" >是否班长</div>
+		                <div field="day1" id="day1" name="day1" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">1</div>
+		                <div field="day2" id="day2" name="day2" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">2</div>
+		                <div field="day3" id="day3" name="day3" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">3</div>
+		                <div field="day4" id="day4" name="day4" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">4</div>
+		                <div field="day5" id="day5" name="day5" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">5</div>
+		                <div field="day6" id="day6" name="day6" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">6</div>
+		                <div field="day7" id="day7" name="day7" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">7</div>
+		                <div field="day8" id="day8" name="day8" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">8</div>
+		                <div field="day9" id="day9" name="day9" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">9</div>
+		                <div field="day10" id="day10" name="day10" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">10</div>
+		                <div field="day11" id="day11" name="day11" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">11</div>
+		                <div field="day12" id="day12" name="day12" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">12</div>
+		                <div field="day13" id="day13" name="day13" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">13</div>
+		                <div field="day14" id="day14" name="day14" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">14</div>
+		                <div field="day15" id="day15" name="day15" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">15</div>
+		                <div field="day16" id="day16" name="day16" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">16</div>
+		                <div field="day17" id="day17" name="day17" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">17</div>
+		                <div field="day18" id="day18" name="day18" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">18</div>
+		                <div field="day19" id="day19" name="day19" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">19</div>
+		                <div field="day20" id="day20" name="day20" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">20</div>
+		                <div field="day21" id="day21" name="day21" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">21</div>
+		                <div field="day22" id="day22" name="day22" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">22</div>
+		                <div field="day23" id="day23" name="day23" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">23</div>
+		                <div field="day24" id="day24" name="day24" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">24</div>
+		                <div field="day25" id="day25" name="day25" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">25</div>
+		                <div field="day26" id="day26" name="day26" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">26</div>
+		                <div field="day27" id="day27" name="day27" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">27</div>
+		                <div field="day28" id="day28" name="day28" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">28</div>
+		                <div field="day29" id="day29" name="day29" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">29</div>
+		                <div field="day30" id="day30" name="day30" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">30</div>
+		                <div field="day31" id="day31" name="day31" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">31</div>
+		                <div field="remark" id="remark" name="remark" width="200" headerAlign="center" align="left" >备注</div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+	</div>
+	<script type="text/javascript">
+		var monthDays = "${monthDays}";
+		var auditStatus = "${auditStatus}";
+		if (auditStatus == "待审核"){
+			$("#auditStatus").css("color", "blue");
+		} else if (auditStatus == "审核通过"){
+			$("#auditStatus").css("color", "green");
+		} else if (auditStatus == "审核不通过"){
+			$("#auditStatus").css("color", "red");
+		} else if (auditStatus == "未上报") {
+			$("#auditStatus").css("color", "gray");
+		}
+		
+        mini.parse();
+        
+        //默认显示案源登记tab页
+// 		$().ready(function() {
+// 			var iframe = document.getElementById("mainframe");
+// 			iframe.src = "../check/check_infos!list.action";
+// 		});
+        
+        var grid=mini.get("grid");
+        grid.hideColumn("id");
+        if(monthDays == 28){
+    		grid.hideColumn("day29");
+    		grid.hideColumn("day30");
+    		grid.hideColumn("day31");
+    	} else if (monthDays == 29){
+    		grid.hideColumn("day30");
+    		grid.hideColumn("day31");
+    	} else if (monthDays == 30){
+    		grid.hideColumn("day31");
+    	}
+        grid.load();
+        
+        function onTimeFlagRenderer(e) {
+        	if (e.value != null){
+        		if(e.value.indexOf("red") >= 0){
+	 		   		return '<font ></font><span style="color:red;font-weight:bold;">'+e.value.substring(0, e.value.indexOf("red"))+'</span>';
+	 		    } else if(e.value.indexOf("blue") >= 0){
+	 		   		return '<font ></font><span style="color:blue;font-weight:bold;">'+e.value.substring(0, e.value.indexOf("blue"))+'</span>';
+	 		    }else{
+	 		    	return e.value;
+	 		    }
+        	} else {
+        		return "";
+        	}
+        }
+        
+        //编辑
+		function edit() {
+			var rows = grid.getSelecteds();
+			var row = grid.getSelected();
+			if (rows.length <= 0){
+				mini.alert("请选择一条记录！");
+			} else if (rows.length > 1){
+				mini.alert("只能选择一条记录！");
+			} else {
+				mini.open({
+					url : "../check/check_infos!edit.action?id=" + row.id+"&monthDays=${monthDays}&yearMonth=${yearMonth }",
+					title : "修改考勤信息",
+					width : 1500,
+					height : 530,
+					/* allowResize:false, */
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+			}
+		}
+		
+		//上报
+		function report(){
+			if (confirm("确定要上报该月考勤？")) {
+				var commitId = $("#commitId").val();
+				window.parent.loading();
+				$.ajax({
+					url : "../check/check_infos!reportCheckInfo.action?yearMonth=${yearMonth }&commitId="+commitId,
+					type : "post",
+					success : function(text) {
+						window.parent.unmask();
+						if (text == "success") {
+							mini.showMessageBox({
+                                title: "提醒",
+                                width: 250,
+                                iconCls: "mini-messagebox-warning",
+                                buttons: ["ok"],
+                                message: "上报成功",
+                                callback: function (action) {
+                                    grid.reload();
+                                    $("#auditStatus").text("待审核");
+                                    $("#auditStatus").css("color", "blue");
+                                }
+                            });
+						} else {
+							mini.showMessageBox({
+                                title: "提醒",
+                                iconCls: "mini-messagebox-warning",
+                                buttons: ["ok"],
+                                message: text,
+                                callback: function (action) {
+                                    grid.reload();
+                                }
+                            });
+						}
+					},
+					error : function(text) {
+						mini.alert("上报失败");
+					}
+				});
+			}
+		}
+		
+		//查看审核意见
+		function viewOpinion(){
+			mini.open({
+					url : "../check/check_infos!viewOpinion.action?yearMonth=${yearMonth }",
+					title : "查看审核意见",
+					width : 750,
+					height : 410,
+					allowResize : false,
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						window.location.reload();
+					}
+				});
+		}
+	</script>
+</body>
+</html>

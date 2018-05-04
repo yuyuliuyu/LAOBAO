@@ -1,0 +1,390 @@
+package com.lingnet.hcm.action.check;
+
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkCheckInfo;
+import com.lingnet.hcm.entity.check.CkInfoCommit;
+import com.lingnet.hcm.entity.check.CkTimer;
+import com.lingnet.hcm.entity.person.BasicInformation;
+import com.lingnet.hcm.service.check.AuditInfosService;
+import com.lingnet.hcm.service.check.CheckInfosService;
+import com.lingnet.hcm.service.check.TimerService;
+import com.lingnet.hcm.service.personnel.PersonnelService;
+import com.lingnet.util.JsonUtil;
+/**
+ * 
+ * @ClassName: ClassGroup 
+ * @Description: 考勤数据信息控制层
+ * @author wangqiang
+ * @date 2017年3月7日 下午4:11:49 
+ *
+ */
+public class CheckInfosAction extends BaseAction{
+
+	private static final long serialVersionUID = 5623909238890670719L;
+	
+	private CkCheckInfo ckCheckInfo;
+	private CkTimer ckTimer;
+	private String name;//姓名
+	private String workDate;//工作日期（如：2010-03-15）
+	private Map<String, String> map;//签到时间map
+	private int monthDays;//月份天数
+	private String yearMonth;//年月份
+	private String auditStatus;//审核状态
+	private CkInfoCommit commitInfo;
+	private String day;//日期
+	private String jobNumber;//职工号
+	private String commitId;//上报记录ID
+	
+	@Resource(name = "checkInfosService")
+	private CheckInfosService checkInfosService;
+	
+	@Resource(name = "personnelService")
+	private PersonnelService personnelService;
+	
+	@Resource(name = "timerService")
+	private TimerService timerService;
+	
+	@Resource(name = "auditInfosService")
+	private AuditInfosService auditInfosService;
+	
+	/**
+	 * 考勤动态部门树页面
+	 * @Title: treeList 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月11日 V 1.0
+	 */
+	public String treeList(){
+		Map<String, Object> map = checkInfosService.findMonthDaysAndYearMonth();
+		if (map != null){
+			yearMonth = map.get("yearMonth")+"";
+			if(map.get("monthDays")==null){
+                monthDays = 0;
+			}else{
+                monthDays = Integer.parseInt(map.get("monthDays")+"");
+			}
+			Map<String, String> commitMap = auditInfosService.getAuditStatusByYearMonth(yearMonth);
+			auditStatus = commitMap.get("auditStatus");
+			commitId = commitMap.get("commitId");
+		}
+        return "treeList";
+    }
+	
+	/**
+	 * 获取考勤动态信息集合
+	 */
+	public String getData(){
+		Map<String, Object> result = new HashMap<String, Object>();
+		try {
+			result = checkInfosService.getDataByCond(pager, searchData);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "数据异常！");
+		}
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+	/**
+     * 进入编辑页面
+     */
+    public String edit() {
+    	ckCheckInfo = checkInfosService.get(id);
+        yearMonth=ckCheckInfo.getMonthCalendar();
+    	if (ckCheckInfo != null){
+    		BasicInformation basicInfo = personnelService.get(BasicInformation.class, Restrictions.eq("jobNumber", ckCheckInfo.getJobNumber()));
+    		if (basicInfo != null){
+    			name = basicInfo.getName();
+    			if (basicInfo.getSetWorkDate() != null){
+	    			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	    			workDate = sdf.format(basicInfo.getSetWorkDate());
+    			}
+    		} 
+    		//封装员工的签到、签退时间
+            String usernumber="";
+    		try {
+                  usernumber=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("jobNumber", ckCheckInfo.getJobNumber())).getCheckNo()+"";
+            } catch (Exception e) {
+                e.printStackTrace();
+                  usernumber= "";
+            }
+    		map = timerService.getListByCond(usernumber, ckCheckInfo.getMonthCalendar());
+    	}
+        if(ckCheckInfo.getCheckDepId()!=null){
+            CkInfoCommit ckinfo=this.getBeanByCriteria(CkInfoCommit.class, Restrictions.eq("depId", ckCheckInfo.getCheckDepId()));
+            if(ckinfo.getAuditStatus()==2){
+                
+            }else{
+                id="本月已经提报，不能进行修改";
+                return "show";
+            }
+        }
+    	return "edit";
+    }
+    
+    /**
+     * 根据日期获得员工所有打卡时间
+     * @Title: getAllTimesByDay 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月26日 V 1.0
+     */
+    public String getAllTimesByDay(){
+    	String allTimes = "";
+    	String startTime = "20"+yearMonth.substring(0,2)+"-"
+    			+yearMonth.substring(2,4)+"-"+(day.length()==1?"0"+day:day)+" 00:00:00";
+    	String endTime = "20"+yearMonth.substring(0,2)+"-"
+    			+yearMonth.substring(2,4)+"-"+(day.length()==1?"0"+day:day)+" 23:59:59";
+    	String jobnum=this.getBeanByCriteria(BasicInformation.class, Restrictions.eq("jobNumber", jobNumber)).getCheckNo();
+    	allTimes = timerService.getAllListByCond(startTime, endTime, jobnum);
+    	String json = JsonUtil.Encode(allTimes);
+        return ajax(Status.success, json);
+    }
+    
+    /**
+     * 修改人员考勤班制信息
+     */
+    public String saveOrUpdate(){
+		try {
+			checkInfosService.updateCheckInfo(formdata);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "操作失败"); 
+		}
+		return ajax(Status.success, "success");
+	}
+    
+    /**
+     * 上报员工考勤信息
+     * @Title: reportCheckInfo 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月19日 V 1.0
+     */
+    public String reportCheckInfo(){
+    	try {
+			Map<String, String> resultMap = auditInfosService.saveReportInfos(yearMonth,commitId);
+			if ("error".equals(resultMap.get("status"))){
+				return ajax(Status.error, resultMap.get("msg"));
+			}
+		} catch (Exception e) {
+			return ajax(Status.error, "操作失败");
+		}
+    	return ajax(Status.success, "success");
+    }
+    
+    /**
+     *  查看审核意见
+     * @Title: viewOpinion 
+     * @return 
+     * @author wangqiang
+     * @since 2017年3月9日 V 1.0
+     */
+    public String viewOpinion() {
+    	commitInfo = auditInfosService.getInfoByYearMonth(yearMonth);
+    	return "viewOpinion";
+    }
+    
+    /***************************** 按日录入考勤  ****************************************/
+	
+    /**
+     * 跳转到按日录入考勤树页面
+     * @Title: treeListDay 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月21日 V 1.0
+     */
+	public String treeListDay(){
+		Map<String, Object> map = checkInfosService.findMonthDaysAndYearMonth();
+		if (map != null){
+			yearMonth = map.get("yearMonth")+""; 
+            if(map.get("monthDays")==null){
+                monthDays = 0;
+            }else{
+                monthDays = Integer.parseInt(map.get("monthDays")+"");
+            } 
+			Map<String, String> commitMap = auditInfosService.getAuditStatusByYearMonth(yearMonth);
+			auditStatus = commitMap.get("auditStatus");
+			commitId = commitMap.get("commitId");
+		}
+        return "treeListDay";
+    }
+	
+	/**
+	 * 获得人员按日考勤数据信息集合
+	 * @Title: getDayInfoData 
+	 * @return 
+	 * @author wangqiang
+	 * @since 2017年4月21日 V 1.0
+	 */
+	public String getDayInfoData(){
+		Map<String, Object> result = checkInfosService.getDayDataByCond(pager, searchData);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+    /**
+     * 进入编辑员工日考勤页面
+     * @Title: editEmp 
+     * @return 
+     * @author wangqiang
+     * @since 2017年3月14日 V 1.0
+     */
+    public String editEmp(){
+        ckCheckInfo=checkInfosService.get(id);
+        if(ckCheckInfo.getCheckDepId()!=null&&ckCheckInfo.getCheckDepId().length()>1){
+            id="本月已经提报，不能进行修改";
+            return "audit_infos_error";
+        }
+    	map = checkInfosService.getInfoById(id, day);
+    	String monthCalendar = map.get("monthCalendar");
+    	String jobNumber = map.get("jobNumber");
+    	String startTime = "20"+monthCalendar.substring(0,2)+"-"+monthCalendar.substring(2,4)+"-"
+    			+(day.length()==1?("0"+day):day)+" 00:00:00";
+    	String endTime = "20"+monthCalendar.substring(0,2)+"-"+monthCalendar.substring(2,4)+"-"
+    			+(day.length()==1?("0"+day):day)+" 23:59:59";
+    	String timeStr =  timerService.getAllListByCond(startTime, endTime, jobNumber);
+    	map.put("timeStr", timeStr);
+    	return "editEmp";
+    }
+    
+    /**
+     * 修改员工日考勤信息
+     * @Title: updateDayCheck 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月22日 V 1.0
+     */
+    public String updateDayCheck(){
+    	Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		String id = dataMap.get("id");
+		String day = dataMap.get("day");
+		String content = dataMap.get("content");
+		String overtime = dataMap.get("overtime");
+		CkCheckInfo info = checkInfosService.get(id);
+    	//验证审核状态
+		String checkUnitId = personnelService.getCheckUnitIdByJobNumber(info.getJobNumber());
+		Map<String, String> map = auditInfosService.getAuditStatusByCond(checkUnitId, info.getMonthCalendar());
+		if ("待审核".equals(map.get("auditStatus"))){
+    		return ajax(Status.error, "考勤已上报，不能修改！");
+    	}
+    	if ("审核通过".equals(map.get("auditStatus"))){
+    		return ajax(Status.error, "考勤已审核，不能修改！");
+    	}
+		//进行修改
+    	try {
+    		info.getClass().getMethod("setDay"+day, String.class).invoke(info, content);
+			info.getClass().getMethod("setOvertime"+day, Integer.class).invoke(info, Integer.parseInt(overtime));
+			checkInfosService.update(info);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "操作失败");
+		}
+    	return ajax(Status.success, "success");
+    }
+    
+	public CkCheckInfo getCkCheckInfo() {
+		return ckCheckInfo;
+	}
+
+	public void setCkCheckInfo(CkCheckInfo ckCheckInfo) {
+		this.ckCheckInfo = ckCheckInfo;
+	}
+
+	public CkTimer getCkTimer() {
+		return ckTimer;
+	}
+
+	public void setCkTimer(CkTimer ckTimer) {
+		this.ckTimer = ckTimer;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getWorkDate() {
+		return workDate;
+	}
+
+	public void setWorkDate(String workDate) {
+		this.workDate = workDate;
+	}
+
+	public Map<String, String> getMap() {
+		return map;
+	}
+
+	public void setMap(Map<String, String> map) {
+		this.map = map;
+	}
+
+	public int getMonthDays() {
+		return monthDays;
+	}
+
+	public void setMonthDays(int monthDays) {
+		this.monthDays = monthDays;
+	}
+
+	public String getYearMonth() {
+		return yearMonth;
+	}
+
+	public void setYearMonth(String yearMonth) {
+		this.yearMonth = yearMonth;
+	}
+
+	public String getAuditStatus() {
+		return auditStatus;
+	}
+
+	public void setAuditStatus(String auditStatus) {
+		this.auditStatus = auditStatus;
+	}
+
+	public CkInfoCommit getCommitInfo() {
+		return commitInfo;
+	}
+
+	public void setCommitInfo(CkInfoCommit commitInfo) {
+		this.commitInfo = commitInfo;
+	}
+
+	public String getDay() {
+		return day;
+	}
+
+	public void setDay(String day) {
+		this.day = day;
+	}
+
+	public String getJobNumber() {
+		return jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	public String getCommitId() {
+		return commitId;
+	}
+
+	public void setCommitId(String commitId) {
+		this.commitId = commitId;
+	}
+
+}

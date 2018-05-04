@@ -1,0 +1,84 @@
+@charset "utf-8";
+/* CSS Document */
+/* 全局样式 */
+*{ padding:0px; margin:0px; font-size:12px; color:#333333; 
+font-family: "微软雅黑"}
+ul,ol{ padding:0px; margin:0px; list-style:none;}
+body,ul,ol,dl,li,p,h1,h2,h3,h4,h5,h6,form,fieldset,img,div{margin:0;padding:0;border:0;}
+.clear{ clear:both;}
+a{ color:#333; text-decoration:none;cursor: pointer;}
+a:hover{ text-decoration:none;}
+body{ background:#f5f5f5; }
+.grxxleft{ width:130px; float:left; background:#eaeaea; height:99.6%;border:1px solid #cacaca; position:absolute;*left:0; border-top: none}
+.touxiang{ text-align:center; padding-top:10px; line-height:30px; }
+.sxtop{border-bottom:1px solid #cacaca;width:130px;height:1px;}
+.sxbottom{border-TOP:1px solid #fff;width:130px;height:1px;}
+.kjdhlm{ width:130px; }
+.kjdhlm ul{ margin-top:10px;}
+.kjdhlm ul li{ line-height:30px; height:30px; padding-left:15px; border-bottom:1px solid #cacaca; padding-top:3px; padding-bottom:7px;}
+.kjdhlm ul li span{  float:left;}
+.kjdhlm ul li a{ line-height:45px; padding-right:15px;  margin-top:-5px; float:right; font-size:14px; }
+.kjdhlm ul li a:hover{ line-height:45px; padding-right:15px;  margin-top:-5px; float:right; font-size:14px; color:#2ca8f7}
+.grxxright{ overflow:hidden;margin-left:130px; margin-bottom:20px; min-width:1100px; }
+.kjdhtop{ border:1px solid #d1d1d1; width:100%; height:200px; border-radius: 2px;box-shadow:1px 1px 5px #d1d1d1 }
+.kjdhtit{ height:30px; line-height:30px; font-size:14px; color:#09F; font-weight:bold; border-bottom:1px solid #d1d1d1; padding-left:30px; background:url(../images/skinw8/lmdh1.png) no-repeat 10px 8px;}
+.kjdhtit span{ vertical-align:text-bottom; width:50PX;}
+.kjdhtit2{ height:30px; line-height:30px;  border-bottom:1px solid #d1d1d1; padding-left:30px; background:url(../images/skinw8/lmdh2.png) no-repeat 10px 8px;}
+.kjdhtit2 span{ vertical-align:text-bottom; }
+.btwz{ float:left;font-size:14px; color:#09F; font-weight:bold; width:150px;}
+.more a{ float:right; color:#464646; padding-right:10px; font-size:14px; cursor: pointer;}
+
+.kjdhtit3{ height:30px; line-height:30px; font-size:14px; color:#09F; font-weight:bold; border-bottom:1px solid #d1d1d1; padding-left:30px; background:url(../images/skinw8/lmdh3.png) no-repeat 10px 8px;}
+.kjdhtit3 span{ vertical-align:text-bottom; }
+/*gundong*/
+#content{width:100%; }
+#content h1{ margin-bottom:10px;  font-family:"微软雅黑"; font-weight:100}
+#scroll {width:89%; height:150px;overflow:hidden; float:left; margin-top:25px; overflow:hidden; padding-right:20px; margin-right:40px; margin-left:55px; }
+#scroll li{float:left}
+/*块2样式*/
+.mqdemoa {width:3960px!important;width:1980px;list-style:none;margin:0;padding:0;overflow:hidden;}
+/*块2子元素样式*/
+.mqdemoa li {width:77px;float:left; text-align:center; padding:5px 20px 20px 10px;}
+.mqdemoa li a{color:#fff; text-decoration:none; line-height:22px; font-size:12px;}
+.mqdemoa li:hover{ background:url(../images/skinw8/li_hoverbg.png) no-repeat;}
+/*内容样式*/
+#content .mqdemoa li a span{ line-height:30px;border:1px solid #d1d1d1;border-radius: 10px; padding-left:10px; padding-right:10px;}
+/*scroll对象部分样式结束*/
+/*其他样式，与scroll对象无关联*/
+.pre{ width:20px; height:38px; margin:60px 10px 0 10px; background:url(../images/skinw8/prenext.gif) no-repeat 0 100%; cursor:pointer; float:left;position:absolute;left:50;*left:0; top:30; padding:0; *margin-left:160px;}
+
+.next{width:20px; height:38px; margin:60px 10px 0 10px; background:url(../images/skinw8/prenext.gif) no-repeat 100% 100%; cursor:pointer; float:right;position:absolute;right:10px;; top:30; padding:0; }
+
+
+.kjdhbottom{ margin-top:15px; min-width:1060px;}
+.kcleft{ margin-top:15px;border:1px solid #d1d1d1; width:49%; min-width:520px; height:304px; border-radius: 2px;box-shadow:1px 1px 5px #d1d1d1; float:left;}
+.kcright{ margin-top:15px;border:1px solid #d1d1d1; width:49%;min-width:520px;  height:304px; border-radius: 2px;box-shadow:1px 1px 5px #d1d1d1; float:right;}
+.datacol {
+	color:#1D79C7;
+}
+.titlab {
+	float:left;
+}
+.tabindex {
+	border-collapse:collapse;
+}
+.tabindex tr th {
+	border-collapse:collapse;
+	border:1px solid #dddddd;
+	text-align:left;
+	padding: 10px 5px;
+	border-top:none;
+		border-left:none;
+}
+.tabindex tr td {
+	border: 1px solid #DDDDDD;
+	border-collapse: collapse;
+	border-left:none;
+	padding: 5px 5px;
+	text-align:center;
+	border-left:none;
+
+}
+.yccol {
+	color:#ff0000;
+}

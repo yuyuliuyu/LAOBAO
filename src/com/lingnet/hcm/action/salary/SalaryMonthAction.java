@@ -1,0 +1,283 @@
+package com.lingnet.hcm.action.salary;
+
+import java.io.File;
+
+import javax.annotation.Resource;
+
+import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.SalaryMonth;
+import com.lingnet.hcm.service.salary.SalaryMonthService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 计算月平均工资
+ * @ClassName: SalaryMonthAction 
+ * @Description: 计算月平均工资
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryMonthAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private String companyId;// 公司ID
+    private int year;// 年份
+    private SalaryMonth salaryMonth;
+    private File uploadFile;// 导入的文件
+
+    @Resource(name="salaryMonthService")
+    private SalaryMonthService salaryMonthService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        salaryMonth = salaryMonthService.get(SalaryMonth.class, Restrictions.eq("id", id));
+        return "add";
+    }
+
+    /**
+     * @Title: 员工选择页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String person() {
+        return "person";
+    }
+
+    /**
+     * @Title: 维护员工与平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String avg() {
+        return "avg";
+    }
+
+    /**
+     * @Title: 获取每月平均工资 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String getPerMonthSalary() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getPerMonthSalary(companyId, pager)));
+    }
+
+    /**
+     * @Title: 月平均工资 保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryMonthService.saveOrUpdate(formdata, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 删除月平均工资 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryMonthService.remove(ids));
+    }
+
+    /**
+     * @Title: 获取关联到的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String getMonthItemForId() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getMonthItemForId(id)));
+    }
+
+    /**
+     * @Title: 重新计算平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String updateReloadCalculation() {
+        return ajax(Status.success, salaryMonthService.updateReloadCalculation(id));
+    }
+
+    /**
+     * @Title: 获取月平均工资的员工
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public String getMonthSalaryListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getMonthSalaryListData(id, pager)));
+    }
+
+    /**
+     * @Title: 获取需要计算平均工资的员工(正式工)
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public String getPersonalToAllocationListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getPersonalToAllocationListData(id)));
+    }
+
+    /**
+     * @Title: 增加或者更新除参加计算员工 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月25日 V 1.0
+     */
+    public String saveOrUpdateToPerson() {
+        try {
+            return ajax(Status.success, salaryMonthService.saveOrUpdateToPerson(id, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取维护的员工月平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月28日 V 1.0
+     */
+    public String getMonthAvgSalary() {
+        return ajax(Status.success, JsonUtil.Encode(salaryMonthService.getMonthAvgSalary(depId, pager)));
+    }
+
+    /**
+     * @Title: 增加或者更新员工月平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月28日 V 1.0
+     */
+    public String saveOrUpdateMonthAvgSalary() {
+        try {
+            return ajax(Status.success, salaryMonthService.saveOrUpdateMonthAvgSalary(year, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 替换现有平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月25日 V 1.0
+     */
+    public String replaceCurAvgSalary() {
+        return ajax(Status.success, salaryMonthService.replaceCurAvgSalary(id));
+    }
+
+    /**
+     * @Title: 导入平均工资
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月6日 V 1.0
+     */
+    public String beachCheck() {
+        MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
+        // 获取上传文件的名字
+        String[] fileName=wrapper.getFileNames("uploadFile");
+        if (fileName.length == 0) {
+            return ajax(Status.success, "请选择上传文件！");
+        }
+        // 文件后缀
+        String endSuffix= fileName[0].substring(fileName[0].lastIndexOf("."), fileName[0].length());
+        if (!endSuffix.toLowerCase().endsWith("xls")
+                && !endSuffix.toLowerCase().endsWith("xlsx")) {
+            return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
+        }
+        try {
+            String message = salaryMonthService.beachCheck(endSuffix, uploadFile);
+            return ajax(Status.success, message);
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+    public SalaryMonth getSalaryMonth() {
+        return salaryMonth;
+    }
+
+    public void setSalaryMonth(SalaryMonth salaryMonth) {
+        this.salaryMonth = salaryMonth;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
+    }
+
+    public File getUploadFile() {
+        return uploadFile;
+    }
+
+    public void setUploadFile(File uploadFile) {
+        this.uploadFile = uploadFile;
+    }
+
+}

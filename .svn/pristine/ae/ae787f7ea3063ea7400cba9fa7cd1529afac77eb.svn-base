@@ -1,0 +1,129 @@
+package com.lingnet.hcm.action.check;
+
+import java.io.OutputStream;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.check.CkStandard;
+import com.lingnet.hcm.service.check.StandardService;
+import com.lingnet.util.JsonUtil;
+/**
+ * 
+ * @ClassName: ClassGroup 
+ * @Description: 考勤标准控制层
+ * @author wangqiang
+ * @date 2017年3月7日 下午4:11:49 
+ *
+ */
+public class StandardAction extends BaseAction{
+
+	private static final long serialVersionUID = 5623909238890670719L;
+	
+	private CkStandard ckStandard;//考勤标准实体类 
+	
+	@Resource(name = "standardService")
+	private StandardService standardService;
+	
+	/**
+	 * 跳转到班组名称维护页
+	 */
+	public String list(){
+        return "list";
+    }
+	
+	/**
+	 * 获取班组名称信息集合
+	 */
+	public String getData(){
+		Map<String, Object> result = standardService.getDataByCond(pager);
+        String json = JsonUtil.Encode(result);
+        return ajax(Status.success, json);
+	}
+	
+	/**
+	 * 进入添加考勤标准信息页面
+	 */
+	public String add(){
+		return "add";
+	}
+	
+	/**
+	 * 保存或修改考勤标准信息
+	 */
+	public String saveOrUpdate(){
+		Map<String,String> dataMap = JsonUtil.parseProperties(formdata);
+		if (!dataMap.isEmpty() && !"".equals(dataMap.get("yearCalendar"))){
+			CkStandard standard = standardService.get(CkStandard.class, Restrictions.eq("yearCalendar", dataMap.get("yearCalendar")));
+			if (standard != null){
+				return ajax(Status.error, "该年月份已存在！");
+			}
+		}
+		try {
+			standardService.saveOrUpdateInfo(dataMap);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ajax(Status.error, "操作失败"); 
+		}
+		return ajax(Status.success, "success");
+	}
+	
+	/**
+     * 进入编辑页面
+     */
+    public String edit() {
+    	ckStandard = standardService.get(id);
+    	return "add";
+    }
+    
+    /**
+     * 删除考勤标准信息
+     * @Title: remove 
+     * @return 
+     * @author wangqiang
+     * @since 2017年4月5日 V 1.0
+     */
+    public String remove() {
+    	if (ids != null && !"".equals(ids)){
+    		String[] idArrs = ids.split(",");
+    		standardService.delete(CkStandard.class, idArrs);
+    	}
+        return ajax(Status.success, "success");
+    }
+    
+    /**
+     * 导出考勤标准信息
+     * @Title: exportStandardInfo  
+     * @author wangqiang
+     * @since 2017年4月6日 V 1.0
+     */
+    public void exportStandardInfo(){
+    	HttpServletResponse resp = getResponse(); 
+    	try {
+            HSSFWorkbook hwb = standardService.exportInfos();
+            resp.setContentType("application/x-msdownload");
+            resp.setHeader("Content-Disposition", "attachment;filename=\""
+            		+ new String("考勤标准信息".getBytes("gb2312"), "ISO8859-1")+ ".xls" + "\"");
+            OutputStream out = resp.getOutputStream();
+            hwb.write(out);
+            out.flush();
+            out.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+    }
+
+	public CkStandard getCkStandard() {
+		return ckStandard;
+	}
+
+	public void setCkStandard(CkStandard ckStandard) {
+		this.ckStandard = ckStandard;
+	}
+    
+}

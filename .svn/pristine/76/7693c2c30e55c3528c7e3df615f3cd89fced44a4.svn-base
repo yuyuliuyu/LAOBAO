@@ -1,0 +1,103 @@
+package com.lingnet.hcm.dao.impl.empdata;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import com.lingnet.common.dao.impl.BaseDaoImpl;
+import com.lingnet.hcm.dao.empdata.CareerDao;
+import com.lingnet.hcm.dao.empdata.InjuryDao;
+import com.lingnet.hcm.entity.person.Career;
+import com.lingnet.hcm.entity.person.Injury;
+import com.lingnet.util.Pager;
+
+/**
+ * 人员岗位兼职Dao实现类
+ */
+@Repository("injuryDao")
+public class InjuryDaoImpl extends BaseDaoImpl<Injury, String> implements InjuryDao{
+
+	@Override
+	public HashMap<String, Object> getListData(Pager pager, String searchData) {
+		StringBuilder sql=new StringBuilder()
+		.append(" SELECT BAS.JOB_NUMBER,BAS.NAME PERNAME,BAS.FILM_NAME,BAS.DEPART_NAME,BAS.POST PERPOST,BAS.SPECIFIC_POST,  ")
+		.append(" JII.ID,JII.ON_POST,BR.FZX,QD.NAME,DP.POSITION_NAME,JII.INJURY_DATE,JII.INJURY_PROCESS,  ")
+		.append(" JII.INJURY_PART,JII.INJURY_CAUSE,JII.INJURY_TYPE,JII.MANAGE_STATUS,JII.HEAL_BEGINDATE,JII.HEAL_ENDDATE, ")
+		.append(" JII.HEAL_COSTS,JII.INJURY_SUBSIDY,JII.AUTH_DATE,JII.HEAL_SUBSIDY,JII.HEAL_SUBSIDY_SOCIAL,JII.HEAL_SUBSIDY_FIRM, ")
+		.append(" JII.EMPLOY_SUBSIDY,JII.EMPLOY_SUBSIDY_SOCIAL,JII.EMPLOY_SUBSIDY_FILM,JII.REMARK,JII.CUTE_PROCESS ")
+		.append(" FROM JC_INDUSTRIAL_INJURY JII ")
+		.append(" LEFT JOIN JC_BASIC_INFORMATION BAS ON BAS.JOB_NUMBER=JII.JOB_NUMBER  ")
+		.append(" LEFT JOIN BRANCH BR ON BR.ID=JII.INJURY_UNIT   ")
+		.append(" LEFT JOIN QX_DEPARTMENT QD ON QD.ID=JII.INJURY_DEPARTMENT  ")
+		.append(" LEFT JOIN DEPT_POSITION DP ON DP.ID=JII.INJURY_POST  ")
+		.append(" ORDER BY JII.HEAL_ENDDATE DESC  ")
+		;
+		pager=this.findPagerBySql(pager, sql.toString());
+		List list = pager.getResult();
+        List dataList = new ArrayList();
+        SimpleDateFormat form =new SimpleDateFormat("yyyy-MM-dd");
+        String stamp = "";
+		for (int i=0; i < list.size(); i++){
+			Object[] obj = (Object[]) list.get(i);
+			Map<String, Object> map = new HashMap<String, Object>();
+			
+			map.put("jobNumber", obj[0]);//
+			map.put("pername", obj[1]);
+			map.put("filmName", obj[2]);//
+			map.put("departName", obj[3]);
+			map.put("post", obj[4]);
+			map.put("specificPost", obj[5]);
+			
+			map.put("id", obj[6]);
+			map.put("onPost", obj[7]);
+			map.put("injuryUnit", obj[8]);
+			map.put("injuryDepartment", obj[9]);
+			map.put("injuryPost", obj[10]);//人名字
+			if(obj[11]!=null&&!"".equals(obj[11])){
+				stamp=form.format(obj[11]);
+				map.put("injuryDate", stamp);
+			}
+			//map.put("injuryDate", obj[11]);
+			map.put("injuryProcess", obj[12]);
+			map.put("injuryPart", obj[13]);
+			map.put("injuryCause", obj[14]);
+			map.put("injuryType", obj[15]);
+			map.put("manageStatus", obj[16]);
+			//map.put("healBegindate", obj[17]);
+			if(obj[17]!=null&&!"".equals(obj[17])){
+				stamp=form.format(obj[17]);
+				map.put("healBegindate", stamp);
+			}
+			if(obj[18]!=null&&!"".equals(obj[18])){
+				stamp=form.format(obj[18]);
+				map.put("healEnddate", stamp);
+			}
+			//map.put("healEnddate", obj[18]);
+			map.put("healCosts", obj[19]);
+			map.put("injurySubsidy", obj[20]);
+			if(obj[21]!=null&&!"".equals(obj[21])){
+				stamp=form.format(obj[21]);
+				map.put("authDate", stamp);
+			}
+			//map.put("authDate", obj[21]);
+			map.put("healSubsidy", obj[22]);
+			map.put("healSubsidySocial", obj[23]);
+			map.put("healSubsidyFirm", obj[24]);
+			map.put("employSubsidy", obj[25]);
+			map.put("employSubsidySocial", obj[26]);
+			map.put("employSubsidyFilm", obj[27]);
+			map.put("remark", obj[28]);
+			map.put("cuteProcess", obj[29]);
+			dataList.add(map);
+		}
+		HashMap<String, Object> map = new HashMap<String, Object>();
+        map.put("data", dataList);
+        map.put("total", pager.getTotalCount());
+        
+		return map;
+	}
+}

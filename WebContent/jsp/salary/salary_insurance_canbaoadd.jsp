@@ -1,0 +1,319 @@
+<%@ page trimDirectiveWhitespaces="true"%>
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<%
+    String path = request.getContextPath();
+            String basePath = request.getScheme() + "://"
+                    + request.getServerName() + ":" + request.getServerPort()
+                    + path;
+    pageContext.setAttribute("base", basePath);
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>增加参保信息</title>
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link href="../template/system/css/base.css" rel="stylesheet" type="text/css" />
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <link href="../template/plugin/public/css/tablepub.css" rel="stylesheet" type="text/css" />
+    <script src="../template/plugin/public/add.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="mini-toolbar" id="form1" style="padding:0px;border-top:0;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:100%;">
+                    <a class="mini-button" iconCls="icon-remove" onclick="removeRow()">删除</a>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="mini-fit">
+        <div id="grid" class="mini-datagrid" style="width:100%;" url="../salary/salary_insurance!getNoChoseStaffListData.action?ids=${ids}&recordMainId=${recordMainId}" pageSize="20"
+            pagerSize="20" showPager="false" idField="id" allowResize="false" borderStyle="border-center:0px;border-right:0px;" multiSelect="true"
+            allowCellEdit="true" allowCellSelect="true" >
+            <div property="columns">
+                <div type="checkcolumn" width="30"></div>
+                <div field="id" id="id" width="20" name="id" class="mini-hidden"></div>
+                <div type="indexcolumn" headeralign="center"  width="30">序列</div>
+                <div field="jobNumber" readOnly="true" width="100" headerAlign="center" align="center">工号</div>
+                <div field="name"  readOnly="true"width="100" headerAlign="center" align="center">姓名</div>
+                <div field="companyId" readOnly="true" width="100" headerAlign="center" align="center">公司</div>
+                <div field="detpName"  readOnly="true"width="100" headerAlign="center" align="center">部门</div>
+                <div field="post" readOnly="true" width="100" headerAlign="center" align="center">岗位</div>
+                <div type="comboboxcolumn" readOnly="true" field="onJob" width="100" headerAlign="center" align="center">在职状态
+                    <input property="editor" class="mini-combobox" url="../system/dectionary!listjson.action?id=402881935baceaa1015bae044344001a"
+                        textField="dicname" valueField="dicvalue"/>
+                </div>
+                <div type="comboboxcolumn" field="isDaiJiao" width="100" headerAlign="center" align="center">*是否代缴
+                    <input property="editor" class="mini-combobox" data="[{id:0, text:'否'},{id:1, text:'是'}]"/>
+                </div>
+            </div>
+        </div>
+        <div class="mini-toolbar" style="padding:0px;border-top:0;">
+            <table style="width:100%;">
+                <tr>
+                    <td style="width:100%;">
+                        <a class="mini-button" iconCls="icon-add" onclick="addsRow()">增加</a>
+                        <a class="mini-button" iconCls="icon-remove" onclick="removesRow()">删除</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="grid2" class="mini-datagrid" style="width:100%;" pageSize="20"
+            allowAlternating="true" multiSelect="true" url="../salary/salary_insurance!getNeedJoinInsuranceItemsData.action?ids=${ids}&recordMainId=${recordMainId}"
+            allowCellEdit="true" allowCellSelect="true" idField="id" allowResize="false" showPager="false" oncellvalidation="onCellValidation" >
+            <div property="columns">
+                <div type="checkcolumn" width="40"></div>
+                <div type="indexcolumn" headerAlign="center" width="40">序列</div>
+                <div field="id" id="id" width="80" name="id" class="mini-hidden"></div>
+                <div displayField="name" field="ibfId" width="80" headerAlign="center" align="center" vtype="required">福利项目*
+                    <input property="editor" class="mini-buttonedit" onbuttonclick="onItemsButtonEditAlert" allowInput="false"/>
+                </div>
+                <div type="comboboxcolumn" field="area" displayField="areaName" width="60" headerAlign="center" align="center" vtype="required">缴费地域*
+                    <input property="editor" class="mini-combobox" url="../basis/pay_areas!jsonlist.action" textField="city"/>
+                </div>
+                <div field="jfCompany" displayField="jfCompanyName" width="120" headerAlign="center" align="center" vtype="required">缴费单位*
+                    <input property="editor" class="mini-buttonedit" onbuttonclick="onButtonEditAlert" allowInput="false"/>
+                </div>
+                <div field="jfAccount" width="100" headerAlign="center" align="center" >缴费账号
+                    <input property="editor" class="mini-textbox" maxLength="40"/>
+                </div>
+                <div field="baseCompany" width="90" headerAlign="center" align="center"vtype="float">公司缴费基数
+                    <input property="editor" class="mini-textbox" maxLength="20"/>
+                </div>
+                <div field="basePersonal" width="90" headerAlign="center" align="center" vtype="float">员工缴费基数
+                    <input property="editor" class="mini-textbox" maxLength="20"/>
+                </div>
+                <div header="开始缴费年月*" headerAlign="center">
+                    <div property="columns">
+                        <div field="year" width="50" headerAlign="center" align="center"numberFormat="0"  vtype="required">年
+                            <input property="editor" class="mini-spinner" format="0" minValue="1990" maxValue="2100" style="width:100%"/>
+                        </div>
+                        <div field="month" width="40" headerAlign="center" align="center"numberFormat="0" vtype="required">月
+                          <input property="editor" class="mini-spinner" format="0" minValue="1" maxValue="12" style="width:100%"/>
+                        </div>
+                    </div>
+                </div>
+                <div field="note" width="80" headerAlign="center" align="center">起缴原因
+                    <input property="editor" class="mini-textbox" maxLength="1000"/>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mini-toolbar" style="text-align:center;padding-top:8px;padding-bottom:8px;" borderStyle="border:0;">
+        <a class="mini-button" onclick="onOK()" style="width:60px;margin-right:20px;" iconCls="icon-save">保存</a>
+        <a class="mini-button" onclick="onCancel" style="width:60px;" iconCls="icon-close">取消</a>
+    </div>
+
+    <script type="text/javascript">
+        mini.parse();
+        var grid = mini.get("grid");
+        grid.hideColumn("id");
+        grid.load();
+        var grid2 = mini.get("grid2");
+        grid2.hideColumn("id");
+        grid2.load();
+
+        function removeRow() {
+            var rows = grid.getSelecteds();
+            if (rows.length > 0) {
+                grid.removeRows(rows, false);
+            }else{
+                mini.alert("请选择需要删除的记录!");
+            }
+        }
+
+        function addsRow() {
+            var newRow = {};
+            grid2.selectAll(false);
+            var leng = grid2.getData().length;
+            grid2.addRow(newRow, leng);
+            var row=grid2.getRow(leng);
+            grid2.updateRow(row,row);
+            grid2.deselectAll (false);
+        }
+
+        function removesRow() {
+            var rows = grid2.getSelecteds();
+            if (rows.length > 0) {
+                grid2.removeRows(rows, false);
+            }else{
+                mini.alert("请选择需要删除的记录!");
+            }
+        }
+
+        function onOK() {
+            var rows = grid.getData();
+            if (rows.length ==0) {
+                mini.alert("请选择需要参保的人员");
+                return;
+            }
+            var staffRow = [];
+            for (var i=0,l=rows.length;i<l;i++) {
+                var sRow = {id: rows[i].id, isDaiJiao : rows[i].isDaiJiao, comId: rows[i].comId};
+                staffRow.push(sRow);
+            }
+            // 表格部分
+            var grid2=mini.get("grid2");
+            var gridjson="";
+            if(grid2){
+                // 验证
+                grid2.validate();
+                if (grid2.isValid() == false) {
+                    gridError(grid2);
+                    return;
+                }
+                var data = grid2.getData();
+                if(data.length<1){// 空行也算length
+                    mini.alert("详细信息为空，保存失败！");
+                    return;
+                }
+                // 判断是否存在相同的福利项目
+                var hash = {};
+                for(var i=0; i< data.length; i++) {
+                	var row = data[i];
+                	if(row.ibfId != undefined && hash[row.ibfId]) {
+                        mini.alert("存在相同的福利项目：<font color='red'>"+row.name +"</font>");
+                        return;
+                    }
+                    hash[row.ibfId] = true;
+                }
+                gridjson= mini.encode(data);
+            }
+
+            window.parent.loading();
+            $.ajax({
+                url : "../salary/salary_insurance!saveOrUpdateToInsurance.action",
+                type : "post",
+                data : {
+                    formdata : mini.encode(staffRow),
+                    griddata : gridjson
+                },
+                success : function(text) {
+                    if (text == "success") {
+                    	$.ajax({
+                            url : "../salary/salary_insurance!updateInsurance.action",
+                            type : "post",
+                            data : {
+                                formdata : mini.encode(staffRow)
+                            },
+                            success : function(text) {
+                                window.parent.unmask();
+                                if (text == "success") {
+                                    mini.showMessageBox({
+                                        title: "提醒",
+                                        width: 250,
+                                        iconCls: "mini-messagebox-warning",
+                                        buttons: ["ok"],
+                                        message: "保存成功",
+                                        callback: function (action) {
+                                            document.location.reload();
+                                            window.CloseOwnerWindow();
+                                        }
+                                    });
+                                } else {
+                                    if(text.length>0){
+                                        mini.alert(text);
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                    	window.parent.unmask();
+                        if(text.length>0){
+                            mini.alert(text);
+                        }
+                    }
+                }
+            });
+        }
+
+        function onButtonEditAlert(e) {
+            onButtonEdit(e.sender, "选择缴费单位", "../salary/salary_items!company.action", 480, 480,"fzx","","");
+        }
+
+        // 福利项目
+        function onItemsButtonEditAlert(e) {
+            mini.open({
+                url: "../salary/salary_insurance!items.action?ids=${ids}&recordMainId=${recordMainId}",
+                showMaxButton: false,
+                title: "选择福利项目",
+                width: 720,
+                height: 480,
+                ondestroy: function (action) {
+                    if (action == "ok") {
+                        var iframe = this.getIFrameEl();
+                        var data = iframe.contentWindow.GetData();
+                        data = mini.clone(data);
+                        e.sender.setText(data.name);
+                        e.sender.setValue(data.ibfId);
+                        var editor = grid2.getEditorOwnerRow(e.sender);
+                        grid2.updateRow(editor, {high: data.high, low: data.low});
+                    }
+                }
+            });
+        }
+
+        /** 关闭按钮点击事件 */
+        function onCancel() {
+            CloseWindow("cancel");
+        }
+        /** 关闭窗口 */
+        function CloseWindow(action) {
+            if (window.CloseOwnerWindow)
+                return window.CloseOwnerWindow(action);
+            else
+                window.close();
+        }
+
+        function onCellValidation(e) {
+            var field = e.field, record = e.record;
+
+            // 缴费账号
+            if (field == "jfAccount") {
+                onEnglishAndNumberValidation(e);
+            }
+
+            // 公司缴费基数、个人缴费基数上限与下限
+            if (field == "baseCompany" || field == "basePersonal") {
+                var value = parseFloat(e.value);
+                var high = parseFloat(record.high);
+                var low = parseFloat(record.low);
+                if (value > high || value < low) {
+                    e.errorText = "必须在" + high + "-" + low + "之间";
+                    e.isValid = false;
+                }
+            }
+        }
+
+        function onEnglishAndNumberValidation(e) {
+            if (e.isValid) {
+                if (isEnglishAndNumber(e.value) == false) {
+                    e.errorText = "必须输入英文+数字";
+                    e.isValid = false;
+                }
+            }
+        }
+        /* 是否英文+数字 */
+        function isEnglishAndNumber(v) {
+            var re = new RegExp("^[0-9a-zA-Z\_]+$");
+            if (re.test(v)) return true;
+            return false;
+        }
+        /* 是否数字 */
+        function isNumber(v) {
+            if (v=="" || v==null || v== undefined) {
+                return true;
+            }
+            var re = new RegExp("^[0-9]+$");
+            if (re.test(v)) return true;
+            return false;
+        }
+
+    </script>
+</body>
+</html>

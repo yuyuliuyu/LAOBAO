@@ -1,0 +1,157 @@
+package com.lingnet.hcm.entity.person;
+
+import java.util.Date;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+
+import com.lingnet.common.entity.BaseEntity;
+
+/**
+ * education entity. 
+ * @author MyEclipse Persistence Tools
+ * 教育经历
+ */
+@Entity
+@Table(name = "JC_EDUCATION_EXPERRIENCE", schema = "HCM")
+public class Education extends BaseEntity implements java.io.Serializable {
+
+	// Fields
+	private static final long serialVersionUID = 953907295867748889L;
+	private String jobNumber;//工号
+	private String school;//学校
+	private String profession;//专业
+	private String educationLever;//学历等级---0研究生，1本科，2专科，3中专，4技工学校，5高中，6初中，7小学，8文盲或半文盲
+	private String degree;//所得学位---0学士，1硕士，2博士，3名誉博士，4博士后
+	private Integer isAllday;//学习方式---0全日制，1在职
+	private String degreeType;//学位类别---0哲学，1经济学，2法学，3教育学，4文学，5历史学，6理学，7工学，8农学，9医学，10军事学，11管理学
+	private Integer highestDegree;//是否最高学位---1是，0否
+	private Integer highestEducation;//是否最高学历---1是，0否
+	private Date entranceDate;//入学时间
+	private Date graduateDate;//毕业时间
+	private String remark;//备注
+	private String status;//状态
+
+	// Property accessors
+	@Column(name = "JOB_NUMBER", length = 32)
+	public String getJobNumber() {
+		return this.jobNumber;
+	}
+
+	public void setJobNumber(String jobNumber) {
+		this.jobNumber = jobNumber;
+	}
+
+	@Column(name = "SCHOOL", length = 50)
+	public String getSchool() {
+		return this.school;
+	}
+
+	public void setSchool(String school) {
+		this.school = school;
+	}
+
+	@Column(name = "PROFESSION", length = 30)
+	public String getProfession() {
+		return this.profession;
+	}
+
+	public void setProfession(String profession) {
+		this.profession = profession;
+	}
+
+	@Column(name = "EDUCATION_LEVER", length = 20)
+	public String getEducationLever() {
+		return this.educationLever;
+	}
+
+	public void setEducationLever(String educationLever) {
+		this.educationLever = educationLever;
+	}
+
+	@Column(name = "DEGREE", length = 20)
+	public String getDegree() {
+		return this.degree;
+	}
+
+	public void setDegree(String degree) {
+		this.degree = degree;
+	}
+
+	@Column(name = "IS_ALLDAY")
+	public Integer getIsAllday() {
+		return this.isAllday;
+	}
+
+	public void setIsAllday(Integer isAllday) {
+		this.isAllday = isAllday;
+	}
+
+	@Column(name = "DEGREE_TYPE", length = 20)
+	public String getDegreeType() {
+		return this.degreeType;
+	}
+
+	public void setDegreeType(String degreeType) {
+		this.degreeType = degreeType;
+	}
+
+	@Column(name = "HIGHEST_DEGREE")
+	public Integer getHighestDegree() {
+		return this.highestDegree;
+	}
+
+	public void setHighestDegree(Integer highestDegree) {
+		this.highestDegree = highestDegree;
+	}
+
+	@Column(name = "HIGHEST_EDUCATION")
+	public Integer getHighestEducation() {
+		return this.highestEducation;
+	}
+
+	public void setHighestEducation(Integer highestEducation) {
+		this.highestEducation = highestEducation;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "ENTRANCE_DATE", length = 7)
+	public Date getEntranceDate() {
+		return this.entranceDate;
+	}
+
+	public void setEntranceDate(Date entranceDate) {
+		this.entranceDate = entranceDate;
+	}
+
+	@Temporal(TemporalType.DATE)
+	@Column(name = "GRADUATE_DATE", length = 7)
+	public Date getGraduateDate() {
+		return this.graduateDate;
+	}
+
+	public void setGraduateDate(Date graduateDate) {
+		this.graduateDate = graduateDate;
+	}
+
+	@Column(name = "REMARK", length = 50)
+	public String getRemark() {
+		return this.remark;
+	}
+
+	public void setRemark(String remark) {
+		this.remark = remark;
+	}
+	@Column(name = "STATUS", length = 1)
+	public String getStatus() {
+		return this.status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+}

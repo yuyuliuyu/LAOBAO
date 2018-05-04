@@ -1,0 +1,264 @@
+package com.lingnet.hcm.action.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.hibernate.criterion.Restrictions;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.entity.salary.SalaryFormula;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.hcm.entity.salary.SalaryWage;
+import com.lingnet.hcm.service.salary.FormulaService;
+import com.lingnet.hcm.service.salary.SalaryFormulaService;
+import com.lingnet.hcm.service.salary.SalaryItemsService;
+import com.lingnet.hcm.service.salary.SalaryWageService;
+import com.lingnet.util.JsonUtil;
+
+/**
+ * 公式
+ * @ClassName: SalaryFormulaAction 
+ * @Description: 公式
+ * @author zhanghj
+ * @date 2017年3月16日 下午4:54:37 
+ *
+ */
+public class SalaryFormulaAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private String wageId;// 工资套ID
+    private String itemId;// 薪资项目ID
+    private String wageName;// 工资套名称
+    private String salaryName;// 薪资项目名称
+    private String bindId;// 工资套与薪酬项目关联表ID
+    private int type;// 公式类别 1:工资套公式 2：薪资组工资套公式
+    private int readOnly;// 只读 0:可以编辑 1：只读
+    private SalaryFormula salaryFormula;
+    private List<Map<String, Object>> formulas;
+
+    @Resource(name="salaryWageService")
+    private SalaryWageService salaryWageService;
+    @Resource(name="salaryItemsService")
+    private SalaryItemsService salaryItemsService;
+    @Resource(name="salaryFormulaService")
+    private SalaryFormulaService salaryFormulaService;
+    @Resource(name="formulaService")
+    private FormulaService formulaService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        if (type == 1) {
+            SalaryWage salaryWage = salaryWageService.get(SalaryWage.class, Restrictions.eq("id", wageId));
+            if (salaryWage != null) wageName = salaryWage.getName();
+        } else {
+            SalaryGroupWage groupWage = salaryItemsService.get(SalaryGroupWage.class, Restrictions.eq("id", wageId));
+            if (groupWage != null) wageName = groupWage.getName();
+        }
+        SalaryItems salaryItems = salaryItemsService.get(SalaryItems.class, Restrictions.eq("id", itemId));
+        if (salaryItems != null) salaryName = salaryItems.getName();
+
+        // 公式
+        formulas = salaryFormulaService.getFormulasList(formdata, depId);
+
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        if (type == 1) {
+            SalaryWage salaryWage = salaryWageService.get(SalaryWage.class, Restrictions.eq("id", wageId));
+            if (salaryWage != null) wageName = salaryWage.getName();
+        } else {
+            SalaryGroupWage groupWage = salaryItemsService.get(SalaryGroupWage.class, Restrictions.eq("id", wageId));
+            if (groupWage != null) wageName = groupWage.getName();
+        }
+        SalaryItems salaryItems = salaryWageService.get(SalaryItems.class, Restrictions.eq("id", itemId));
+        if (salaryItems != null) salaryName = salaryItems.getName();
+        salaryFormula = salaryFormulaService.get(SalaryFormula.class, Restrictions.eq("id", id));
+
+        // 公式
+        formulas = salaryFormulaService.getFormulasList(formdata, depId);
+
+        return "add";
+    }
+
+    /**
+     * @Title: 全局公式展示页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String gs() {
+        return "gs";
+    }
+
+    /**
+     * @Title: 全局公式编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public String gsedit() {
+        return "gs";
+    }
+
+    /**
+     * @Title: 公式保存
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryFormulaService.saveOrUpdate(formdata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取工资套对应的公式
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getWageFormulaListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryFormulaService.getWageFormulaListData(bindId, pager)));
+    }
+
+    /**
+     * @Title: 删除公式 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove() {
+        return ajax(Status.success, salaryFormulaService.remove(ids));
+    }
+
+    /**
+     * @Title: 设置默认 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String saveDefault() {
+        return ajax(Status.success, salaryFormulaService.saveDefault(id));
+    }
+
+    /**
+     * @Title: 解析公式获取计算后的值
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getFormulaResult() {
+        return ajax(Status.success, JsonUtil.Encode(salaryFormulaService.getFormulaResult(data)));
+    }
+
+    public String getWageName() {
+        return wageName;
+    }
+
+    public void setWageName(String wageName) {
+        this.wageName = wageName;
+    }
+
+    public String getSalaryName() {
+        return salaryName;
+    }
+
+    public void setSalaryName(String salaryName) {
+        this.salaryName = salaryName;
+    }
+
+    public String getItemId() {
+        return itemId;
+    }
+
+    public void setItemId(String itemId) {
+        this.itemId = itemId;
+    }
+
+    public String getWageId() {
+        return wageId;
+    }
+
+    public void setWageId(String wageId) {
+        this.wageId = wageId;
+    }
+
+    public SalaryFormula getSalaryFormula() {
+        return salaryFormula;
+    }
+
+    public void setSalaryFormula(SalaryFormula salaryFormula) {
+        this.salaryFormula = salaryFormula;
+    }
+
+    public String getBindId() {
+        return bindId;
+    }
+
+    public void setBindId(String bindId) {
+        this.bindId = bindId;
+    }
+
+    public List<Map<String, Object>> getFormulas() {
+        return formulas;
+    }
+
+    public void setFormulas(List<Map<String, Object>> formulas) {
+        this.formulas = formulas;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public int getReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(int readOnly) {
+        this.readOnly = readOnly;
+    }
+
+}

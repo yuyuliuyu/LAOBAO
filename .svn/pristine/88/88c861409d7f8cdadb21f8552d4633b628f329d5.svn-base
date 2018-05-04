@@ -1,0 +1,211 @@
+package com.lingnet.hcm.service.impl.salary;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.criterion.Conjunction;
+import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.salary.SalaryWageDao;
+import com.lingnet.hcm.entity.salary.SalaryGroupWage;
+import com.lingnet.hcm.entity.salary.SalaryWage;
+import com.lingnet.hcm.entity.salary.SalaryWageAndType;
+import com.lingnet.hcm.service.salary.SalaryWageAndTypeService;
+import com.lingnet.hcm.service.salary.SalaryWageService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.Pager;
+
+/**
+ * 工资套
+ * @ClassName: SalaryWageServiceImpl 
+ * @Description: 工资套
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+@Service("salaryWageService")
+public class SalaryWageServiceImpl extends BaseServiceImpl<SalaryWage, String>
+              implements SalaryWageService {
+
+    @Resource(name="salaryWageAndTypeService")
+    private SalaryWageAndTypeService salaryWageAndTypeService;
+    @Resource(name="salaryWageDao")
+    private SalaryWageDao salaryWageDao;
+
+    @Override
+    public Map<String, Object> getSalaryWageListData(String companyId, String searchData, Pager pager) {
+        Conjunction and = Restrictions.conjunction();
+//        if (!StringUtils.isBlank(companyId)) {
+            and.add(Restrictions.in("companyId", companyId.split(",")));
+//        }
+        Map<String, String> map = JsonUtil.parseProperties(searchData);
+        if (map != null) {
+            // 工资套名称
+            if (!StringUtils.isBlank(map.get("name"))) {
+                and.add(Restrictions.like("name", map.get("name"), MatchMode.ANYWHERE));
+            }
+            // 工资套类型
+            if (!StringUtils.isBlank(map.get("sign"))) {
+                and.add(Restrictions.eq("sign", Integer.valueOf(map.get("sign"))));
+            }
+            // 生效日期
+            if (!StringUtils.isBlank(map.get("startTime"))) {
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy年MM月dd日 HH时mm分ss秒");
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(dateFormat.parse(map.get("startTime") + " 00时00分00秒"));
+                    and.add(Restrictions.ge("effectDate", cal.getTime()));
+                    cal.setTime(dateFormat.parse(map.get("startTime") + " 23时59分59秒"));
+                    and.add(Restrictions.le("effectDate", cal.getTime()));
+                } catch (ParseException e) {
+                }
+            }
+        }
+        pager = findPagerByOrder(SalaryWage.class, pager, Order.desc("createDate"), and, Restrictions.eq("isDelete", 0));
+        Map<String, Object> mm = new HashMap<String, Object>();
+        mm.put("data", pager.getResult());
+        mm.put("total", pager.getTotalCount());
+
+        return mm;
+    }
+
+    @Override
+    public Map<String, Object> getSalaryWageEffectListData(Pager pager) {
+        return salaryWageDao.getSalaryWageEffectListData(pager);
+    }
+
+    @Override
+    @Transactional(rollbackFor=Exception.class,propagation=Propagation.REQUIRED)
+    public String saveOrUpdate(String formdata, String gridData) throws Exception {
+        SalaryWage salaryWage = JsonUtil.toObject(formdata, SalaryWage.class);
+        if (salaryWage != null) {
+            String id ="";
+            if (StringUtils.isBlank(salaryWage.getId())) {
+                salaryWage.setIsDelete(0);
+                id = save(salaryWage);
+                if (StringUtils.isBlank(id)) {
+                    throw new Exception("保存失败");
+                }
+            } else {
+                SalaryWage newsal = get(SalaryWage.class, Restrictions.eq("id", salaryWage.getId()), Restrictions.eq("isDelete", 0));
+                if (newsal == null) {
+                    return "该工资套不存在";
+                }
+
+                // 工资套是否被薪资组工资套引用，薪资组工资套是否在工资分配中
+                String checkResult = checkWageStatus(newsal.getId());
+                if (!checkResult.equals("success")) {
+                    return checkResult;
+                }
+                salaryWage.setIsDelete(0);
+                newsal.copyFrom(salaryWage);
+                update(newsal);
+                id = newsal.getId();
+            }
+            List<Map<String, String>> list = JsonUtil.getMapList(gridData);
+            for (int i =0, l = list.size(); i < l; i++) {
+                Map<String, String> m = list.get(i);
+                SalaryWageAndType bean = JsonUtil.toObject(JsonUtil.Encode(m), SalaryWageAndType.class);
+                bean.setWageId(id);
+                bean.setItemId(m.get("itemId"));
+                if ("removed".equals(m.get("_state"))) {
+                    SalaryWageAndType itemAndType = get(SalaryWageAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("wageId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.setIsDelete(1);
+                        salaryWageAndTypeService.update(itemAndType);
+                    }
+                } else if ("modified".equals(m.get("_state"))) {
+                    SalaryWageAndType itemAndType = get(SalaryWageAndType.class,
+                            Restrictions.eq("id", m.get("id")), Restrictions.eq("wageId", id), Restrictions.eq("isDelete", 0));
+                    if (itemAndType != null) {
+                        itemAndType.copyFrom(bean);
+                        salaryWageAndTypeService.update(itemAndType);
+                    } else throw new Exception("发生异常");
+                } else if ("added".equals(m.get("_state"))) {
+                    bean.setIsDelete(0);
+                    String result = salaryWageAndTypeService.save(bean);
+                    if (StringUtils.isBlank(result))
+                        throw new Exception("保存失败");
+                }
+            }
+        } else {
+            return "信息不能为空";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String checkWageStatus(String salaryWageId) {
+        List<SalaryGroupWage> list = getList(SalaryGroupWage.class, Restrictions.eq("salaryWageId", salaryWageId), Restrictions.eq("isDelete", 0));
+        if (list.size() > 0) {
+            return "该工资套被引用";
+        }
+
+        return "success";
+    }
+
+    @Override
+    public String remove(String ids) {
+        String[] idArray = ids.split(",");
+        for (int i = 0, l = idArray.length; i < l; i++) {
+            SalaryWage salaryWage = get(SalaryWage.class, Restrictions.eq("id", idArray[i]), Restrictions.eq("isDelete", 0));
+            if (salaryWage != null) {
+                // 工资套是否被薪资组工资套引用，薪资组工资套是否在工资分配中
+                String checkResult = checkWageStatus(salaryWage.getId());
+                if (!checkResult.equals("success")) {
+                    return salaryWage.getName() + "工资套被引用，不能删除";
+                }
+                salaryWage.setIsDelete(1);
+                this.update(salaryWage);
+            } else {
+                return "第"+(i+1)+"条记录不存在";
+            }
+        }
+
+        return "success";
+    }
+
+    @Override
+    public Map<String, Object> getWageSalaryListData(String id) {
+        return salaryWageDao.getWageTypeListData(id);
+    }
+
+    @Override
+    public String getItemsCompanys(String companyId, String userId) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("   SELECT B.ID, B.FZX                                   ");
+        sql.append("   FROM BRANCH B                                        ");
+        sql.append("   INNER JOIN QX_USER_DATAUTH UD                        ");
+        sql.append("   ON UD.BRANCH_DEP =B.ID                               ");
+        sql.append("   AND UD.FLG ='0'                                      ");
+        sql.append("   AND UD.USERID = '"+userId+"'   ");
+        sql.append("   WHERE B.IS_DELETE =0                                 ");
+        sql.append("   START WITH B.ID ='"+companyId+"'  ");
+        sql.append("   CONNECT BY PRIOR B.PID=B.ID                          ");
+
+        List<?> list = findBySql(sql.toString());
+        String companys = "";
+        for (int i=1, l = list.size(); i < l; i++) {
+            Object[] obj = (Object[]) list.get(i);
+            companys += obj[0] + ",";
+        }
+
+        return companys + companyId;
+    }
+
+}

@@ -1,0 +1,55 @@
+package com.lingnet.hcm.dao.salary;
+
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.salary.SalaryAssignation;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬分配过程
+ * @ClassName: SalaryAssignationDao 
+ * @Description: 薪酬分配过程 
+ * @author zhanghj
+ * @date 2017年5月10日 上午9:58:28 
+ *
+ */
+public interface SalaryAssignationDao extends BaseDao<SalaryAssignation, String>{
+
+    /**
+     * @Title: 获取分配过程
+     * @param id
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public Map<String, Object> getSalaryAssignationListData(String id,
+            String searchData, Pager pager);
+
+    /**
+     * @Title: 获取指定薪资组工资套下的人员和薪资项目信息
+     * @param groupId 薪资组
+     * @param wageId 工资套
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public List<Map<String, Object>> getNeedAssignationData(String groupId, String wageId);
+
+    /**
+     * @Title: 获取已经分配的员工薪资项目数据
+     * @param id
+     * @param searchData
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年5月10日 V 1.0
+     */
+    public List<Map<String, Object>> getAssignationForStaffData(String id, String searchData);
+
+}

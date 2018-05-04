@@ -1,0 +1,145 @@
+package com.lingnet.hcm.action.salary;
+
+import javax.annotation.Resource;
+
+import com.lingnet.common.action.BaseAction;
+import com.lingnet.hcm.service.salary.SalaryTotalAmountService;
+import com.lingnet.util.JsonUtil;
+import com.lingnet.util.LingUtil;
+
+/**
+ * 分配总量
+ * @ClassName: SalaryAmountAction 
+ * @Description: TODO 
+ * @author zhanghj
+ * @date 2017年5月17日 上午8:27:54 
+ *
+ */
+public class SalaryAmountAction extends BaseAction {
+
+    private static final long serialVersionUID = 8601228601683546158L;
+    private String period;// 薪酬期间
+    private String companyId;// 公司ID
+    private String fpqx;// 分配权限
+
+    @Resource(name="salaryTotalAmountService")
+    private SalaryTotalAmountService salaryTotalAmountService;
+
+    /**
+     * @Title: 列表展现页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String list() {
+        companyId = LingUtil.userinfo().getCid();
+        return "list";
+    }
+
+    /**
+     * @Title: 列表增加页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String add() {
+        return "add";
+    }
+
+    /**
+     * @Title: 列表编辑页 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月6日 V 1.0
+     */
+    public String edit() {
+        return "add";
+    }
+
+    /**
+     * @Title: 总量详细页面
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年5月18日 V 1.0
+     */
+    public String jsonlist() {
+        return "jsonlist";
+    }
+
+    /**
+     * @Title: 分配总量保存更新
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月13日 V 1.0
+     */
+    public String saveOrUpdate() {
+        try {
+            return ajax(Status.success, salaryTotalAmountService.saveOrUpdate(period, fpqx, griddata));
+        } catch (Exception e) {
+            return ajax(Status.error, e.getMessage());
+        }
+    }
+
+    /**
+     * @Title: 获取总量数据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getAmountListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryTotalAmountService.getAmountListData(companyId, searchData, pager)));
+    }
+
+    /**
+     * @Title: 获取薪酬期间总量数据
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月30日 V 1.0
+     */
+    public String getAmountForPeriodListData() {
+        return ajax(Status.success, JsonUtil.Encode(salaryTotalAmountService.getAmountForPeriodListData(period, companyId, pager)));
+    }
+
+    /**
+     * @Title: 二次分配总量不通过
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年6月3日 V 1.0
+     */
+    public String updateUnCheck() {
+        return ajax(Status.success, salaryTotalAmountService.updateUnCheck(period, companyId));
+    }
+
+    public String getPeriod() {
+        return period;
+    }
+
+    public void setPeriod(String period) {
+        this.period = period;
+    }
+
+    public String getFpqx() {
+        return fpqx;
+    }
+
+    public void setFpqx(String fpqx) {
+        this.fpqx = fpqx;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
+
+}

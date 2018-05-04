@@ -1,0 +1,262 @@
+<%@ page language="java" import="java.util.*" pageEncoding="UTF-8"%>
+<%
+    String path = request.getContextPath();
+    String basePath = request.getScheme() + "://"
+            + request.getServerName() + ":" + request.getServerPort()
+            + path + "/";
+    pageContext.setAttribute("base", basePath);
+%>
+<%@ taglib uri="/WEB-INF/tld/security.tld" prefix="sec"%>
+<%@ taglib uri="/struts-tags" prefix="s"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>考勤数据审核信息</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="../template/miniui/boot.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="../template/system/css/base.css" type="text/css"></link>
+    <link href="../template/miniui/themes/other/skin.css" rel="stylesheet" type="text/css" />
+    <style type="text/css">
+    body {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    </style>
+</head>
+<body>
+	<div class="mini-toolbar" style="padding:0px;border-top:0;border-left:0;">
+		<input type="hidden" id="id" name="id" value=""/>
+        <table style="width:100%;">
+            <tr>
+                <td style="width:220px;padding-left:20px;">单位：
+                    <input id="company" class="mini-combobox" style="width:170px;" textField="name" valueField="id" 
+				        onvaluechanged="onCompanyChanged" url="../basis/branch!getBranchappList.action" popupWidth="auto"
+				        showNullItem="false"/> 
+                </td>
+                <td style="width:220px;padding-left:20px;">部门：
+                    <input id="department" class="mini-combobox" popupWidth="auto" style="width:170px;" textField="name" valueField="id" showNullItem="false"/>
+                </td>
+                <td style="width:230px;padding-left:20px;">年月份:
+					<input class="mini-textbox" id="yearMonth" name="czUser" emptyText="请输入年月份，如：1702" style="width:170px;"/>
+				</td>
+                <td style="white-space:nowrap;">
+                    <a id="searchButton" class="mini-button" iconCls="icon-search" onclick="searchInfo()" onenter="onKeyEnter">查询</a>
+                </td>
+                  <td style="width:50px;" align="right">状态：</td>
+		        <td id="auditStatus" style="font-weight:bold;width:200px;"></td>  
+            </tr>
+        </table>
+    </div>
+	<div class="mini-toolbar" style="border-left:0;padding:0px;">
+		<input type="hidden" id="days" name="days" value="" />
+		<table style="width:100%;">
+			<tr>
+				<td>
+					<a class="mini-button" iconCls="icon-zoomin" onclick="view()">查看</a> 
+					<a class="mini-button" iconCls="icon-edit" onclick="audit()">部门审核</a>
+				</td>
+			</tr>
+		</table>
+	</div>
+    <div class="mini-fit">
+        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+             url="../check/audit_infos!getData.action" idField="id" multiSelect="true" 
+             allowAlternating="true" pageSize="20" >
+            <div property="columns">
+            	<div type="checkcolumn"></div>
+                <div type="indexcolumn" width="50" headerAlign="center">序列</div>
+                <div field="deptall" id="deptall" name="deptall" width="120" headerAlign="center" allowSort="true">deptinfo</div>
+                <div field="empId" id="empId" name="empId" width="120" headerAlign="center" allowSort="true">id</div>
+                <div field="className" id="className" name="className" width="80" headerAlign="center" align="center">班组</div>
+                <div field="jobNumber" id="jobNumber" name="jobNumber" width="80" headerAlign="center" align="center">职工号</div>
+                <div field="name" id="name" name="name" width="80" headerAlign="center" align="center" >姓名</div>
+                <div field="post" id="post" name="post" width="80" headerAlign="center" align="center" >岗位</div>
+                <div field="onPost" id="onPost" name="onPost" width="80" headerAlign="center" align="center" >状态</div>
+                <div field="isMonitor" id="isMonitor" name="isMonitor" width="80" headerAlign="center" align="center" >是否班长</div>
+		                <div field="day1" id="day1" name="day1" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">1</div>
+		                <div field="day2" id="day2" name="day2" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">2</div>
+		                <div field="day3" id="day3" name="day3" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">3</div>
+		                <div field="day4" id="day4" name="day4" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">4</div>
+		                <div field="day5" id="day5" name="day5" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">5</div>
+		                <div field="day6" id="day6" name="day6" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">6</div>
+		                <div field="day7" id="day7" name="day7" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">7</div>
+		                <div field="day8" id="day8" name="day8" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">8</div>
+		                <div field="day9" id="day9" name="day9" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">9</div>
+		                <div field="day10" id="day10" name="day10" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">10</div>
+		                <div field="day11" id="day11" name="day11" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">11</div>
+		                <div field="day12" id="day12" name="day12" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">12</div>
+		                <div field="day13" id="day13" name="day13" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">13</div>
+		                <div field="day14" id="day14" name="day14" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">14</div>
+		                <div field="day15" id="day15" name="day15" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">15</div>
+		                <div field="day16" id="day16" name="day16" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">16</div>
+		                <div field="day17" id="day17" name="day17" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">17</div>
+		                <div field="day18" id="day18" name="day18" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">18</div>
+		                <div field="day19" id="day19" name="day19" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">19</div>
+		                <div field="day20" id="day20" name="day20" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">20</div>
+		                <div field="day21" id="day21" name="day21" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">21</div>
+		                <div field="day22" id="day22" name="day22" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">22</div>
+		                <div field="day23" id="day23" name="day23" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">23</div>
+		                <div field="day24" id="day24" name="day24" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">24</div>
+		                <div field="day25" id="day25" name="day25" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">25</div>
+		                <div field="day26" id="day26" name="day26" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">26</div>
+		                <div field="day27" id="day27" name="day27" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">27</div>
+		                <div field="day28" id="day28" name="day28" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">28</div>
+		                <div field="day29" id="day29" name="day29" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">29</div>
+		                <div field="day30" id="day30" name="day30" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">30</div>
+		                <div field="day31" id="day31" name="day31" width="50" headerAlign="center" align="center" renderer="onTimeFlagRenderer">31</div>
+                <div field="remark" id="remark" name="remark" width="200" headerAlign="center" align="left" >备注</div>
+            </div>
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        mini.parse();
+        
+        var grid=mini.get("grid");
+        grid.hideColumn("empId");
+        grid.hideColumn("deptall");
+        grid.hideColumn("onPost");
+        grid.hideColumn("isMonitor");
+        grid.load();
+        //联动查询
+        var company = mini.get("company");
+        var department = mini.get("department");
+		
+        function onCompanyChanged(e) {
+            var companyId = company.getValue();
+            department.setValue("");
+            var url = "../depart/backend_dep!getDepList.action?branchId=" + companyId
+            department.setUrl(url);
+            department.select(0);
+        }
+
+        function onTimeFlagRenderer(e) {
+        	if (e.value != null){
+        		if(e.value.indexOf("red") >= 0){
+	 		   		return '<font ></font><span style="color:red;font-weight:bold;">'+e.value.substring(0, e.value.indexOf("red"))+'</span>';
+	 		    } else if(e.value.indexOf("blue") >= 0){
+	 		   		return '<font ></font><span style="color:blue;font-weight:bold;">'+e.value.substring(0, e.value.indexOf("blue"))+'</span>';
+	 		    }else{
+	 		    	return e.value;
+	 		    }
+        	} else {
+        		return "";
+        	}
+        }
+        //查询
+        function searchInfo(){
+        	var comId = mini.get("company").getValue();
+        	var depId = mini.get("department").getValue();
+        	var yearMonth = mini.get("yearMonth").getValue();
+        	if (comId == ""){
+        		mini.alert("请选择单位！");
+        		return;
+        	}
+        	if (yearMonth == ""){
+        		mini.alert("请输入年月份！");
+        		return;
+        	}
+        	//查询审核状态
+        	$.ajax({
+				url : "../check/audit_infos!getAuditStatusByCond.action?companyId="+comId+"&depId="+depId+"&yearMonth="+yearMonth,
+				type : "post",
+				success : function(data) {
+					var text = JSON.parse(data);//json串转json对象
+					$("#id").val(text.id);
+					$("#auditStatus").text(text.auditStatus);
+					if (text.auditStatus == "待审核"){
+						$("#auditStatus").css("color", "blue");
+					} else if (text.auditStatus == "审核通过"){
+						$("#auditStatus").css("color", "green");
+					} else if (text.auditStatus == "审核不通过"){
+						$("#auditStatus").css("color", "red");
+					}
+					$("#days").val(text.days);
+					var monthDays = text.days;
+					if(monthDays == 28){
+			    		grid.hideColumn("day29");
+			    		grid.hideColumn("day30");
+			    		grid.hideColumn("day31");
+			    	} else if (monthDays == 29){
+			    		grid.hideColumn("day30");
+			    		grid.hideColumn("day31");
+			    	} else if (monthDays == 30){
+			    		grid.hideColumn("day31");
+			    	}
+				}
+			});
+			//刷新页面数据
+        	grid.load({ searchData:"{\"companyId\":\""+comId+"\",\"depId\":\""+depId+"\",\"yearMonth\":\""+yearMonth+"\"}" });
+        }
+        
+        //操作
+	    function onActionRenderer(e) {
+            var record = e.record;
+            var uid = record.id;
+            var s = '';
+            s = s + '&nbsp; &nbsp' + '<a class="Edit_Button" href="javascript:view(\'' + uid + '\')">查看</a>'; 
+            return s;
+        }
+        
+        //查看
+        function view() {
+        	var rows = grid.getSelecteds();
+			var row = grid.getSelected();
+			if (rows.length <= 0){
+				mini.alert("请选择一条记录！");
+			} else if (rows.length > 1){
+				mini.alert("只能选择一条记录！");
+			} else {
+				var days = $("#days").val();
+				var yearMonth = mini.get("yearMonth").getValue();
+	        	mini.open({
+						url : "../check/audit_infos!view.action?id="+row.empId+"&monthDays="+days+"&yearMonth="+yearMonth,
+						title : "查看考勤信息",
+						width : 1500,
+						height : 530,
+						/* allowResize:false, */
+						onload : function() {
+						},
+						ondestroy : function(action) {
+							//刷新页面
+							window.location.reload();
+						}
+					});
+			}
+        }
+        
+        //审核
+	    function audit(){ 
+        	grid.selectAll(true);
+			var rows = grid.getSelecteds();
+			var yearMonth = mini.get("yearMonth");
+			if (yearMonth.getValue() == "") {
+				mini.alert("请输入审核年月");
+				return;
+			}
+			if (rows.length >= 1) {  
+			mini.open({
+					url : "../check/audit_infos!showApprove.action?id="+ rows[0].deptall+"&yearMonth="+mini.get("yearMonth").getValue(),
+					title : "填写审核意见",
+					width : 750,
+					height : 410,
+					allowResize : false,
+					onload : function() {
+					},
+					ondestroy : function(action) {
+						//刷新页面
+						$("#searchButton").click();
+						$("#id").val("");
+					}
+				});
+			}else{
+				alert("请选中一条记录后，再进行操作");
+			}
+	    }
+    </script>
+</body>
+</html>

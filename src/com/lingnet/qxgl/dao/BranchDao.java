@@ -1,0 +1,25 @@
+package com.lingnet.qxgl.dao;
+
+import java.util.HashMap;
+import java.util.List;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.qxgl.entity.Branch;
+
+public interface BranchDao extends BaseDao<Branch, String>{
+
+
+    /**
+     * 
+     * @Title: findHistortData 
+     * @param flg  1部门 2公司
+     * @return 
+     * List<HashMap> 
+     * @author duanjj
+     * @since 2017年4月12日 V 1.0
+     */
+    @SuppressWarnings("rawtypes")
+    public List<HashMap> findHistortData(String flg,String deptid);
+
+
+}

@@ -1,0 +1,237 @@
+package com.lingnet.hcm.service.salary;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.lingnet.common.service.BaseService;
+import com.lingnet.hcm.entity.salary.SalaryItems;
+import com.lingnet.util.Pager;
+
+/**
+ * 薪酬项目
+ * @ClassName: SalaryItemsService 
+ * @Description: 薪酬项目
+ * @author zhanghj
+ * @date 2017年3月21日 下午2:46:24 
+ *
+ */
+public interface SalaryItemsService extends BaseService<SalaryItems, String> {
+
+    /**
+     * @Title: 获取薪酬类别 
+     * @param depId
+     * @return 
+     * List<SalaryItems> 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String getItemsTypeListData(String depId);
+
+    /**
+     * @Title: 保存或者修改薪酬类别 
+     * @param formdata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年3月24日 V 1.0
+     */
+    public String saveOrUpdate(String formdata) throws Exception;
+
+    /**
+     * @Title: 获取薪资项目 
+     * @param depId
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public Map<String, Object> getSalaryItemListData(String depId, String id, String searchData, Pager pager);
+
+    /**
+     * @Title: 删除薪资类别 
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月24日 V 1.0
+     */
+    public String remove(String id);
+
+    /**
+     * @Title: 保存薪资项目 
+     * @param formdata
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年3月27日 V 1.0
+     */
+    public String saveOrUpdateItems(String formdata, String griddata) throws Exception;
+
+    /**
+     * @Title: 薪资项目对应的薪资类别  
+     * @param id
+     * @return 
+     * HashMap<String,Object> 
+     * @author zhanghj
+     * @since 2017年3月28日 V 1.0
+     */
+    public List<HashMap<String, Object>> getSalaryItemAndTypeListData(String id);
+
+    /**
+     * @Title: 删除薪资项目
+     * @param ids
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月28日 V 1.0
+     */
+    public String removeSlaryItems(String ids);
+
+    /**
+     * @Title: 根据类型获取不同的薪资项目 
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年3月31日 V 1.0
+     */
+    public List<Map<String, Object>> getSalaryItemToTypeData(int type);
+
+    /**
+     * @Title: 获取薪资类别下的薪资项目 
+     * @param depId
+     * @param id
+     * @param searchData
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年4月6日 V 1.0
+     */
+    public Map<String, Object> getSalaryItemListDatas(String depId, String id,
+            String searchData, Pager pager);
+
+    /**
+     * @Title: 获取需要分配薪资组的个人信息  
+     * @param ids
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月10日 V 1.0
+     */
+    public List<Map<String, Object>> getPersonalToAllocationListData(String ids);
+
+    /**
+     * @Title: 个人薪资组分配保存 
+     * @param formdata
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月10日 V 1.0
+     */
+    public String saveOrUpdateToPersonal(String formdata, String griddata) throws Exception;
+
+    /**
+     * @Title: 获取个人薪资组 
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String getPersonalGroupListData(String griddata);
+
+    /**
+     * @Title: 注销个人薪资组 
+     * @param griddata
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年4月11日 V 1.0
+     */
+    public String savePersonalGroupListData(String ids) throws Exception;
+
+    /**
+     * @Title: 删除个人薪资组 
+     * @param ids
+     * @param personalIds
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年4月11日 V 1.0
+     */
+    public String removePersonalGroupListData(String ids, String personalIds);
+
+    /**
+     * @Title: 获取此薪资组工资套中的薪资项目 
+     * @param id
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年4月15日 V 1.0
+     */
+    public List<Map<String, Object>> getSalaryGroupItems(String id);
+
+    /**
+     * @Title: 获取有权限的薪资项目和集团统一管控的数据
+     * @param depId
+     * @param searchData
+     * @param pager
+     * @return 
+     * Map<String,Object> 
+     * @author zhanghj
+     * @since 2017年6月21日 V 1.0
+     */
+    public Map<String, Object> getSalaryItemGKListData(String depId, String searchData,
+            Pager pager);
+
+    /**
+     * @Title: 导出薪资项目Excel
+     * @param depId
+     * @param searchData 
+     * void 
+     * @author zhanghj
+     * @since 2017年6月21日 V 1.0
+     */
+    public void export(String depId, String searchData);
+
+    /**
+     * @Title: 根据项目类型获取不同的薪资项目 
+     * @param type
+     * @return 
+     * List<Map<String,Object>> 
+     * @author zhanghj
+     * @since 2017年6月22日 V 1.0
+     */
+    public List<Map<String, Object>> getSalaryItemToItemTypeData();
+
+    /**
+     * @Title: 复制薪资项目
+     * @param id
+     * @return 
+     * String 
+     * @author zhanghj
+     * @since 2017年7月1日 V 1.0
+     */
+    public String copyItems(String id, String name);
+
+    /**
+     * @Title: 导入薪资项目
+     * @param companyId
+     * @param endSuffix
+     * @param uploadFile
+     * @return 
+     * String 
+     * @author zhanghj
+     * @throws Exception 
+     * @since 2017年7月1日 V 1.0
+     */
+    public String uploadItems(String companyId, String endSuffix, File uploadFile) throws Exception;
+
+}

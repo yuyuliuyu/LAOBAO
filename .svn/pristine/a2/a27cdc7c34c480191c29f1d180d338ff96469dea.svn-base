@@ -1,0 +1,17 @@
+package com.lingnet.qxgl.dao;
+
+import com.lingnet.common.dao.BaseDao;
+import com.lingnet.hcm.entity.WorkFlowChild;
+/**
+ * 
+ * @ClassName: WorkFlowChildDao 
+ * @Description: 工作流节点Dao 
+ * @author wangqiang
+ * @date 2017年5月3日 上午11:17:20 
+ *
+ */
+public interface WorkFlowChildDao extends BaseDao<WorkFlowChild, String>{
+
+    public Integer findmaxbypid(String pid);
+	
+}
