@@ -25,12 +25,7 @@
         <form id="uploaders" method="post" action="../laobao/wupin_input!importSave.action"
             enctype="multipart/form-data" encoding="multipart/form-data" target="appFrame">
             <table style="width:100%;height:100%">
-<!--                 <tr>
-                    <td class="list_left_box1" valign="top">导入模板下载：</td>
-                    <td class="list_right_box">
-                        <a href="../personnel/personnel_upload!download.action" style="color:blue; text-decoration: underline;">人员基本信息模板.xls</a>	
-                    </td>
-                </tr> -->
+
                 <tr>
                     <td class="list_left_box1" valign="top" width="32%">请选择上传文件：</td>
                     <td class="list_right_box">
