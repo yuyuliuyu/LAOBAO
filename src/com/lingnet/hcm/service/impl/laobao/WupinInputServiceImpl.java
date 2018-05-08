@@ -21,21 +21,75 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import com.lingnet.common.service.impl.BaseServiceImpl;
+import com.lingnet.hcm.dao.laobao.WupinhistoryDao;
+import com.lingnet.hcm.dao.laobao.WupininputDao;
 import com.lingnet.hcm.entity.laobao.Phone;
 import com.lingnet.hcm.entity.person.BasicInformation;
 import com.lingnet.hcm.service.laobao.WupinInputService;
 import com.lingnet.qxgl.entity.QxUsers;
 import com.lingnet.util.ExcelUtil;
+import com.lingnet.util.JsonUtil;
 import com.lingnet.util.Pager;
 
 
-@Service("qhjgService")
+
+
+@Service("wupinInputService")
 public class WupinInputServiceImpl extends BaseServiceImpl<Phone, String> implements
 WupinInputService {
-	@Resource(name="transactionManager")  
-    private HibernateTransactionManager transactionManager; 
+	
+	
+	@Resource(name="wupininputDao")
+	private WupininputDao wupininputDao;
 
+	
+	
+	
+	//人员基本信息list页面
+	@SuppressWarnings({ "rawtypes" })
+	@Override
+	public HashMap getPersonByDepId(Pager pager, String searchData,String ids) {
+																																			
+		return wupininputDao.getPersonByDepId(pager, searchData,ids);
+	}
+/*	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
+	public List<HashMap> getListData(Pager pager) {
 
+		SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd");
+		pager = this.findPager(Phone.class, pager);
+
+		List<HashMap> data = ReflectionUtil.getMapList(pager.getResult());
+		List<HashMap> mapData = new ArrayList<HashMap>();
+
+		for (HashMap map : data) {
+			map.put("jgrq", sdf1.format(map.get("jgrq")));
+			map.put("createdate", map.get("createdate"));
+
+			if ("0".equals(map.get("jgzt"))) {
+				map.put("jgzt", "未确认");
+			} else {
+				map.put("jgzt", "已确认");
+			}
+
+			Customer customer = customerDao.get(Restrictions.eq("id",
+					map.get("mckh")));
+			map.put("mckh",
+					customer == null ? "" : customer.getCustomerShortname());
+			Customer customer1 = customerDao.get(Restrictions.eq("id",
+					map.get("mrkh")));
+			map.put("mrkh",
+					customer1 == null ? "" : customer1.getCustomerShortname());
+			StorageLocation storageLocation = storageLocationDao
+					.get(Restrictions.eq("id", map.get("cw")));
+			map.put("cw",
+					storageLocation == null ? "" : storageLocation
+							.getPositionName());
+
+			mapData.add(map);
+		}
+		return mapData;
+	}*/
 
 	
 	@Override
@@ -450,6 +504,12 @@ WupinInputService {
 	@Override
 	public Pager findPagerByOrders(Class<?> clazz, Pager pager, Order[] orders,
 			Criterion... criterions) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<HashMap> getListData(Pager pager) {
 		// TODO Auto-generated method stub
 		return null;
 	}

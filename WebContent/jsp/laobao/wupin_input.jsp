@@ -81,20 +81,23 @@
 		    </div> 
 
 		    <div class="mini-fit">
+<%-- 		    <div id="grid" class="mini-datagrid" style="width:100%;height:100%;" 
+					url="../laobao/wupin_input!getListData.action?ckId=${ckId }"  idField="id"
+					allowAlternating="true"  pageSize="10"	multiSelect="true" > --%>
 		        <div id="grid" class="mini-datagrid" style="width:100%;height:100%;"
-		            url="../laobao/wu_pin_history!getPersonData.action" idField="id"
-		            multiSelect="true" allowAlternating="true" pageSize="20">
+		            url="../laobao/wupin_input!getPersonData.action" idField="id"
+		            multiSelect="true" allowAlternating="true" pageSize="20"> 
 		
 		            <div property="columns">
 		
 		                <div type="checkcolumn"></div>
 		                <div type="indexcolumn" headerAlign="center">序列</div>
-		                <div field="id" id="id" width="80" name="id" headerAlign="center" align="center" class="mini-hidden">职工号</div>
+		               <div field="id" id="id" width="80" name="id" headerAlign="center" align="center" class="mini-hidden">职工号</div>
 		             <div field="department" id ="department" name = "department"width="100" headerAlign="center" align="left">部门名称</div>
 		                <div field="postname" width="100" headerAlign="center" align="left">岗位名称</div>
 		                <div field="username" id="username" name="username" width="100" headerAlign="center" align="left">使用人</div>
 		                 <div field="phonenumber" id="phonenumber" name="phonenumber" width="100" headerAlign="center" align="left">电话号码</div>
-		                <div field="type" id="ggxh" name="ggxh" width="100" headerAlign="center" align="left">类别</div>
+		                <div field="type" id="type" name="type" width="100" headerAlign="center" align="left">类别</div>
 <!-- 		                <div field="jldw" id="jldw" name="jldw" width="100" headerAlign="center" align="left">计量单位</div>
 		                <div field="gys" id="gys" name="gys" width="100" headerAlign="center" align="left">供应商</div>
 		                <div field="createdate" width="100" headerAlign="center" align="left"dateFormat="yyyy-MM-dd HH:mm:ss"  renderer="ondayRenderer2">创建时间</div>

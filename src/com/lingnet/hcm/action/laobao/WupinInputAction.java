@@ -1,6 +1,8 @@
 package com.lingnet.hcm.action.laobao;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.annotation.Resource;
 
@@ -15,8 +17,9 @@ import com.lingnet.hcm.entity.laobao.Phone;
 
 import com.lingnet.hcm.service.laobao.WupinInputService;
 import com.lingnet.hcm.service.personnel.PersonnelUploadService;
+import com.lingnet.util.JsonUtil;
 
-@Controller
+
 public class WupinInputAction extends BaseAction {
 	
 	
@@ -31,6 +34,19 @@ public class WupinInputAction extends BaseAction {
     public String upload(){
         return "upload";
     }
+	// 列表查询
+	@SuppressWarnings({ "rawtypes" })
+	public String getListData() {
+		List<HashMap> data = wupinInputService.getListData(pager);
+		return ajax(Status.success, JsonUtil.Encode(data));
+	}
+	// 获取人员list列表数据
+	public String getPersonData() {
+		String josn = JsonUtil.Encode(wupinInputService.getPersonByDepId(
+				pager, searchData,ids));
+		System.out.println(pager + "    " + searchData);
+		return ajax(Status.success, josn);
+	}
  /*   *//**
      * 导入人员基本信息
      * @Title: importSave 
@@ -38,7 +54,7 @@ public class WupinInputAction extends BaseAction {
      * @author  
      * @since 2017年3月24日 V 1.0
      */
-  /*  public String importSave2() {
+  public String importSave() {
         MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this.getRequest();
         // 获取上传文件的名字
         String[] fileName = wrapper.getFileNames("uploadFile");
@@ -52,7 +68,7 @@ public class WupinInputAction extends BaseAction {
                 return ajax(Status.success, "请选择正确的文件类型，必须是以.xls或.xlsx结尾！");
         }
         try {
-            String message = wupinInputService.saveImportInfos2(endSuffix, uploadFile);
+            String message = wupinInputService.saveImportInfos(endSuffix, uploadFile);
             String msg = "";
             if (message.indexOf("@") == 0) {
                 msg = message.substring(1, message.length());
@@ -67,8 +83,8 @@ public class WupinInputAction extends BaseAction {
             ServletActionContext.getRequest().getSession().setAttribute("_repeatItem", message);
             return ajax(Status.error, e.getMessage());
         }
-    }*/
-	public String importSave() {
+    }
+/*	public String importSave() {
 		MultiPartRequestWrapper wrapper = (MultiPartRequestWrapper) this
 				.getRequest();
 		// 获取上传文件的名字
@@ -102,7 +118,7 @@ public class WupinInputAction extends BaseAction {
 					.setAttribute("_repeatItem", message);
 			return ajax(Status.error, e.getMessage());
 		}
-	}
+	}*/
 	public Phone getInfo() {
 		return info;
 	}
